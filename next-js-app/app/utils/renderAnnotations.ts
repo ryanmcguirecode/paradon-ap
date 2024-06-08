@@ -1,0 +1,66 @@
+import { PDFDocument, rgb } from "pdf-lib";
+import Document from "@/components/Document";
+import Field from "@/components/Field";
+
+function convertToInches(coordinates: number[]) {
+  return coordinates.map((coord) => coord * 72);
+}
+
+function reflectY(coordinates: number[], pageHeight: number) {
+  const newCoordinates = [...coordinates];
+  newCoordinates[2] = pageHeight - coordinates[2];
+  newCoordinates[3] = pageHeight - coordinates[3];
+  return newCoordinates;
+}
+
+function addPadding(coordinates: number[]) {
+  return [
+    coordinates[0] - 3,
+    coordinates[1] + 3,
+    coordinates[2] - 3,
+    coordinates[3] + 3,
+  ];
+}
+
+export default function renderAnnotations(
+  pdf: PDFDocument,
+  document: Document,
+  fields: Field[]
+) {
+  if (!pdf || !document || !fields) {
+    return;
+  }
+
+  for (const field of fields) {
+    let coordinates = (document as any)[field.databaseId + "Coordinates"];
+    let page = (document as any)[field.databaseId + "Page"];
+    if (!coordinates || !page) {
+      continue;
+    }
+    page = page - 1;
+
+    const pages = pdf.getPages();
+    coordinates = reflectY(
+      addPadding(convertToInches(coordinates)),
+      pages[page].getHeight()
+    );
+
+    const x = coordinates[0];
+    const y = coordinates[2];
+    const width = coordinates[1] - x;
+    const height = coordinates[3] - y;
+
+    pages[page].drawRectangle({
+      x: x,
+      y: y,
+      width: width,
+      height: height,
+      color: rgb(
+        field.color[0] / 255,
+        field.color[1] / 255,
+        field.color[2] / 255
+      ),
+      opacity: 0.45,
+    });
+  }
+}

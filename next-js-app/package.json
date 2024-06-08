@@ -1,0 +1,40 @@
+{
+  "name": "paradon-ap",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@azure/ai-form-recognizer": "^5.0.0",
+    "@azure/identity": "^4.2.0",
+    "@emotion/react": "^11.11.4",
+    "@emotion/styled": "^11.11.5",
+    "@fontsource/inter": "^5.0.18",
+    "@google-cloud/bigquery": "^7.7.0",
+    "@google-cloud/storage": "^7.11.1",
+    "@mui/icons-material": "^5.15.19",
+    "@mui/joy": "^5.0.0-beta.36",
+    "@mui/material": "^5.15.19",
+    "ioredis": "^5.4.1",
+    "next": "14.2.3",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.3.136",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-infinite-scroll-component": "^6.1.0",
+    "react-number-format": "^5.3.4",
+    "redlock": "^5.0.0-beta.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.3",
+    "typescript": "^5"
+  }
+}
