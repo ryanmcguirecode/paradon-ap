@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/next-js-app/node_modules
+*/node_modules
 /next-js-app/.pnp
 /next-js-app.pnp.js
 /next-js-app.yarn/install-state.gz
@@ -34,3 +34,6 @@ next-js-app/.vercel
 # typescript
 next-js-app/*.tsbuildinfo
 next-js-app/next-env.d.ts
+
+# cloud-functions
+cloud-functions/service-account.json
