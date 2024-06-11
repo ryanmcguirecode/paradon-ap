@@ -19,6 +19,9 @@
     "@mui/icons-material": "^5.15.19",
     "@mui/joy": "^5.0.0-beta.36",
     "@mui/material": "^5.15.19",
+    "firebase": "^10.12.2",
+    "firebase-admin": "^12.1.1",
+    "firebaseui": "^6.1.0",
     "ioredis": "^5.4.1",
     "next": "14.2.3",
     "pdf-lib": "^1.17.1",
@@ -27,6 +30,7 @@
     "react-dom": "^18",
     "react-infinite-scroll-component": "^6.1.0",
     "react-number-format": "^5.3.4",
+    "react-router-dom": "^6.23.1",
     "redlock": "^5.0.0-beta.2"
   },
   "devDependencies": {

@@ -4,7 +4,7 @@ import {
   BigQueryDatetime,
 } from "@google-cloud/bigquery";
 import { NextRequest, NextResponse } from "next/server";
-import { capitalizedToCamelObject } from "@/app/utils/snakeToCamel";
+import { capitalizedToCamelObject } from "@/utils/snakeToCamel";
 
 export async function GET(req: NextRequest) {
   try {

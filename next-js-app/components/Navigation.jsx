@@ -223,7 +223,6 @@ export default function Navigation() {
             }).map(([name, [icon, url]]) => (
               <ListItem key={name} disablePadding sx={{ display: "block" }}>
                 <ListItemButton
-                  disabled
                   onClick={() => router.push(`/${url}`)}
                   selected={path === `/${url}`}
                   sx={{
