@@ -1,15 +1,36 @@
 // pages/api/get-user-organization-by-email.ts
 import { NextRequest, NextResponse } from "next/server";
-import { organizationdb } from "../auth";
+import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
+import { getFirestore } from "firebase-admin/firestore";
 
 async function POST(req: NextRequest, res: NextResponse) {
-  const { email } = await req.json();
+  const { email, serviceAccount } = await req.json();
 
   if (!email) {
     return NextResponse.json({ message: "No email" }, { status: 500 });
+  } else if (!serviceAccount) {
+    return NextResponse.json(
+      { message: "No service account" },
+      { status: 500 }
+    );
   }
 
   try {
+    let app;
+    if (!getApps().filter((app) => app.name === "service").length) {
+      app = initializeApp(
+        {
+          credential: cert(serviceAccount),
+        },
+        "service"
+      );
+    } else {
+      app = getApps().filter((app) => app.name === "service")[0];
+    }
+    const auth = getAuth(app);
+    const organizationdb = getFirestore(app);
+
     const organizationsSnapshot = await organizationdb
       .collection("organizations")
       .get();
@@ -23,7 +44,6 @@ async function POST(req: NextRequest, res: NextResponse) {
         }
       });
     });
-    console.log("Organization found: ", organization, email);
     if (!organization) {
       return NextResponse.json(
         { message: "No organization found" },

@@ -1,39 +1,45 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+
 import {
-  Container,
   Box,
   Button,
-  Typography,
+  IconButton,
   Input,
-  FormControl,
-  FormLabel,
+  Option,
+  Select,
   Table,
+  Typography,
 } from "@mui/joy";
-import NavigationLayout from "@/components/NavigationLayout";
+import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+
 import { auth } from "@/utils/auth";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import NavigationLayout from "@/components/NavigationLayout";
 
 interface User {
   name: string;
   email: string;
+  level: string;
 }
 
 export default function AdminPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [organization, setOrganization] = useState("");
-  const [name, setName] = useState("");
-  const [message, setMessage] = useState("");
   const [users, setUsers] = useState<Array<User>>([]);
+
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newLevel, setNewLevel] = useState("");
 
   const addUserToOrganization = async () => {
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
-        email,
-        password
+        newEmail,
+        newPassword
       );
       const user = userCredential.user;
       const response = await fetch("/api/add-user-to-organization", {
@@ -42,14 +48,22 @@ export default function AdminPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: name,
-          email: user.email,
           organization: organization,
+          name: newName,
+          email: newEmail,
+          level: newLevel,
         }),
       });
 
-      setMessage("User added successfully");
-      getUsersInOrganization(); // Refresh the list after adding a user
+      if (response.status === 200) {
+        setNewName("");
+        setNewEmail("");
+        setNewPassword("");
+        setNewLevel("");
+        getUsersInOrganization();
+      } else {
+        console.error("Error adding user: ", response);
+      }
     } catch (error) {
       console.error("Error adding user: ", error);
     }
@@ -88,7 +102,7 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    getOrganizationByEmail(auth!.currentUser!.email!);
+    getOrganizationByEmail(auth.currentUser.email);
   }, []);
 
   useEffect(() => {
@@ -99,64 +113,113 @@ export default function AdminPage() {
 
   return (
     <NavigationLayout>
-      <Container>
-        <Typography level="h1">Manage Organization: {organization}</Typography>
-        <Box
-          component="form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            addUserToOrganization();
-          }}
-          sx={{
-            margin: 3,
-          }}
-        >
-          <FormControl required>
-            <FormLabel>Name</FormLabel>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
-          </FormControl>
-          <FormControl required>
-            <FormLabel>Email</FormLabel>
-            <Input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </FormControl>
-
-          <FormControl required>
-            <FormLabel>Password</FormLabel>
-            <Input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </FormControl>
-
-          <Button type="submit" sx={{ my: 3 }}>
-            Add User
-          </Button>
-        </Box>
-        {message && <Typography>{message}</Typography>}
-
-        <Typography level="h2">Users in Organization</Typography>
-        <Table>
+      <Box
+        sx={{
+          width: "80%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-start",
+          margin: "auto",
+          paddingTop: "20px",
+        }}
+      >
+        <Typography level="h3" sx={{ paddingBottom: "10px" }}>
+          Users
+        </Typography>
+        <Table stickyFooter variant="plain">
           <thead>
             <tr>
               <th>Name</th>
               <th>Email</th>
+              <th>Password</th>
+              <th>Level</th>
+              <th style={{ width: "55px" }}></th>
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
+            {users.map((user, index) => (
               <tr key={user.email}>
-                <td>{user.name}</td>
-                <td>{user.email}</td>
+                <td>
+                  <Input type="text" name="name" value={user.name} />
+                </td>
+                <td>
+                  <Input type="email" name="email" value={user.email} />
+                </td>
+                <td>********</td>
+                <td>
+                  <Select defaultValue={user.level}>
+                    <Option value="admin">Admin</Option>
+                    <Option value="user">User</Option>
+                  </Select>
+                </td>
+                <td>
+                  <IconButton variant="soft" color="danger">
+                    <DeleteOutlineOutlinedIcon />
+                  </IconButton>
+                </td>
               </tr>
             ))}
           </tbody>
+          <tfoot>
+            <tr>
+              <td>
+                <Input
+                  type="text"
+                  name="name"
+                  placeholder="New User Name"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                />
+              </td>
+              <td>
+                <Input
+                  type="email"
+                  name="email"
+                  placeholder="New User Email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                />
+              </td>
+              <td>
+                <Input
+                  type="password"
+                  name="password"
+                  placeholder="New User Password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </td>
+              <td>
+                <Select
+                  onChange={(e, value: string | null) => setNewLevel(value)}
+                >
+                  <Option value="admin">Admin</Option>
+                  <Option value="user">User</Option>
+                </Select>
+              </td>
+              <td>
+                <IconButton
+                  variant="solid"
+                  color="primary"
+                  disabled={!newName || !newEmail || !newPassword || !newLevel}
+                  onClick={addUserToOrganization}
+                >
+                  <AddOutlinedIcon />
+                </IconButton>
+              </td>
+            </tr>
+          </tfoot>
         </Table>
-      </Container>
+        <Box
+          sx={{
+            width: "100%",
+            display: "flex",
+            justifyContent: "end",
+          }}
+        >
+          <Button sx={{ marginTop: "10px" }}>Save Changes</Button>
+        </Box>
+      </Box>
     </NavigationLayout>
   );
 }

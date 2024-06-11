@@ -1,22 +1,39 @@
-import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
-import { getFirestore } from "firebase-admin/firestore";
+// import { initializeApp, cert, getApps } from "firebase-admin/app";
+// import { getAuth } from "firebase-admin/auth";
+// import { getFirestore } from "firebase-admin/firestore";
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY!);
+// const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY!);
 
-let app;
-if (!getApps().filter((app) => app.name === "service").length) {
-  app = initializeApp(
-    {
-      credential: cert(serviceAccount),
-    },
-    "service"
-  );
-} else {
-  app = getApps().filter((app) => app.name === "service")[0];
-}
+// let app;
+// if (!getApps().filter((app) => app.name === "service").length) {
+//   app = initializeApp(
+//     {
+//       credential: cert(serviceAccount),
+//     },
+//     "service"
+//   );
+// } else {
+//   app = getApps().filter((app) => app.name === "service")[0];
+// }
 
-const auth = getAuth(app);
-const organizationdb = getFirestore(app);
+// const auth = getAuth(app);
+// const organizationdb = getFirestore(app);
 
-export { auth, organizationdb };
+// export { auth, organizationdb };
+
+// import { initializeApp, cert, getApps } from "firebase-admin/app";
+// import { getAuth } from "firebase-admin/auth";
+// import { getFirestore } from "firebase-admin/firestore";
+
+// const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY!);
+
+// if (!getApps().length) {
+//   initializeApp({
+//     credential: cert(serviceAccount),
+//   });
+// }
+
+// const auth = getAuth();
+// const organizationdb = getFirestore();
+
+// export { auth, organizationdb };
