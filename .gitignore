@@ -38,3 +38,4 @@ next-js-app/next-env.d.ts
 # cloud-functions
 cloud-functions/service-account.json
 cloud-functions/testing/test-invoices/
+cloud-functions/.env*.local

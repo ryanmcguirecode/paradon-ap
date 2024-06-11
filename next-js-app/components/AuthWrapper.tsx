@@ -1,27 +1,29 @@
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../utils/auth";
+import { ReactNode } from "react";
+import { Box, CircularProgress } from "@mui/joy";
+import useAuth from "@/utils/useAuth";
 
-const useAuth = () => {
-  const [loading, setLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
-  const router = useRouter();
+const AuthWrapper = ({ children }: { children: ReactNode }) => {
+  const { loading, authenticated } = useAuth();
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setAuthenticated(true);
-      } else {
-        router.push("/");
-      }
-      setLoading(false);
-    });
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          paddingTop: "20%",
+        }}
+      >
+        <CircularProgress variant="outlined" />
+      </Box>
+    );
+  }
 
-    return () => unsubscribe();
-  }, [router]);
+  if (!authenticated) {
+    return null;
+  }
 
-  return { loading, authenticated };
+  return children;
 };
 
-export default useAuth;
+export default AuthWrapper;

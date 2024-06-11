@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
-import Navigation from "./Navigation";
 import Box from "@mui/joy/Box";
+import Navigation from "./Navigation";
+import AuthWrapper from "./AuthWrapper";
 
 const NavigationLayout = ({ children }: { children: ReactNode }) => {
   return (
@@ -18,7 +19,7 @@ const NavigationLayout = ({ children }: { children: ReactNode }) => {
           paddingTop: "64px",
         }}
       >
-        {children}
+        <AuthWrapper>{children}</AuthWrapper>
       </div>
     </Box>
   );
