@@ -10,9 +10,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@azure/ai-form-recognizer": "^5.0.0",
+    "@firebase/auth": "^1.7.4",
     "@google-cloud/firestore": "^3.8.0",
     "@google-cloud/functions-framework": "^3.0.0",
     "@google-cloud/storage": "^7.11.2",
+    "dotenv": "^16.4.5",
     "firebase-admin": "^12.1.1"
   }
 }

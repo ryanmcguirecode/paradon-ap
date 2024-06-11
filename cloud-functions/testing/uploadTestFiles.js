@@ -28,6 +28,8 @@ async function uploadFileWithMetadata(filePath, userId) {
       metadata: {
         metadata: {
           userId: userId,
+          documentType: "invoice",
+          model: "azureInvoice",
         },
       },
     });

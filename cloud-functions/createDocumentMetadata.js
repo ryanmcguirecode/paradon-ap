@@ -1,6 +1,7 @@
 const functions = require("@google-cloud/functions-framework");
 const { Firestore } = require("@google-cloud/firestore");
 const { Storage } = require("@google-cloud/storage");
+const extractFields = require("./azureInvoice");
 
 // Initialize Firestore
 const firestore = new Firestore({
@@ -48,5 +49,20 @@ module.exports = async function createDocumentMetadata(cloudEvent) {
     console.log("Metadata saved to Firestore");
   } catch (error) {
     console.error("Error saving metadata to Firestore", error);
+  }
+
+  try {
+    const fileContent = await storage
+      .bucket(bucketName)
+      .file(fileName)
+      .download();
+    const extractedFields = await extractFields(fileContent[0]);
+    const docRef = firestore.collection("documents").doc(fileName);
+    await docRef.update({ fields: extractedFields });
+  } catch (error) {
+    console.error(
+      "Error downloading file or extracting fields from document",
+      error
+    );
   }
 };
