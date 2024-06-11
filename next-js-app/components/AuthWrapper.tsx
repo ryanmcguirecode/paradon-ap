@@ -17,9 +17,7 @@ const AuthWrapper = ({ children }: { children: ReactNode }) => {
         <CircularProgress variant="outlined" />
       </Box>
     );
-  }
-
-  if (!authenticated) {
+  } else if (!authenticated) {
     return null;
   }
 

@@ -18,7 +18,6 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 
 import NavigationLayout from "@/components/NavigationLayout";
 import { Batch } from "@/components/Batch";
-import withAuth from "@/components/AuthComponentWrapper";
 
 function formatDateString(dateString: string) {
   const date = new Date(dateString);
@@ -107,7 +106,7 @@ function BatchComponent({ batch, onClick }: BatchComponentProps) {
   );
 }
 
-const batches: React.FC = () => {
+export default function BatchesPage() {
   const router = useRouter();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -294,6 +293,4 @@ const batches: React.FC = () => {
       )}
     </NavigationLayout>
   );
-};
-
-export default withAuth(batches);
+}

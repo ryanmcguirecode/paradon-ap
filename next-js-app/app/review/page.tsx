@@ -22,14 +22,13 @@ import CurrencyInput from "./CurrencyInput";
 import DateInput from "./DateInput";
 import { fields } from "./testData";
 import renderAnnotations from "../../utils/renderAnnotations";
-import withAuth from "@/components/AuthComponentWrapper";
 
 const inputStyle: InputProps = {
   variant: "outlined",
   sx: { marginBottom: "5px", boxShadow: "sm" },
 };
 
-  const ReviewPage = () => {
+export default function ReviewPage() {
   const router = useRouter();
   const params = useSearchParams();
   const batchId = params.get("batchId");
@@ -244,5 +243,3 @@ const inputStyle: InputProps = {
     </NavigationLayout>
   );
 }
-
-export default withAuth(ReviewPage);

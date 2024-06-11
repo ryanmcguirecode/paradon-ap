@@ -13,7 +13,6 @@ import {
 } from "@mui/joy";
 import NavigationLayout from "@/components/NavigationLayout";
 import { auth } from "@/utils/auth";
-import withAuth from "@/components/AuthComponentWrapper";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 
 interface User {
@@ -21,7 +20,7 @@ interface User {
   email: string;
 }
 
-const AdminPage = () => {
+export default function AdminPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [organization, setOrganization] = useState("");
@@ -160,6 +159,4 @@ const AdminPage = () => {
       </Container>
     </NavigationLayout>
   );
-};
-
-export default withAuth(AdminPage);
+}
