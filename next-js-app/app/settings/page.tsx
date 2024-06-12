@@ -1,11 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  createUserWithEmailAndPassword,
-  getAuth,
-  onAuthStateChanged,
-} from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 
 import {
   Box,
@@ -19,9 +15,9 @@ import {
 } from "@mui/joy";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import UpdateOutlinedIcon from "@mui/icons-material/UpdateOutlined";
 
 import NavigationLayout from "@/components/NavigationLayout";
-import { auth } from "@/auth/firebase";
 import { useAuth } from "@/components/AuthContext";
 
 interface User {
@@ -41,15 +37,9 @@ export default function AdminPage() {
 
   const { user, loading } = useAuth();
 
-  const addUserToOrganization = async () => {
+  const createNewUser = async () => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        newEmail,
-        newPassword
-      );
-      const user = userCredential.user;
-      const response = await fetch("/api/add-user-to-organization", {
+      const response = await fetch("/api/create-new-user", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -58,6 +48,7 @@ export default function AdminPage() {
           organization: organization,
           name: newName,
           email: newEmail,
+          password: newPassword,
           level: newLevel,
         }),
       });
@@ -143,6 +134,7 @@ export default function AdminPage() {
               <th>Password</th>
               <th>Level</th>
               <th style={{ width: "55px" }}></th>
+              <th style={{ width: "55px" }}></th>
             </tr>
           </thead>
           <tbody>
@@ -160,6 +152,11 @@ export default function AdminPage() {
                     <Option value="admin">Admin</Option>
                     <Option value="user">User</Option>
                   </Select>
+                </td>
+                <td>
+                  <IconButton variant="soft" color="primary">
+                    <UpdateOutlinedIcon />
+                  </IconButton>
                 </td>
                 <td>
                   <IconButton variant="soft" color="danger">
@@ -211,11 +208,12 @@ export default function AdminPage() {
                   variant="solid"
                   color="primary"
                   disabled={!newName || !newEmail || !newPassword || !newLevel}
-                  onClick={addUserToOrganization}
+                  onClick={createNewUser}
                 >
                   <AddOutlinedIcon />
                 </IconButton>
               </td>
+              <td></td>
             </tr>
           </tfoot>
         </Table>
