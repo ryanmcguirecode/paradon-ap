@@ -29,7 +29,7 @@ export function LoginFinal() {
         email,
         password
       );
-      router.push("/review");
+      router.push("/batches");
     } catch (error) {
       console.error("Error signing in:", error);
     }

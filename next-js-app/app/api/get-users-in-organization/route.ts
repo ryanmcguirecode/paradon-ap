@@ -2,32 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
+import { organizationdb } from "../auth";
 
 async function POST(req: NextRequest) {
-  const { organization, serviceAccount } = await req.json();
+  const { organization } = await req.json();
 
   if (!organization) {
     return NextResponse.json({ message: "No organization" }, { status: 500 });
-  } else if (!serviceAccount) {
-    return NextResponse.json(
-      { message: "No service account" },
-      { status: 500 }
-    );
   }
-
-  let app;
-  if (!getApps().filter((app) => app.name === "service").length) {
-    app = initializeApp(
-      {
-        credential: cert(serviceAccount),
-      },
-      "service"
-    );
-  } else {
-    app = getApps().filter((app) => app.name === "service")[0];
-  }
-  const auth = getAuth(app);
-  const organizationdb = getFirestore(app);
 
   try {
     const orgRef = organizationdb.collection("organizations").doc(organization);

@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  getAuth,
+  onAuthStateChanged,
+} from "firebase/auth";
 
 import {
   Box,
@@ -18,6 +22,7 @@ import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined
 
 import { auth } from "@/utils/auth";
 import NavigationLayout from "@/components/NavigationLayout";
+import { cursorTo } from "readline";
 
 interface User {
   name: string;
@@ -101,8 +106,17 @@ export default function AdminPage() {
     setUsers(data);
   }
 
+  const [user, setUser] = useState(null);
   useEffect(() => {
-    getOrganizationByEmail(auth.currentUser.email);
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        getOrganizationByEmail(currentUser.email);
+      }
+      setUser(currentUser);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
