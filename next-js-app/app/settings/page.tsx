@@ -20,9 +20,9 @@ import {
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 
-import { auth } from "@/utils/auth";
 import NavigationLayout from "@/components/NavigationLayout";
-import { cursorTo } from "readline";
+import { auth } from "@/auth/firebase";
+import { useAuth } from "@/components/AuthContext";
 
 interface User {
   name: string;
@@ -38,6 +38,8 @@ export default function AdminPage() {
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newLevel, setNewLevel] = useState("");
+
+  const { user, loading } = useAuth();
 
   const addUserToOrganization = async () => {
     try {
@@ -87,7 +89,7 @@ export default function AdminPage() {
     if (response.ok) {
       setOrganization(data.organization);
     } else {
-      console.error("Error fetching organization: ", data.error);
+      console.error("Error fetching organization: ", data);
     }
   };
 
@@ -106,18 +108,11 @@ export default function AdminPage() {
     setUsers(data);
   }
 
-  const [user, setUser] = useState(null);
   useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        getOrganizationByEmail(currentUser.email);
-      }
-      setUser(currentUser);
-    });
-
-    return () => unsubscribe();
-  }, []);
+    if (!loading && user) {
+      getOrganizationByEmail(user.email);
+    }
+  }, [loading]);
 
   useEffect(() => {
     if (organization) {

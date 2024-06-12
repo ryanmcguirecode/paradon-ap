@@ -25,7 +25,7 @@ async function POST(req: NextRequest, res: NextResponse) {
     });
     if (!organization) {
       return NextResponse.json(
-        { message: "No organization found" },
+        { message: "No organization found for " + email },
         { status: 400 }
       );
     }

@@ -1,18 +1,15 @@
 "use client";
-
-import { useState } from "react";
-import { LoginFinal } from "../components/Auth";
-import { CssVarsProvider } from "@mui/joy";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 const SignUp: React.FC = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const router = useRouter();
 
-  return (
-    <CssVarsProvider>
-      <LoginFinal />
-    </CssVarsProvider>
-  );
+  useEffect(() => {
+    router.push("/login");
+  }, []);
+
+  return null;
 };
 
 export default SignUp;
