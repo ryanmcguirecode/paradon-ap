@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
-import { getFirestore } from "firebase-admin/firestore";
-import { organizationdb } from "../auth";
+import { adminOrganizationDB } from "@/auth/firebaseAdmin";
 
 async function POST(req: NextRequest) {
   const { organization } = await req.json();
@@ -12,9 +9,10 @@ async function POST(req: NextRequest) {
   }
 
   try {
-    const orgRef = organizationdb.collection("organizations").doc(organization);
+    const orgRef = adminOrganizationDB
+      .collection("organizations")
+      .doc(organization);
     const org = await orgRef.get();
-
     const data = org.data();
     return NextResponse.json(data && data.users ? data.users : {}, {
       status: 200,

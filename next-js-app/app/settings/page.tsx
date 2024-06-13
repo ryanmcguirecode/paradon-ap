@@ -27,7 +27,6 @@ interface User {
 }
 
 export default function AdminPage() {
-  const [organization, setOrganization] = useState("");
   const [users, setUsers] = useState<Array<User>>([]);
 
   const [newName, setNewName] = useState("");
@@ -35,7 +34,7 @@ export default function AdminPage() {
   const [newPassword, setNewPassword] = useState("");
   const [newLevel, setNewLevel] = useState("");
 
-  const { user, loading } = useAuth();
+  const { user, loading, level, organization } = useAuth();
 
   const createNewUser = async () => {
     try {
@@ -67,23 +66,6 @@ export default function AdminPage() {
     }
   };
 
-  const getOrganizationByEmail = async (userEmail: string) => {
-    const response = await fetch("/api/get-user-organization", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email: userEmail }),
-    });
-
-    const data = await response.json();
-    if (response.ok) {
-      setOrganization(data.organization);
-    } else {
-      console.error("Error fetching organization: ", data);
-    }
-  };
-
   async function getUsersInOrganization() {
     const response = await fetch("/api/get-users-in-organization", {
       method: "POST",
@@ -99,11 +81,11 @@ export default function AdminPage() {
     setUsers(data);
   }
 
-  useEffect(() => {
-    if (!loading && user) {
-      getOrganizationByEmail(user.email);
-    }
-  }, [loading]);
+  // useEffect(() => {
+  //   if (!loading && user) {
+  //     getOrganizationByEmail(user.email);
+  //   }
+  // }, [loading]);
 
   useEffect(() => {
     if (organization) {
