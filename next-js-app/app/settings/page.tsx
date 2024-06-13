@@ -6,6 +6,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import {
   Box,
   Button,
+  CircularProgress,
   IconButton,
   Input,
   Option,
@@ -34,6 +35,7 @@ export default function AdminPage() {
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newLevel, setNewLevel] = useState("");
+  const [usersLoading, setUsersLoading] = useState(true);
 
   const { user, loading } = useAuth();
 
@@ -97,6 +99,7 @@ export default function AdminPage() {
 
     const data = await response.json();
     setUsers(data);
+    setUsersLoading(false);
   }
 
   useEffect(() => {
@@ -113,120 +116,134 @@ export default function AdminPage() {
 
   return (
     <NavigationLayout>
-      <Box
-        sx={{
-          width: "80%",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-start",
-          margin: "auto",
-          paddingTop: "20px",
-        }}
-      >
-        <Typography level="h3" sx={{ paddingBottom: "10px" }}>
-          Users
-        </Typography>
-        <Table stickyFooter variant="plain">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Password</th>
-              <th>Level</th>
-              <th style={{ width: "55px" }}></th>
-              <th style={{ width: "55px" }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user, index) => (
-              <tr key={user.email}>
+      {usersLoading ? (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            paddingTop: "50%",
+            height: "auto",
+          }}
+        >
+          <CircularProgress variant="outlined" />
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            width: "80%",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            margin: "auto",
+            paddingTop: "20px",
+          }}
+        >
+          <Typography level="h3" sx={{ paddingBottom: "10px" }}>
+            Users
+          </Typography>
+          <Table stickyFooter variant="plain">
+            <thead>
+              <tr>
+                <th style={{ width: "auto" }}>Name</th>
+                <th style={{ width: "200px" }}>Email</th>
+                <th style={{ width: "auto" }}>Password</th>
+                <th style={{ width: "auto" }}>Level</th>
+                <th style={{ width: "55px" }}></th>
+                <th style={{ width: "55px" }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user, index) => (
+                <tr key={user.email}>
+                  <td>
+                    <Typography>{user.name}</Typography>
+                  </td>
+                  <td>
+                    <Typography>{user.email}</Typography>
+                  </td>
+                  <td>********</td>
+                  <td>
+                    <Select defaultValue={user.level}>
+                      <Option value="admin">Admin</Option>
+                      <Option value="user">User</Option>
+                    </Select>
+                  </td>
+                  <td>
+                    <IconButton variant="soft" color="primary">
+                      <UpdateOutlinedIcon />
+                    </IconButton>
+                  </td>
+                  <td>
+                    <IconButton variant="soft" color="danger">
+                      <DeleteOutlineOutlinedIcon />
+                    </IconButton>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
                 <td>
-                  <Input type="text" name="name" value={user.name} />
+                  <Input
+                    type="text"
+                    name="name"
+                    placeholder="New User Name"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                  />
                 </td>
                 <td>
-                  <Input type="email" name="email" value={user.email} />
+                  <Input
+                    disabled
+                    type="email"
+                    name="email"
+                    placeholder="New User Email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                  />
                 </td>
-                <td>********</td>
                 <td>
-                  <Select defaultValue={user.level}>
+                  <Input
+                    type="password"
+                    name="password"
+                    placeholder="New User Password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                </td>
+                <td>
+                  <Select
+                    onChange={(e, value: string | null) => setNewLevel(value)}
+                  >
                     <Option value="admin">Admin</Option>
                     <Option value="user">User</Option>
                   </Select>
                 </td>
                 <td>
-                  <IconButton variant="soft" color="primary">
-                    <UpdateOutlinedIcon />
+                  <IconButton
+                    variant="solid"
+                    color="primary"
+                    disabled={
+                      !newName || !newEmail || !newPassword || !newLevel
+                    }
+                    onClick={createNewUser}
+                  >
+                    <AddOutlinedIcon />
                   </IconButton>
                 </td>
-                <td>
-                  <IconButton variant="soft" color="danger">
-                    <DeleteOutlineOutlinedIcon />
-                  </IconButton>
-                </td>
+                <td></td>
               </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td>
-                <Input
-                  type="text"
-                  name="name"
-                  placeholder="New User Name"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                />
-              </td>
-              <td>
-                <Input
-                  type="email"
-                  name="email"
-                  placeholder="New User Email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                />
-              </td>
-              <td>
-                <Input
-                  type="password"
-                  name="password"
-                  placeholder="New User Password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
-              </td>
-              <td>
-                <Select
-                  onChange={(e, value: string | null) => setNewLevel(value)}
-                >
-                  <Option value="admin">Admin</Option>
-                  <Option value="user">User</Option>
-                </Select>
-              </td>
-              <td>
-                <IconButton
-                  variant="solid"
-                  color="primary"
-                  disabled={!newName || !newEmail || !newPassword || !newLevel}
-                  onClick={createNewUser}
-                >
-                  <AddOutlinedIcon />
-                </IconButton>
-              </td>
-              <td></td>
-            </tr>
-          </tfoot>
-        </Table>
-        <Box
-          sx={{
-            width: "100%",
-            display: "flex",
-            justifyContent: "end",
-          }}
-        >
-          <Button sx={{ marginTop: "10px" }}>Save Changes</Button>
+            </tfoot>
+          </Table>
+          <Box
+            sx={{
+              width: "100%",
+              display: "flex",
+              justifyContent: "end",
+            }}
+          ></Box>
         </Box>
-      </Box>
+      )}
     </NavigationLayout>
   );
 }
