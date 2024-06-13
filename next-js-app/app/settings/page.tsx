@@ -1,20 +1,27 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createUserWithEmailAndPassword } from "firebase/auth";
 
 import {
   Box,
   Button,
   IconButton,
   Input,
+  ListItemDecorator,
   Option,
   Select,
+  Tab,
+  tabClasses,
   Table,
+  TabList,
+  TabPanel,
+  Tabs,
   Typography,
 } from "@mui/joy";
+import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import DocumentScannerOutlinedIcon from "@mui/icons-material/DocumentScannerOutlined";
 import UpdateOutlinedIcon from "@mui/icons-material/UpdateOutlined";
 
 import NavigationLayout from "@/components/NavigationLayout";
@@ -26,7 +33,7 @@ interface User {
   level: string;
 }
 
-export default function AdminPage() {
+function UsersTab() {
   const [users, setUsers] = useState<Array<User>>([]);
 
   const [newName, setNewName] = useState("");
@@ -81,12 +88,6 @@ export default function AdminPage() {
     setUsers(data);
   }
 
-  // useEffect(() => {
-  //   if (!loading && user) {
-  //     getOrganizationByEmail(user.email);
-  //   }
-  // }, [loading]);
-
   useEffect(() => {
     if (organization) {
       getUsersInOrganization();
@@ -94,120 +95,141 @@ export default function AdminPage() {
   }, [organization]);
 
   return (
+    <>
+      <Typography level="h3" sx={{ paddingBottom: "10px" }}>
+        Users
+      </Typography>
+      <Table stickyFooter variant="plain">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Password</th>
+            <th>Level</th>
+            <th style={{ width: "55px" }}></th>
+            <th style={{ width: "55px" }}></th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((user, index) => (
+            <tr key={user.email}>
+              <td>
+                <Input type="text" name="name" value={user.name} />
+              </td>
+              <td>
+                <Input type="email" name="email" value={user.email} />
+              </td>
+              <td>********</td>
+              <td>
+                <Select defaultValue={user.level}>
+                  <Option value="admin">Admin</Option>
+                  <Option value="user">User</Option>
+                </Select>
+              </td>
+              <td>
+                <IconButton variant="soft" color="primary">
+                  <UpdateOutlinedIcon />
+                </IconButton>
+              </td>
+              <td>
+                <IconButton variant="soft" color="danger">
+                  <DeleteOutlineOutlinedIcon />
+                </IconButton>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>
+              <Input
+                type="text"
+                name="name"
+                placeholder="New User Name"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+              />
+            </td>
+            <td>
+              <Input
+                type="email"
+                name="email"
+                placeholder="New User Email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+              />
+            </td>
+            <td>
+              <Input
+                type="password"
+                name="password"
+                placeholder="New User Password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </td>
+            <td>
+              <Select
+                onChange={(e, value: string | null) => setNewLevel(value)}
+              >
+                <Option value="admin">Admin</Option>
+                <Option value="user">User</Option>
+              </Select>
+            </td>
+            <td>
+              <IconButton
+                variant="solid"
+                color="primary"
+                disabled={!newName || !newEmail || !newPassword || !newLevel}
+                onClick={createNewUser}
+              >
+                <AddOutlinedIcon />
+              </IconButton>
+            </td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </Table>
+    </>
+  );
+}
+
+export default function AdminPage() {
+  return (
     <NavigationLayout>
       <Box
         sx={{
           width: "80%",
           display: "flex",
           flexDirection: "column",
-          alignItems: "flex-start",
           margin: "auto",
           paddingTop: "20px",
         }}
       >
-        <Typography level="h3" sx={{ paddingBottom: "10px" }}>
-          Users
-        </Typography>
-        <Table stickyFooter variant="plain">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Password</th>
-              <th>Level</th>
-              <th style={{ width: "55px" }}></th>
-              <th style={{ width: "55px" }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user, index) => (
-              <tr key={user.email}>
-                <td>
-                  <Input type="text" name="name" value={user.name} />
-                </td>
-                <td>
-                  <Input type="email" name="email" value={user.email} />
-                </td>
-                <td>********</td>
-                <td>
-                  <Select defaultValue={user.level}>
-                    <Option value="admin">Admin</Option>
-                    <Option value="user">User</Option>
-                  </Select>
-                </td>
-                <td>
-                  <IconButton variant="soft" color="primary">
-                    <UpdateOutlinedIcon />
-                  </IconButton>
-                </td>
-                <td>
-                  <IconButton variant="soft" color="danger">
-                    <DeleteOutlineOutlinedIcon />
-                  </IconButton>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td>
-                <Input
-                  type="text"
-                  name="name"
-                  placeholder="New User Name"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                />
-              </td>
-              <td>
-                <Input
-                  type="email"
-                  name="email"
-                  placeholder="New User Email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                />
-              </td>
-              <td>
-                <Input
-                  type="password"
-                  name="password"
-                  placeholder="New User Password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
-              </td>
-              <td>
-                <Select
-                  onChange={(e, value: string | null) => setNewLevel(value)}
-                >
-                  <Option value="admin">Admin</Option>
-                  <Option value="user">User</Option>
-                </Select>
-              </td>
-              <td>
-                <IconButton
-                  variant="solid"
-                  color="primary"
-                  disabled={!newName || !newEmail || !newPassword || !newLevel}
-                  onClick={createNewUser}
-                >
-                  <AddOutlinedIcon />
-                </IconButton>
-              </td>
-              <td></td>
-            </tr>
-          </tfoot>
-        </Table>
-        <Box
-          sx={{
-            width: "100%",
-            display: "flex",
-            justifyContent: "end",
-          }}
-        >
-          <Button sx={{ marginTop: "10px" }}>Save Changes</Button>
-        </Box>
+        <Tabs size="lg">
+          <TabList
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
+            <Tab>
+              <ListItemDecorator>
+                <AccountCircleOutlinedIcon />
+              </ListItemDecorator>
+              Users
+            </Tab>
+            <Tab>
+              <ListItemDecorator>
+                <DocumentScannerOutlinedIcon />
+              </ListItemDecorator>
+              Documents
+            </Tab>
+          </TabList>
+          <TabPanel sx={{ backgroundColor: "white" }}>
+            <UsersTab />
+          </TabPanel>
+        </Tabs>
       </Box>
     </NavigationLayout>
   );
