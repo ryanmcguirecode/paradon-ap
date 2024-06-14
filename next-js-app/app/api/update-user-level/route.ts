@@ -1,20 +1,26 @@
 // pages/api/get-user-organization-by-email.ts
 import { NextRequest, NextResponse } from "next/server";
-import { organizationdb } from "../auth";
+import { adminOrganizationDB } from "@/auth/firebaseAdmin";
 
 async function POST(req: NextRequest, res: NextResponse) {
   const { newPermissions, email } = await req.json();
+  console.log("newPermissions: ", newPermissions);
 
   try {
-    const organizationsSnapshot = await organizationdb
+    const organizationsSnapshot = await adminOrganizationDB
       .collection("organizations")
       .get();
-    const organizationRef = organizationdb.collection("organizations");
+    const organizationRef = adminOrganizationDB.collection("organizations");
 
     organizationsSnapshot.forEach((doc) => {
       const users = doc.data().users || [];
       var user = users.find((user: any) => user.email === email);
-      organizationRef.doc(doc.data().organization).update(user);
+      if (user) {
+        user.level = newPermissions;
+        organizationRef.doc(doc.id).update({
+          users: users,
+        });
+      }
     });
     return NextResponse.json({}, { status: 200 });
   } catch (error) {

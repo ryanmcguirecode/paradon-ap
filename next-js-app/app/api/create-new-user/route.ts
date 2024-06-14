@@ -34,7 +34,7 @@ async function POST(req: NextRequest) {
 
     if (!org.exists) {
       return NextResponse.json(
-        { message: "Organization does not exist" },
+        { error: "Organization does not exist" },
         { status: 404 }
       );
     } else {
@@ -53,7 +53,8 @@ async function POST(req: NextRequest) {
     );
   } catch (error) {
     console.error("Error adding user: ", error);
-    return NextResponse.json({ message: "Error adding user" }, { status: 500 });
+    console.log("error: ", error);
+    return NextResponse.json({ statusText: error }, { status: 500 });
   }
 }
 

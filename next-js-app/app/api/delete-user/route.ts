@@ -2,11 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminOrganizationDB } from "@/auth/firebaseAdmin";
 
 async function POST(req: NextRequest) {
-  const { organization } = await req.json();
-
-  if (!organization) {
-    return NextResponse.json({ message: "No organization" }, { status: 500 });
-  }
+  const { email, organization } = await req.json();
 
   try {
     const orgRef = adminOrganizationDB
@@ -14,13 +10,16 @@ async function POST(req: NextRequest) {
       .doc(organization);
     const org = await orgRef.get();
     const data = org.data();
-    return NextResponse.json(data && data.users ? data.users : {}, {
-      status: 200,
+    const users = data && data.users ? data.users : [];
+    const updatedUsers = users.filter((user: any) => user.email !== email);
+    await orgRef.update({
+      users: updatedUsers,
     });
+    return NextResponse.json({}, { status: 200 });
   } catch (error) {
-    console.error("Error fetching organization: ", error);
+    console.error("Error deleting user: ", error);
     return NextResponse.json(
-      { message: "Error fetching organization" },
+      { message: "Error deleting user" },
       { status: 500 }
     );
   }
