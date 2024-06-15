@@ -23,6 +23,8 @@ import DateInput from "./DateInput";
 import { fields } from "./testData";
 import renderAnnotations from "../../utils/renderAnnotations";
 
+import { useAuth } from "@/components/AuthContext";
+
 const inputStyle: InputProps = {
   variant: "outlined",
   sx: { marginBottom: "5px", boxShadow: "sm" },
@@ -32,6 +34,7 @@ export default function ReviewPage() {
   const router = useRouter();
   const params = useSearchParams();
   const batchId = params.get("batchId");
+  const { organization } = useAuth();
 
   const [documents, setDocuments] = useState<Document[]>([]);
 
@@ -53,7 +56,7 @@ export default function ReviewPage() {
     }
     const fetchDocuments = async () => {
       const documentsResponse = await fetch(
-        `/api/get-documents?batchId=${batchId}`
+        `/api/get-documents?batchId=${batchId}&organization=${organization}`
       );
       if (!documentsResponse.ok) {
         throw new Error("Failed to fetch documents");
