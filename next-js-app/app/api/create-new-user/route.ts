@@ -52,9 +52,7 @@ async function POST(req: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error adding user: ", error);
-    console.log("error: ", error);
-    return NextResponse.json({ statusText: error }, { status: 500 });
+    return NextResponse.json("", { status: 500, statusText: error});
   }
 }
 

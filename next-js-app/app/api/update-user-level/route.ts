@@ -4,7 +4,6 @@ import { adminOrganizationDB } from "@/auth/firebaseAdmin";
 
 async function POST(req: NextRequest, res: NextResponse) {
   const { newPermissions, email } = await req.json();
-  console.log("newPermissions: ", newPermissions);
 
   try {
     const organizationsSnapshot = await adminOrganizationDB

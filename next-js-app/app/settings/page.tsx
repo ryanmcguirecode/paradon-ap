@@ -51,7 +51,6 @@ function UsersTab() {
 
   const createNewUser = async () => {
     try {
-      console.log(organization, newName, newEmail, newPassword, newLevel);
       const response = await fetch("/api/create-new-user", {
         method: "POST",
         headers: {
@@ -75,7 +74,14 @@ function UsersTab() {
       } else {
         console.error("Error adding user: ", response);
         setError(true);
-        setErrorMessage("Invalid user");
+        if (response.statusText.includes("invalid-email")){
+          setErrorMessage("Invalid email");
+        } else if (response.statusText.includes("email-already-in-use")){
+          setErrorMessage("Email already in use");
+        }
+        else if (response.statusText.includes("weak-password")){
+          setErrorMessage("Weak Password, password must be at least 6 characters long");
+        }
       }
     } catch (error) {
       setError(true);
@@ -158,7 +164,6 @@ function UsersTab() {
             sx={{ alignItems: "flex-start", gap: "4rem", margin: "20px" }}
           >
             <Box sx={{ flex: 1 }}>
-              <Typography level="title-md">Error</Typography>
               <Typography level="body-md">{errorMessage}</Typography>
             </Box>
           </Alert>
