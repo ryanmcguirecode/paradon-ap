@@ -16,13 +16,16 @@ export default function AdminPage() {
       <Box
         sx={{
           width: "80%",
-          display: "flex",
-          flexDirection: "column",
           margin: "auto",
-          paddingTop: "20px",
+          height: "100%",
         }}
       >
-        <Tabs size="lg">
+        <Tabs
+          size="lg"
+          sx={{
+            height: "100%",
+          }}
+        >
           <TabList
             sx={{
               display: "flex",
@@ -42,10 +45,20 @@ export default function AdminPage() {
               Documents
             </Tab>
           </TabList>
-          <TabPanel value={0} sx={{ backgroundColor: "white" }}>
+          <TabPanel
+            value={0}
+            sx={{
+              height: "calc(100% - 100px)", // Overflowing otherwise idk why
+            }}
+          >
             <UsersTab />
           </TabPanel>
-          <TabPanel value={1} sx={{ backgroundColor: "white" }}>
+          <TabPanel
+            value={1}
+            sx={{
+              height: "calc(100% - 100px)", // Overflowing otherwise idk why
+            }}
+          >
             <DocumentsTab />
           </TabPanel>
         </Tabs>

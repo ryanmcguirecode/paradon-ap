@@ -1,4 +1,4 @@
-const azureInvoiceFields = {
+export const azureInvoiceFields = {
   CustomerName: "Invoiced customer",
   CustomerId: "Customer reference ID",
   PurchaseOrder: "Purchase order reference number",
@@ -38,7 +38,7 @@ const azureInvoiceFields = {
 };
 type AzureInvoiceField = keyof typeof azureInvoiceFields;
 
-export interface Field {
+export interface DocumentField {
   id: string;
   displayName: string;
   kind: "string" | "number" | "date" | "currency";
@@ -46,9 +46,9 @@ export interface Field {
   modelField?: AzureInvoiceField | null;
 }
 
-export default interface Document {
+export interface Document {
   id: string;
   displayName: string;
   model?: "azure-invoice" | null;
-  fields?: Field[];
+  fields?: DocumentField[];
 }

@@ -143,121 +143,121 @@ export default function UsersTab() {
   }, [error]);
 
   return (
-    <NavigationLayout>
-      <>
-        {error && (
-          <Alert
-            variant="soft"
-            color="danger"
-            invertedColors
-            startDecorator={<Warning />}
-            sx={{ alignItems: "flex-start", gap: "4rem", margin: "20px" }}
-          >
-            <Box sx={{ flex: 1 }}>
-              <Typography level="body-md">{errorMessage}</Typography>
-            </Box>
-          </Alert>
-        )}
-        <Typography level="h3" sx={{ paddingBottom: "10px" }}>
-          Users
-        </Typography>
-        <Table stickyFooter variant="plain">
-          <thead>
-            <tr>
-              <th style={{ textAlign: "center" }}>Name</th>
-              <th style={{ width: "215px", textAlign: "center" }}>Email</th>
-              <th style={{ textAlign: "center" }}>Password</th>
-              <th style={{ textAlign: "center" }}>Level</th>
-              <th style={{ width: "55px", textAlign: "center" }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user, index) => (
-              <tr key={user.email}>
-                <td>
-                  <Typography textAlign="center">{user.name}</Typography>
-                </td>
-                <td>
-                  <Typography textAlign="center">{user.email}</Typography>
-                </td>
-                <td>
-                  <Typography style={{ textAlign: "center" }}>
-                    ********
-                  </Typography>
-                </td>
-                <td>
-                  <Typography textAlign="center">{user.level}</Typography>
-                </td>
-                <td>
-                  <IconButton
-                    variant="soft"
-                    color="danger"
-                    onClick={deleteUser(user.email)}
-                  >
-                    <DeleteOutlineOutlinedIcon />
-                  </IconButton>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr>
+    // <NavigationLayout>
+    <>
+      {error && (
+        <Alert
+          variant="soft"
+          color="danger"
+          invertedColors
+          startDecorator={<Warning />}
+          sx={{ alignItems: "flex-start", gap: "4rem", margin: "20px" }}
+        >
+          <Box sx={{ flex: 1 }}>
+            <Typography level="body-md">{errorMessage}</Typography>
+          </Box>
+        </Alert>
+      )}
+      <Typography level="h3" sx={{ paddingBottom: "10px" }}>
+        Users
+      </Typography>
+      <Table stickyFooter variant="plain">
+        <thead>
+          <tr>
+            <th style={{ textAlign: "center" }}>Name</th>
+            <th style={{ width: "215px", textAlign: "center" }}>Email</th>
+            <th style={{ textAlign: "center" }}>Password</th>
+            <th style={{ textAlign: "center" }}>Level</th>
+            <th style={{ width: "55px", textAlign: "center" }}></th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((user, index) => (
+            <tr key={user.email}>
               <td>
-                <Input
-                  type="text"
-                  name="name"
-                  placeholder="New User Name"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                />
+                <Typography textAlign="center">{user.name}</Typography>
               </td>
               <td>
-                <Input
-                  type="email"
-                  name="email"
-                  placeholder="New User Email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                />
+                <Typography textAlign="center">{user.email}</Typography>
               </td>
               <td>
-                <Input
-                  type="password"
-                  name="password"
-                  placeholder="New User Password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
+                <Typography style={{ textAlign: "center" }}>
+                  ********
+                </Typography>
               </td>
               <td>
-                <Select
-                  onChange={(e, value: string | null) => setNewLevel(value)}
-                >
-                  <Option value="admin">Admin</Option>
-                  <Option value="user">User</Option>
-                </Select>
+                <Typography textAlign="center">{user.level}</Typography>
               </td>
               <td>
                 <IconButton
-                  variant="solid"
-                  color="primary"
-                  disabled={!newName || !newEmail || !newPassword || !newLevel}
-                  onClick={createNewUser}
+                  variant="soft"
+                  color="danger"
+                  onClick={deleteUser(user.email)}
                 >
-                  <AddOutlinedIcon />
+                  <DeleteOutlineOutlinedIcon />
                 </IconButton>
               </td>
             </tr>
-          </tfoot>
-        </Table>
-        <Box
-          sx={{
-            width: "100%",
-            display: "flex",
-            justifyContent: "end",
-          }}
-        ></Box>
-      </>
-    </NavigationLayout>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>
+              <Input
+                type="text"
+                name="name"
+                placeholder="New User Name"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+              />
+            </td>
+            <td>
+              <Input
+                type="email"
+                name="email"
+                placeholder="New User Email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+              />
+            </td>
+            <td>
+              <Input
+                type="password"
+                name="password"
+                placeholder="New User Password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </td>
+            <td>
+              <Select
+                onChange={(e, value: string | null) => setNewLevel(value)}
+              >
+                <Option value="admin">Admin</Option>
+                <Option value="user">User</Option>
+              </Select>
+            </td>
+            <td>
+              <IconButton
+                variant="solid"
+                color="primary"
+                disabled={!newName || !newEmail || !newPassword || !newLevel}
+                onClick={createNewUser}
+              >
+                <AddOutlinedIcon />
+              </IconButton>
+            </td>
+          </tr>
+        </tfoot>
+      </Table>
+      <Box
+        sx={{
+          width: "100%",
+          display: "flex",
+          justifyContent: "end",
+        }}
+      ></Box>
+    </>
+    // </NavigationLayout>
   );
 }
