@@ -24,6 +24,7 @@ import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined
 import DocumentScannerOutlinedIcon from "@mui/icons-material/DocumentScannerOutlined";
 import UpdateOutlinedIcon from "@mui/icons-material/UpdateOutlined";
 
+import Document from "@/types/Document";
 import NavigationLayout from "@/components/NavigationLayout";
 import { useAuth } from "@/components/AuthContext";
 
@@ -194,6 +195,25 @@ function UsersTab() {
   );
 }
 
+const DocumentsTab = () => {
+  const [documentTypes, setDocumentTypes] = useState<Array<Document>>([]);
+
+  return (
+    <Tabs size="lg" orientation="vertical" sx={{ flex: 1 }}>
+      <TabList
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
+        {documentTypes.map((document, index) => (
+          <Tab key={document.id}>{document.displayName}</Tab>
+        ))}
+      </TabList>
+    </Tabs>
+  );
+};
+
 export default function AdminPage() {
   return (
     <NavigationLayout>
@@ -226,8 +246,11 @@ export default function AdminPage() {
               Documents
             </Tab>
           </TabList>
-          <TabPanel sx={{ backgroundColor: "white" }}>
+          <TabPanel value={0} sx={{ backgroundColor: "white" }}>
             <UsersTab />
+          </TabPanel>
+          <TabPanel value={1} sx={{ backgroundColor: "white" }}>
+            <DocumentsTab />
           </TabPanel>
         </Tabs>
       </Box>
