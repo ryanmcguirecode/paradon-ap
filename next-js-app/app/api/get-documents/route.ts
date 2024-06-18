@@ -1,10 +1,7 @@
-import {
-  BigQuery,
-  BigQueryDate,
-  BigQueryDatetime,
-} from "@google-cloud/bigquery";
+import { Firestore } from "@google-cloud/firestore";
 import { NextRequest, NextResponse } from "next/server";
 import { capitalizedToCamelObject } from "@/utils/snakeToCamel";
+import { Timestamp } from "@google-cloud/firestore";
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,7 +9,7 @@ export async function GET(req: NextRequest) {
       process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON || "{}"
     );
 
-    const bigquery = new BigQuery({
+    const firestore = new Firestore({
       projectId: credentials.project_id,
       credentials: {
         client_email: credentials.client_email,
@@ -28,62 +25,50 @@ export async function GET(req: NextRequest) {
     const toDate = req.nextUrl.searchParams.get("toDate");
     const filename = req.nextUrl.searchParams.get("filename");
     const batchId = req.nextUrl.searchParams.get("batchId");
+    const organization = req.nextUrl.searchParams.get("organization");
 
-    let query = `
-          SELECT * FROM \`test_invoices.metadata\`
-        `;
-
-    const conditions: string[] = [];
+    let query = firestore.collection("documents").where("organization", "==", organization);
 
     if (batchId) {
-      conditions.push(`BatchId = '${batchId}'`);
+      query = query.where("BatchId", "==", batchId);
     }
     if (documentType) {
-      conditions.push(`DocumentType = '${documentType}'`);
+      query = query.where("DocumentType", "==", documentType);
     }
     if (reviewed) {
       if (reviewed === "true") {
-        conditions.push(`TimeReviewed IS NOT NULL`);
+        query = query.where("TimeReviewed", "!=", null);
       } else {
-        conditions.push(`TimeReviewed IS NULL`);
+        query = query.where("TimeReviewed", "==", null);
       }
     }
     if (fromDate) {
-      conditions.push(`TimeReceived >= PARSE_DATE('%Y-%m-%d', '${fromDate}')`);
+      query = query.where("TimeReceived", ">=", new Date(fromDate));
     }
     if (toDate) {
-      conditions.push(`TimeReceived <= PARSE_DATE('%Y-%m-%d', '${toDate}')`);
+      query = query.where("TimeReceived", "<=", new Date(toDate));
     }
     if (filename) {
-      conditions.push(`Filename = '${filename}'`);
+      query = query.where("Filename", "==", filename);
     }
-
-    if (conditions.length > 0) {
-      query += ` WHERE ` + conditions.join(" AND ");
-    }
-
     if (limit) {
-      query += ` LIMIT ${limit}`;
-      if (offset) {
-        query += ` OFFSET ${offset}`;
-      }
+      query = query.limit(Number(limit));
+    }
+    if (offset) {
+      query = query.offset(Number(offset));
     }
 
-    const options = {
-      query: query,
-      location: "US",
-    };
-
-    const [rows] = await bigquery.query(options);
+    const snapshot = await query.get();
+    const rows = snapshot.docs.map((doc) => ({
+      ...doc.data(),
+      filename: doc.id,
+    }));
 
     const convertDatesToStrings = (row: any) => {
       const newRow: any = {};
       for (const key in row) {
-        if (
-          row[key] instanceof BigQueryDate ||
-          row[key] instanceof BigQueryDatetime
-        ) {
-          newRow[key] = row[key].value;
+        if (row[key] instanceof Timestamp) {
+          newRow[key] = row[key].toDate().toISOString();
         } else {
           newRow[key] = row[key];
         }

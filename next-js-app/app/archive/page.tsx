@@ -18,7 +18,8 @@ import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 
 import NavigationLayout from "@/components/NavigationLayout";
 import FileViewPopup from "@/components/FileViewPopup";
-import { Document } from "@/components/Document";
+import Document from "@/components/Document";
+import { useAuth } from "@/components/AuthContext";
 
 function formatDate(date: string | null) {
   if (!date) {
@@ -50,6 +51,8 @@ function getPreviewImage(filename: string) {
 const FILES_PER_QUERY = 50;
 
 export default function DocumentsPage() {
+  const { user, loading, level, organization } = useAuth();
+
   const [documents, setDocuments] = useState<Document[]>([]);
   const [moreDocuments, setMoreDocuments] = useState<boolean>(true);
   const [openFile, setOpenFile] = useState<string | null>(null);
@@ -80,15 +83,15 @@ export default function DocumentsPage() {
     filters: any = currentFilters,
     append: boolean = false
   ) => {
-    fetch(
-      `/api/get-documents?limit=${FILES_PER_QUERY}&offset=${offset}
-      ` +
-        (documentType ? `&documentType=${filters.documentType}` : "") +
-        (reviewed != null ? `&reviewed=${filters.reviewed}` : "") +
-        (fromDate ? `&fromDate=${filters.fromDate}` : "") +
-        (toDate ? `&toDate=${filters.toDate}` : "") +
-        (filename ? `&filename=${filters.filename}` : "")
-    )
+    var url = `/api/get-documents?limit=${FILES_PER_QUERY}&offset=${offset}`;
+    if (documentType) url = url.concat(`&documentType=${filters.documentType}`);
+    if (reviewed != null) url.concat(`&reviewed=${filters.reviewed}`);
+    if (fromDate) url.concat(`&fromDate=${filters.fromDate}`);
+    if (toDate) url.concat(`&toDate=${filters.toDate}`);
+    if (filename) url.concat(`&filename=${filters.filename}`);
+    url = url.concat(`&organization=${organization}`);
+
+    fetch(url)
       .then((response) => response.json())
       .then((data) => {
         if (append) {
@@ -108,7 +111,7 @@ export default function DocumentsPage() {
     getFilteredDocuments(documents.length, currentFilters, true);
   };
 
-  useEffect(() => getFilteredDocuments(0), []);
+  useEffect(() => getFilteredDocuments(0), [loading]);
 
   return (
     <>
@@ -255,11 +258,10 @@ export default function DocumentsPage() {
                       setFileViewPopupOpen(true);
                     }}
                     sx={{
-                      marginLeft: "60px",
                       marginBottom: "20px",
-                      width: "100px",
+                      width: "135px",
                       borderRadius: "10px",
-                      padding: "4px",
+                      margin: "4px",
                       "&:hover": {
                         backgroundColor: "rgb(243, 246, 252)",
                         transition: "background-color 0.3s ease",
@@ -273,8 +275,6 @@ export default function DocumentsPage() {
                       textAlign="center"
                       sx={{
                         marginTop: "10px",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
                         textOverflow: "ellipsis",
                       }}
                     >

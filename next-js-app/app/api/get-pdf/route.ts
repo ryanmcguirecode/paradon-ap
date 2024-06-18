@@ -14,7 +14,7 @@ const storage = new Storage({
   },
 });
 
-const bucketName = "paradon-test-invoices";
+const bucketName = "paradon-ap-test";
 
 async function GET(req: NextRequest) {
   const fileName = req.nextUrl.searchParams.get("fileName");
