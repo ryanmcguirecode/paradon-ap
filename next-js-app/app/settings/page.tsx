@@ -13,7 +13,6 @@ import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined
 import DocumentScannerOutlinedIcon from "@mui/icons-material/DocumentScannerOutlined";
 
 import NavigationLayout from "@/components/NavigationLayout";
-import { useAuth } from "@/components/AuthContext";
 
 import UsersTab from "./UsersTab";
 import DocumentsTab from "./DocumentsTab";

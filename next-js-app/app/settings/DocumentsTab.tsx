@@ -33,6 +33,7 @@ import { azureInvoiceFields, Document, DocumentField } from "@/types/Document";
 interface InputPropertyProps {
   label: string;
   value?: string;
+  onChange?: (value: string) => void;
   maxWidth?: string;
   disabled?: boolean;
   indentation?: number;
@@ -41,6 +42,7 @@ interface InputPropertyProps {
 function InputProperty({
   label,
   value = null,
+  onChange = (s) => {},
   maxWidth = null,
   disabled = false,
   indentation = 0,
@@ -51,6 +53,9 @@ function InputProperty({
     <FormControl error={error} sx={{ marginLeft: indentation * 20 + "px" }}>
       <FormLabel>{label}</FormLabel>
       <Input
+        onChange={(e) => {
+          onChange(e.target.value);
+        }}
         disabled={disabled}
         defaultValue={value}
         sx={{
@@ -70,6 +75,7 @@ function InputProperty({
 interface SelectPropertyProps {
   label: string;
   value?: string;
+  onChange?: (value: string) => void;
   options: string[];
   disabled?: boolean;
   indentation?: number;
@@ -78,6 +84,7 @@ interface SelectPropertyProps {
 function SelectProperty({
   label,
   value,
+  onChange = (s) => {},
   options,
   disabled = false,
   indentation = 0,
@@ -87,7 +94,13 @@ function SelectProperty({
   return (
     <FormControl error={error} sx={{ marginLeft: indentation * 20 + "px" }}>
       <FormLabel>{label}</FormLabel>
-      <Select disabled={disabled} defaultValue={value}>
+      <Select
+        disabled={disabled}
+        defaultValue={value}
+        onChange={(e, value) => {
+          onChange(value);
+        }}
+      >
         {options.map((option) => (
           <Option key={option} value={option}>
             {option}
@@ -155,7 +168,7 @@ function ColorPicker({ initialColor = [235, 64, 52] }) {
             }}
           />
         </Box>
-        <Box sx={{ marginLeft: "30px" }}>
+        <Box sx={{ marginLeft: "30px", marginBottom: "15px" }}>
           <RgbColorPicker color={color} onChange={setColor} />
         </Box>
       </Box>
@@ -169,38 +182,84 @@ interface FieldPropertyProps {
 }
 
 function FieldProperty({ field, indentation = 0 }: FieldPropertyProps) {
+  let id: string,
+    displayName: string,
+    kind: "string" | "number" | "date" | "currency" | null,
+    color: [number, number, number],
+    modelField: string | null;
+
+  if (!field) {
+    id = "";
+    displayName = "";
+    kind = null;
+    color = [235, 64, 52];
+    modelField = null;
+  } else {
+    id = field.id;
+    displayName = field.displayName;
+    kind = field.kind;
+    color = field.color;
+    modelField = field.modelField || null;
+  }
+
   return (
     <Accordion sx={{ marginLeft: indentation * 20 + "px" }}>
-      <AccordionSummary>{field.displayName}</AccordionSummary>
+      <AccordionSummary>
+        {displayName || (
+          <Typography
+            endDecorator={<AddCircleOutlineOutlinedIcon />}
+            sx={{
+              color: "primary.500",
+            }}
+          >
+            Create New Field
+          </Typography>
+        )}
+      </AccordionSummary>
       <AccordionDetails>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
+            paddingTop: "10px",
+            paddingBottom: "20px",
+          }}
+        >
           <InputProperty
             label="Field ID"
-            value={field.id}
-            disabled
+            value={id}
+            disabled={field !== null}
             indentation={indentation + 1}
           />
           <InputProperty
             label="Field Display Name"
-            value={field.displayName}
+            value={displayName}
             indentation={indentation + 1}
           />
           <SelectProperty
             label="Field Type"
-            value={field.kind}
+            value={kind}
             options={[null, "string", "number", "date", "currency"]}
             indentation={indentation + 1}
           />
           <Box sx={{ marginLeft: (indentation + 1) * 20 + "px" }}>
-            <ColorPicker initialColor={field.color} />
+            <ColorPicker initialColor={color} />
           </Box>
-          {field.modelField && (
-            <SelectProperty
-              label="Model Field"
-              value={field.modelField}
-              options={Object.keys(azureInvoiceFields)}
-              indentation={indentation + 1}
-            />
+          <SelectProperty
+            label="Model Field"
+            value={modelField}
+            options={Object.keys(azureInvoiceFields)}
+            indentation={indentation + 1}
+          />
+          {field === null && (
+            <Button
+              size="md"
+              color="primary"
+              sx={{ margin: "auto", marginTop: "20px" }}
+            >
+              Create Field
+            </Button>
           )}
         </Box>
       </AccordionDetails>
@@ -208,70 +267,86 @@ function FieldProperty({ field, indentation = 0 }: FieldPropertyProps) {
   );
 }
 
-function DocumentConfig(document: Document) {
+function DocumentConfig(
+  document: Document,
+  isNew: boolean,
+  onChange: (document: Document) => void
+) {
+  let id: string,
+    displayName: string,
+    model: "azure-invoice" | null,
+    fields: DocumentField[];
+  if (!document) {
+    id = "";
+    displayName = "";
+    model = null;
+    fields = [];
+  } else {
+    id = document.id;
+    displayName = document.displayName;
+    model = document.model || null;
+    fields = document.fields || [];
+  }
+
   return (
     <Box
       sx={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "20px",
         height: "100%",
       }}
     >
-      <Typography level="h4">Document</Typography>
-      <InputProperty
-        label="Document ID"
-        value={document.id}
-        disabled
-        indentation={1}
-      />
-      <InputProperty
-        label="Display Name"
-        value={document.displayName}
-        indentation={1}
-      />
-      <SelectProperty
-        label="Model"
-        value={document.model}
-        options={[null, "azure-invoice"]}
-        indentation={1}
-      />
-      <Typography level="h4">Fields</Typography>
-      <AccordionGroup>
-        {document.fields.map((field) => (
-          <FieldProperty field={field} indentation={1} />
-        ))}
-        <Accordion sx={{ marginLeft: 1 * 20 + "px" }}>
-          <AccordionSummary>
-            <Typography
-              endDecorator={<AddCircleOutlineOutlinedIcon />}
-              sx={{ color: "primary.500" }}
-            >
-              Add New Field
-            </Typography>
-          </AccordionSummary>
-
-          <AccordionDetails>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <InputProperty label="Field ID" indentation={2} />
-              <InputProperty label="Field Display Name" indentation={2} />
-              <SelectProperty
-                label="Field Type"
-                options={[null, "string", "number", "date", "currency"]}
-                indentation={2}
-              />
-              <Box sx={{ marginLeft: 2 * 20 + "px" }}>
-                <ColorPicker />
-              </Box>
-              <SelectProperty
-                label="Model Field"
-                options={Object.keys(azureInvoiceFields)}
-                indentation={2}
-              />
-            </Box>
-          </AccordionDetails>
-        </Accordion>
-      </AccordionGroup>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "20px",
+          height: "100%",
+          overflow: "scroll",
+        }}
+      >
+        <Typography level="h4">Document</Typography>
+        <InputProperty
+          label="Document ID"
+          value={id}
+          onChange={(value) => {
+            onChange({
+              ...document,
+              id: value,
+            });
+          }}
+          disabled={!isNew}
+          indentation={1}
+        />
+        <InputProperty
+          label="Display Name"
+          onChange={(value) => {
+            onChange({
+              ...document,
+              displayName: value,
+            });
+          }}
+          value={displayName}
+          indentation={1}
+        />
+        <SelectProperty
+          label="Model"
+          onChange={(value) => {
+            onChange({
+              ...document,
+              model: value as "azure-invoice" | null, // TODO: Fix this
+            });
+          }}
+          value={model}
+          options={[null, "azure-invoice"]}
+          indentation={1}
+        />
+        <Typography level="h4">Fields</Typography>
+        <AccordionGroup>
+          {fields.map((field) => (
+            <FieldProperty field={field} indentation={1} />
+          ))}
+          <FieldProperty field={null} indentation={1} />
+        </AccordionGroup>
+      </Box>
     </Box>
   );
 }
@@ -294,6 +369,7 @@ export default function DocumentsTab() {
       });
 
       const data = await response.json();
+      data.push(null); // Add a null document for creating new documents
       setDocumentTypes(data);
       setDocumentsLoading(false);
     } catch (error) {
@@ -326,55 +402,71 @@ export default function DocumentsTab() {
   }
 
   return (
-    <Tabs
-      size="lg"
-      orientation="vertical"
-      sx={{
-        height: "100%",
-        backgroundColor: "transparent",
-      }}
-    >
-      <TabList
+    <>
+      <Tabs
+        size="lg"
+        orientation="vertical"
         sx={{
-          [`& .${tabClasses.root}`]: {
-            fontSize: "md",
-            fontWeight: "lg",
-            [`&[aria-selected="true"]`]: {
-              bgcolor: "background.surface",
-            },
-            [`&.${tabClasses.focusVisible}`]: {
-              outlineOffset: "-4px",
-            },
-          },
+          height: "calc(100% - 90px)",
+          backgroundColor: "transparent",
         }}
       >
-        {documentTypes.map((document, index) => (
-          <Tab key={document.id}>{document.displayName}</Tab>
-        ))}
-        <Tab sx={{ color: "primary.500" }}>
-          Create New <AddCircleOutlineOutlinedIcon />
-        </Tab>
-      </TabList>
-
-      {documentTypes.map((document, index) => (
-        <TabPanel
-          key={document.id}
-          value={index}
+        <TabList
           sx={{
-            overflow: "scroll",
+            [`& .${tabClasses.root}`]: {
+              fontSize: "md",
+              fontWeight: "lg",
+              [`&[aria-selected="true"]`]: {
+                bgcolor: "background.surface",
+              },
+              [`&.${tabClasses.focusVisible}`]: {
+                outlineOffset: "-4px",
+              },
+            },
           }}
         >
-          {DocumentConfig(document)}
-        </TabPanel>
-      ))}
-      <TabPanel
-        value={documentTypes.length}
+          {documentTypes.map((document, index) =>
+            index !== documentTypes.length - 1 ? (
+              <Tab key={document.id}>{document.displayName}</Tab>
+            ) : (
+              <Tab sx={{ color: "primary.500" }}>
+                Create New <AddCircleOutlineOutlinedIcon />
+              </Tab>
+            )
+          )}
+        </TabList>
+
+        {documentTypes.map((document, index) => (
+          <TabPanel key={index} value={index}>
+            {DocumentConfig(
+              document,
+              index === documentTypes.length - 1,
+              (document) => {
+                setDocumentTypes((documentTypes) => {
+                  const newDocumentTypes = [...documentTypes];
+                  newDocumentTypes[index] = document;
+                  return newDocumentTypes;
+                });
+                console.log(document);
+              }
+            )}
+          </TabPanel>
+        ))}
+        {/* <TabPanel value={documentTypes.length}>{DocumentConfig(null)}</TabPanel> */}
+      </Tabs>
+      <Box
         sx={{
-          overflow: "scroll",
+          marginTop: "45px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          justifyContent: "flex-end",
         }}
       >
-        {}
-      </TabPanel>
-    </Tabs>
+        <Button size="lg" color="success">
+          Save Changes
+        </Button>
+      </Box>
+    </>
   );
 }
