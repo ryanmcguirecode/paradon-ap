@@ -117,14 +117,24 @@ function SelectProperty({
   );
 }
 
-function ColorPicker({ initialColor = [235, 64, 52] }) {
+interface ColorPickerProps {
+  initialColor?: [number, number, number];
+  onChange?: (color: [number, number, number]) => void;
+  indentation?: number;
+}
+
+function ColorPicker({
+  initialColor = [235, 64, 52],
+  onChange = (color: [number, number, number]) => {},
+  indentation = 0,
+}) {
   const [color, setColor] = useState({
     r: initialColor[0],
     g: initialColor[1],
     b: initialColor[2],
   });
   return (
-    <>
+    <Box sx={{ marginLeft: indentation * 20 + "px" }}>
       <Typography level="title-sm">Field Color</Typography>
       <Box
         sx={{
@@ -139,7 +149,9 @@ function ColorPicker({ initialColor = [235, 64, 52] }) {
             type="number"
             value={color.r}
             onChange={(e) => {
-              setColor({ ...color, r: parseInt(e.target.value) });
+              const value = parseInt(e.target.value);
+              setColor({ ...color, r: value });
+              onChange([value, color.g, color.b]);
             }}
             sx={{ maxWidth: "75px" }}
           />
@@ -147,7 +159,9 @@ function ColorPicker({ initialColor = [235, 64, 52] }) {
             type="number"
             value={color.g}
             onChange={(e) => {
-              setColor({ ...color, g: parseInt(e.target.value) });
+              const value = parseInt(e.target.value);
+              setColor({ ...color, g: value });
+              onChange([color.r, value, color.b]);
             }}
             sx={{ maxWidth: "75px" }}
           />
@@ -155,7 +169,9 @@ function ColorPicker({ initialColor = [235, 64, 52] }) {
             type="number"
             value={color.b}
             onChange={(e) => {
-              setColor({ ...color, b: parseInt(e.target.value) });
+              const value = parseInt(e.target.value);
+              setColor({ ...color, b: value });
+              onChange([color.r, color.g, value]);
             }}
             sx={{ maxWidth: "75px" }}
           />
@@ -168,20 +184,31 @@ function ColorPicker({ initialColor = [235, 64, 52] }) {
             }}
           />
         </Box>
-        <Box sx={{ marginLeft: "30px", marginBottom: "15px" }}>
-          <RgbColorPicker color={color} onChange={setColor} />
+        <Box sx={{ marginLeft: "25px", marginBottom: "15px" }}>
+          <RgbColorPicker
+            color={color}
+            onChange={(color) => {
+              setColor(color);
+              onChange([color.r, color.g, color.b]);
+            }}
+          />
         </Box>
       </Box>
-    </>
+    </Box>
   );
 }
 
 interface FieldPropertyProps {
   field: DocumentField;
+  onChange?: (field: DocumentField) => void;
   indentation?: number;
 }
 
-function FieldProperty({ field, indentation = 0 }: FieldPropertyProps) {
+function FieldProperty({
+  field,
+  onChange = (field) => {},
+  indentation = 0,
+}: FieldPropertyProps) {
   let id: string,
     displayName: string,
     kind: "string" | "number" | "date" | "currency" | null,
@@ -229,26 +256,58 @@ function FieldProperty({ field, indentation = 0 }: FieldPropertyProps) {
           <InputProperty
             label="Field ID"
             value={id}
+            onChange={(value) => {
+              onChange({
+                ...field,
+                id: value,
+              });
+            }}
             disabled={field !== null}
             indentation={indentation + 1}
           />
           <InputProperty
             label="Field Display Name"
             value={displayName}
+            onChange={(value) => {
+              onChange({
+                ...field,
+                displayName: value,
+              });
+            }}
             indentation={indentation + 1}
           />
           <SelectProperty
             label="Field Type"
             value={kind}
+            onChange={(value) => {
+              onChange({
+                ...field,
+                kind: value as "string" | "number" | "date" | "currency", // TODO: Fix this
+              });
+            }}
             options={[null, "string", "number", "date", "currency"]}
             indentation={indentation + 1}
           />
-          <Box sx={{ marginLeft: (indentation + 1) * 20 + "px" }}>
-            <ColorPicker initialColor={color} />
-          </Box>
+
+          <ColorPicker
+            initialColor={color}
+            onChange={(color) => {
+              onChange({
+                ...field,
+                color: color,
+              });
+            }}
+            indentation={indentation + 1}
+          />
           <SelectProperty
             label="Model Field"
             value={modelField}
+            onChange={(value) => {
+              onChange({
+                ...field,
+                modelField: value as typeof field.modelField, // TODO: Fix this
+              });
+            }}
             options={Object.keys(azureInvoiceFields)}
             indentation={indentation + 1}
           />
@@ -341,10 +400,23 @@ function DocumentConfig(
         />
         <Typography level="h4">Fields</Typography>
         <AccordionGroup>
-          {fields.map((field) => (
-            <FieldProperty field={field} indentation={1} />
+          {fields.map((field, index) => (
+            <FieldProperty
+              field={field}
+              onChange={(field) => {
+                onChange({
+                  ...document,
+                  fields: [
+                    ...fields.slice(0, index),
+                    field,
+                    ...fields.slice(index + 1),
+                  ],
+                });
+              }}
+              indentation={1}
+            />
           ))}
-          <FieldProperty field={null} indentation={1} />
+          {/* <FieldProperty field={null} indentation={1} /> */}
         </AccordionGroup>
       </Box>
     </Box>
