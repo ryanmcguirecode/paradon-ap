@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { RgbColorPicker } from "react-colorful";
 
 import {
@@ -200,13 +201,17 @@ function ColorPicker({
 
 interface FieldPropertyProps {
   field: DocumentField;
+  isNew?: boolean;
   onChange?: (field: DocumentField) => void;
+  onCreate?: () => void;
   indentation?: number;
 }
 
 function FieldProperty({
   field,
+  isNew = false,
   onChange = (field) => {},
+  onCreate = () => {},
   indentation = 0,
 }: FieldPropertyProps) {
   let id: string,
@@ -232,7 +237,9 @@ function FieldProperty({
   return (
     <Accordion sx={{ marginLeft: indentation * 20 + "px" }}>
       <AccordionSummary>
-        {displayName || (
+        {!isNew ? (
+          displayName
+        ) : (
           <Typography
             endDecorator={<AddCircleOutlineOutlinedIcon />}
             sx={{
@@ -262,7 +269,7 @@ function FieldProperty({
                 id: value,
               });
             }}
-            disabled={field !== null}
+            disabled={!isNew}
             indentation={indentation + 1}
           />
           <InputProperty
@@ -315,6 +322,7 @@ function FieldProperty({
             <Button
               size="md"
               color="primary"
+              onClick={onCreate}
               sx={{ margin: "auto", marginTop: "20px" }}
             >
               Create Field
@@ -331,22 +339,6 @@ function DocumentConfig(
   isNew: boolean,
   onChange: (document: Document) => void
 ) {
-  let id: string,
-    displayName: string,
-    model: "azure-invoice" | null,
-    fields: DocumentField[];
-  if (!document) {
-    id = "";
-    displayName = "";
-    model = null;
-    fields = [];
-  } else {
-    id = document.id;
-    displayName = document.displayName;
-    model = document.model || null;
-    fields = document.fields || [];
-  }
-
   return (
     <Box
       sx={{
@@ -365,7 +357,7 @@ function DocumentConfig(
         <Typography level="h4">Document</Typography>
         <InputProperty
           label="Document ID"
-          value={id}
+          value={document.id}
           onChange={(value) => {
             onChange({
               ...document,
@@ -383,7 +375,7 @@ function DocumentConfig(
               displayName: value,
             });
           }}
-          value={displayName}
+          value={document.displayName}
           indentation={1}
         />
         <SelectProperty
@@ -394,29 +386,35 @@ function DocumentConfig(
               model: value as "azure-invoice" | null, // TODO: Fix this
             });
           }}
-          value={model}
+          value={document.model}
           options={[null, "azure-invoice"]}
           indentation={1}
         />
         <Typography level="h4">Fields</Typography>
         <AccordionGroup>
-          {fields.map((field, index) => (
+          {document.fields.map((field, index) => (
             <FieldProperty
               field={field}
+              isNew={index === document.fields.length - 1}
               onChange={(field) => {
                 onChange({
                   ...document,
                   fields: [
-                    ...fields.slice(0, index),
+                    ...document.fields.slice(0, index),
                     field,
-                    ...fields.slice(index + 1),
+                    ...document.fields.slice(index + 1),
                   ],
+                });
+              }}
+              onCreate={() => {
+                onChange({
+                  ...document,
+                  fields: [...document.fields, null],
                 });
               }}
               indentation={1}
             />
           ))}
-          {/* <FieldProperty field={null} indentation={1} /> */}
         </AccordionGroup>
       </Box>
     </Box>
@@ -426,6 +424,7 @@ function DocumentConfig(
 export default function DocumentsTab() {
   const [documentTypes, setDocumentTypes] = useState<Array<Document>>([]);
   const [documentsLoading, setDocumentsLoading] = useState(true);
+  const { user, loading, level, organization } = useAuth();
 
   async function getOrganizationDocuments() {
     try {
@@ -441,8 +440,25 @@ export default function DocumentsTab() {
       });
 
       const data = await response.json();
-      data.push(null); // Add a null document for creating new documents
-      setDocumentTypes(data);
+      // Add a null document for creating new document
+      data.push(null);
+      // Add a null field for creating new fields
+      const documents = data.map((document: Document) => {
+        if (!document) {
+          return {
+            id: "",
+            displayName: "",
+            model: null,
+            fields: [null],
+          };
+        }
+        return {
+          ...document,
+          fields: [...document.fields, null],
+        };
+      });
+
+      setDocumentTypes(documents);
       setDocumentsLoading(false);
     } catch (error) {
       //   setError(true);
@@ -451,7 +467,37 @@ export default function DocumentsTab() {
     }
   }
 
-  const { user, loading, level, organization } = useAuth();
+  async function setOrganizationDocuments() {
+    const formattedDocuments = documentTypes.map((document) => {
+      const fields = document.fields.filter((field) => field !== null);
+      return {
+        ...document,
+        fields: fields,
+      };
+    });
+
+    try {
+      const response = await fetch("/api/set-organization-document-types", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          organization: organization,
+          documentTypes: formattedDocuments,
+        }),
+      });
+
+      const data = await response.json();
+      console.log(data);
+
+      getOrganizationDocuments();
+    } catch (error) {
+      //   setError(true);
+      //   setErrorMessage("Error fetching users");
+      console.error("Error fetching users: ", error);
+    }
+  }
 
   useEffect(() => {
     if (organization) {
@@ -524,7 +570,6 @@ export default function DocumentsTab() {
             )}
           </TabPanel>
         ))}
-        {/* <TabPanel value={documentTypes.length}>{DocumentConfig(null)}</TabPanel> */}
       </Tabs>
       <Box
         sx={{
@@ -535,7 +580,7 @@ export default function DocumentsTab() {
           justifyContent: "flex-end",
         }}
       >
-        <Button size="lg" color="success">
+        <Button size="lg" color="success" onClick={setOrganizationDocuments}>
           Save Changes
         </Button>
       </Box>
