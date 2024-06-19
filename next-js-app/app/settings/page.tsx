@@ -1,6 +1,14 @@
 "use client";
 
-import { Box, ListItemDecorator, Tab, TabList, TabPanel, Tabs } from "@mui/joy";
+import {
+  Box,
+  ListItemDecorator,
+  Tab,
+  tabClasses,
+  TabList,
+  TabPanel,
+  Tabs,
+} from "@mui/joy";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import DocumentScannerOutlinedIcon from "@mui/icons-material/DocumentScannerOutlined";
 
@@ -24,12 +32,23 @@ export default function AdminPage() {
           size="lg"
           sx={{
             height: "100%",
+            backgroundColor: "transparent",
           }}
         >
           <TabList
             sx={{
               display: "flex",
               justifyContent: "center",
+              [`& .${tabClasses.root}`]: {
+                fontSize: "md",
+                fontWeight: "lg",
+                [`&[aria-selected="true"]`]: {
+                  bgcolor: "background.surface",
+                },
+                [`&.${tabClasses.focusVisible}`]: {
+                  outlineOffset: "-4px",
+                },
+              },
             }}
           >
             <Tab>

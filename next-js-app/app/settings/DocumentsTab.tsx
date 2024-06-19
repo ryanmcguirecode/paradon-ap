@@ -9,6 +9,8 @@ import {
   AccordionGroup,
   AccordionSummary,
   Box,
+  Button,
+  CircularProgress,
   FormControl,
   FormHelperText,
   FormLabel,
@@ -16,23 +18,33 @@ import {
   Option,
   Select,
   Tab,
+  tabClasses,
   TabList,
   TabPanel,
   Tabs,
   Typography,
 } from "@mui/joy";
+import AddCircleOutlineOutlinedIcon from "@mui/icons-material/AddCircleOutlineOutlined";
 import InfoOutlined from "@mui/icons-material/InfoOutlined";
 
 import { useAuth } from "@/components/AuthContext";
 import { azureInvoiceFields, Document, DocumentField } from "@/types/Document";
 
+interface InputPropertyProps {
+  label: string;
+  value?: string;
+  maxWidth?: string;
+  disabled?: boolean;
+  indentation?: number;
+}
+
 function InputProperty({
   label,
-  value,
+  value = null,
   maxWidth = null,
   disabled = false,
   indentation = 0,
-}) {
+}: InputPropertyProps) {
   const error = false;
 
   return (
@@ -55,13 +67,21 @@ function InputProperty({
   );
 }
 
+interface SelectPropertyProps {
+  label: string;
+  value?: string;
+  options: string[];
+  disabled?: boolean;
+  indentation?: number;
+}
+
 function SelectProperty({
   label,
   value,
   options,
   disabled = false,
   indentation = 0,
-}) {
+}: SelectPropertyProps) {
   const error = false;
 
   return (
@@ -84,7 +104,7 @@ function SelectProperty({
   );
 }
 
-function ColorPicker({ initialColor }) {
+function ColorPicker({ initialColor = [235, 64, 52] }) {
   const [color, setColor] = useState({
     r: initialColor[0],
     g: initialColor[1],
@@ -104,17 +124,26 @@ function ColorPicker({ initialColor }) {
         <Box sx={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
           <Input
             type="number"
-            defaultValue={color.r}
+            value={color.r}
+            onChange={(e) => {
+              setColor({ ...color, r: parseInt(e.target.value) });
+            }}
             sx={{ maxWidth: "75px" }}
           />
           <Input
             type="number"
-            defaultValue={color.g}
+            value={color.g}
+            onChange={(e) => {
+              setColor({ ...color, g: parseInt(e.target.value) });
+            }}
             sx={{ maxWidth: "75px" }}
           />
           <Input
             type="number"
-            defaultValue={color.b}
+            value={color.b}
+            onChange={(e) => {
+              setColor({ ...color, b: parseInt(e.target.value) });
+            }}
             sx={{ maxWidth: "75px" }}
           />
           <Box
@@ -142,9 +171,15 @@ interface FieldPropertyProps {
 function FieldProperty({ field, indentation = 0 }: FieldPropertyProps) {
   return (
     <Accordion sx={{ marginLeft: indentation * 20 + "px" }}>
-      <AccordionSummary>{field.id}</AccordionSummary>
+      <AccordionSummary>{field.displayName}</AccordionSummary>
       <AccordionDetails>
         <Box sx={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <InputProperty
+            label="Field ID"
+            value={field.id}
+            disabled
+            indentation={indentation + 1}
+          />
           <InputProperty
             label="Field Display Name"
             value={field.displayName}
@@ -206,6 +241,36 @@ function DocumentConfig(document: Document) {
         {document.fields.map((field) => (
           <FieldProperty field={field} indentation={1} />
         ))}
+        <Accordion sx={{ marginLeft: 1 * 20 + "px" }}>
+          <AccordionSummary>
+            <Typography
+              endDecorator={<AddCircleOutlineOutlinedIcon />}
+              sx={{ color: "primary.500" }}
+            >
+              Add New Field
+            </Typography>
+          </AccordionSummary>
+
+          <AccordionDetails>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <InputProperty label="Field ID" indentation={2} />
+              <InputProperty label="Field Display Name" indentation={2} />
+              <SelectProperty
+                label="Field Type"
+                options={[null, "string", "number", "date", "currency"]}
+                indentation={2}
+              />
+              <Box sx={{ marginLeft: 2 * 20 + "px" }}>
+                <ColorPicker />
+              </Box>
+              <SelectProperty
+                label="Model Field"
+                options={Object.keys(azureInvoiceFields)}
+                indentation={2}
+              />
+            </Box>
+          </AccordionDetails>
+        </Accordion>
       </AccordionGroup>
     </Box>
   );
@@ -246,18 +311,49 @@ export default function DocumentsTab() {
     }
   }, [organization]);
 
+  if (documentsLoading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          paddingTop: "20%",
+        }}
+      >
+        <CircularProgress variant="outlined" />
+      </Box>
+    );
+  }
+
   return (
     <Tabs
       size="lg"
       orientation="vertical"
       sx={{
         height: "100%",
+        backgroundColor: "transparent",
       }}
     >
-      <TabList>
+      <TabList
+        sx={{
+          [`& .${tabClasses.root}`]: {
+            fontSize: "md",
+            fontWeight: "lg",
+            [`&[aria-selected="true"]`]: {
+              bgcolor: "background.surface",
+            },
+            [`&.${tabClasses.focusVisible}`]: {
+              outlineOffset: "-4px",
+            },
+          },
+        }}
+      >
         {documentTypes.map((document, index) => (
           <Tab key={document.id}>{document.displayName}</Tab>
         ))}
+        <Tab sx={{ color: "primary.500" }}>
+          Create New <AddCircleOutlineOutlinedIcon />
+        </Tab>
       </TabList>
 
       {documentTypes.map((document, index) => (
@@ -271,6 +367,14 @@ export default function DocumentsTab() {
           {DocumentConfig(document)}
         </TabPanel>
       ))}
+      <TabPanel
+        value={documentTypes.length}
+        sx={{
+          overflow: "scroll",
+        }}
+      >
+        {}
+      </TabPanel>
     </Tabs>
   );
 }
