@@ -25,6 +25,8 @@ import {
   Typography,
 } from "@mui/joy";
 import AddCircleOutlineOutlinedIcon from "@mui/icons-material/AddCircleOutlineOutlined";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import ErrorOutlineOutlinedIcon from "@mui/icons-material/ErrorOutlineOutlined";
 import InfoOutlined from "@mui/icons-material/InfoOutlined";
 
 import { useAuth } from "@/components/AuthContext";
@@ -39,7 +41,7 @@ function idErrorCheck(value: string, usedValues: string[]) {
   } else if (value.includes(" ")) {
     return {
       error: true,
-      message: "Field ID cannot contain spaces",
+      message: "Field ID must contain no spaces",
     };
   } else if (
     usedValues.reduce((count, current) => {
@@ -158,8 +160,7 @@ function InputProperty({
   disabled = false,
   indentation = 0,
 }: InputPropertyProps) {
-  const [hasChanged, setHasChanged] = useState(false);
-  const error = hasChanged && errorFunction(value);
+  const error = errorFunction(value);
 
   return (
     <FormControl
@@ -169,9 +170,6 @@ function InputProperty({
       <FormLabel>{label}</FormLabel>
       <Input
         onChange={(e) => {
-          if (!hasChanged) {
-            setHasChanged(true);
-          }
           onChange(e.target.value);
         }}
         disabled={disabled}
@@ -209,8 +207,7 @@ function SelectProperty({
   disabled = false,
   indentation = 0,
 }: SelectPropertyProps) {
-  const [hasChanged, setHasChanged] = useState(false);
-  const error = hasChanged && errorFunction(value);
+  const error = errorFunction(value);
 
   return (
     <FormControl
@@ -222,9 +219,6 @@ function SelectProperty({
         disabled={disabled}
         defaultValue={value}
         onChange={(e, value) => {
-          if (!hasChanged) {
-            setHasChanged(true);
-          }
           onChange(value);
         }}
       >
@@ -367,7 +361,7 @@ function FieldProperty({
     id = "";
     displayName = "";
     kind = null;
-    color = [null, null, null];
+    color = [0, 0, 0];
     modelField = null;
   } else {
     id = field.id;
@@ -377,22 +371,36 @@ function FieldProperty({
     modelField = field.modelField || null;
   }
 
+  const fieldHasError = !isFieldOk(field);
+  let fieldTitle = null;
+  if (isNew) {
+    let color: "danger" | "primary" = fieldHasError ? "danger" : "primary";
+    let icon = fieldHasError ? (
+      <ErrorOutlineOutlinedIcon />
+    ) : (
+      <AddCircleOutlineOutlinedIcon />
+    );
+
+    fieldTitle = (
+      <Typography endDecorator={icon} color={color}>
+        Create New Field
+      </Typography>
+    );
+  } else {
+    let color: "danger" | null = fieldHasError ? "danger" : null;
+    let icon = fieldHasError ? <ErrorOutlineOutlinedIcon /> : null;
+    fieldTitle = (
+      <Typography endDecorator={icon} color={color}>
+        {displayName}
+      </Typography>
+    );
+  }
+
+  const fieldIsEmpty = isEmptyField(field);
+
   return (
     <Accordion sx={{ marginLeft: indentation * 20 + "px" }}>
-      <AccordionSummary>
-        {!isNew ? (
-          displayName
-        ) : (
-          <Typography
-            endDecorator={<AddCircleOutlineOutlinedIcon />}
-            sx={{
-              color: "primary.500",
-            }}
-          >
-            Create New Field
-          </Typography>
-        )}
-      </AccordionSummary>
+      <AccordionSummary>{fieldTitle}</AccordionSummary>
       <AccordionDetails>
         <Box
           sx={{
@@ -412,7 +420,11 @@ function FieldProperty({
                 id: value,
               });
             }}
-            errorFunction={(value) => idErrorCheck(value, usedFieldIds)}
+            errorFunction={
+              !fieldIsEmpty
+                ? (value) => idErrorCheck(value, usedFieldIds)
+                : undefined
+            }
             disabled={!isNew}
             indentation={indentation + 1}
           />
@@ -425,7 +437,7 @@ function FieldProperty({
                 displayName: value,
               });
             }}
-            errorFunction={displayNameErrorCheck}
+            errorFunction={!fieldIsEmpty ? displayNameErrorCheck : undefined}
             indentation={indentation + 1}
           />
           <SelectProperty
@@ -437,7 +449,7 @@ function FieldProperty({
                 kind: value as "string" | "number" | "date" | "currency", // TODO: Fix this
               });
             }}
-            errorFunction={fieldTypeErrorCheck}
+            errorFunction={!fieldIsEmpty ? fieldTypeErrorCheck : undefined}
             options={["string", "number", "date", "currency"]}
             indentation={indentation + 1}
           />
@@ -450,7 +462,7 @@ function FieldProperty({
                 color: color,
               });
             }}
-            errorFunction={fieldColorErrorCheck}
+            errorFunction={!fieldIsEmpty ? fieldColorErrorCheck : undefined}
             indentation={indentation + 1}
           />
           <SelectProperty
@@ -487,8 +499,11 @@ function DocumentConfig(
   isNew: boolean,
   onChange: (document: Document) => void,
   usedDocumentIds: string[],
-  usedFieldIds: string[]
+  usedFieldIds: string[],
+  onDelete = () => {}
 ) {
+  const documentIsEmpty = isEmptyDocument(document);
+
   return (
     <Box
       sx={{
@@ -516,7 +531,11 @@ function DocumentConfig(
           }}
           disabled={!isNew}
           indentation={1}
-          errorFunction={(value) => idErrorCheck(value, usedDocumentIds)}
+          errorFunction={
+            !documentIsEmpty
+              ? (value) => idErrorCheck(value, usedDocumentIds)
+              : undefined
+          }
         />
         <InputProperty
           label="Display Name"
@@ -528,12 +547,13 @@ function DocumentConfig(
           }}
           value={document.displayName}
           indentation={1}
-          errorFunction={displayNameErrorCheck}
+          errorFunction={!documentIsEmpty ? displayNameErrorCheck : undefined}
         />
         <Typography level="h4">Fields</Typography>
         <AccordionGroup>
           {document.fields.map((field, index) => (
             <FieldProperty
+              key={index}
               field={field}
               isNew={index === document.fields.length - 1}
               onChange={(field) => {
@@ -558,14 +578,27 @@ function DocumentConfig(
             />
           ))}
         </AccordionGroup>
+        <Button
+          size="lg"
+          color="danger"
+          endDecorator={<DeleteOutlineOutlinedIcon />}
+          onClick={onDelete}
+          sx={{ margin: "auto" }}
+        >
+          Delete Document
+        </Button>
       </Box>
     </Box>
   );
 }
 
 export default function DocumentsTab() {
+  const [originalDocumentTypes, setOriginalDocumentTypes] =
+    useState<string>("");
   const [documentTypes, setDocumentTypes] = useState<Array<Document>>([]);
   const [documentsLoading, setDocumentsLoading] = useState(true);
+  const [selectedTab, setSelectedTab] = useState(0);
+  const [rerenderTrigger, setRerenderTrigger] = useState(false);
   const { user, loading, level, organization } = useAuth();
 
   const usedDocumentIds = documentTypes
@@ -612,6 +645,7 @@ export default function DocumentsTab() {
       });
 
       setDocumentTypes(documents);
+      setOriginalDocumentTypes(JSON.stringify(documents));
       setDocumentsLoading(false);
     } catch (error) {
       //   setError(true);
@@ -676,8 +710,10 @@ export default function DocumentsTab() {
   return (
     <>
       <Tabs
+        key={String(rerenderTrigger)}
         size="lg"
         orientation="vertical"
+        onChange={(event, value) => setSelectedTab(value as number)}
         sx={{
           height: "calc(100% - 90px)",
           backgroundColor: "transparent",
@@ -685,6 +721,7 @@ export default function DocumentsTab() {
       >
         <TabList
           sx={{
+            width: "300px",
             [`& .${tabClasses.root}`]: {
               fontSize: "md",
               fontWeight: "lg",
@@ -698,10 +735,17 @@ export default function DocumentsTab() {
           }}
         >
           {documentTypes.map((document, index) =>
-            index !== documentTypes.length - 1 ? (
+            index !== selectedTab && !isDocumentOk(document) ? (
+              <Tab key={document.id} color="danger">
+                {index !== documentTypes.length - 1
+                  ? document.displayName
+                  : "Create New"}
+                <ErrorOutlineOutlinedIcon />
+              </Tab>
+            ) : index !== documentTypes.length - 1 ? (
               <Tab key={document.id}>{document.displayName}</Tab>
             ) : (
-              <Tab sx={{ color: "primary.500" }}>
+              <Tab key={document.id} sx={{ color: "primary.500" }}>
                 Create New <AddCircleOutlineOutlinedIcon />
               </Tab>
             )
@@ -723,7 +767,32 @@ export default function DocumentsTab() {
               usedDocumentIds,
               document.fields
                 .filter((field) => !isEmptyField(field))
-                .map((field) => field.id)
+                .map((field) => field.id),
+              () => {
+                setDocumentTypes((documentTypes) => {
+                  let newDocumentTypes = [...documentTypes];
+                  if (index === documentTypes.length - 1) {
+                    newDocumentTypes = [
+                      ...newDocumentTypes,
+                      {
+                        id: null,
+                        displayName: null,
+                        fields: [
+                          {
+                            id: null,
+                            displayName: null,
+                            kind: null,
+                            color: [0, 0, 0],
+                            modelField: null,
+                          },
+                        ],
+                      },
+                    ];
+                  }
+                  return newDocumentTypes.filter((document, i) => i !== index);
+                });
+                setRerenderTrigger(!rerenderTrigger);
+              }
             )}
           </TabPanel>
         ))}
@@ -741,7 +810,10 @@ export default function DocumentsTab() {
           size="lg"
           color="success"
           onClick={setOrganizationDocuments}
-          disabled={!documentTypes.every(isDocumentOk)}
+          disabled={
+            !documentTypes.every(isDocumentOk) ||
+            originalDocumentTypes === JSON.stringify(documentTypes)
+          }
         >
           Save Changes
         </Button>
