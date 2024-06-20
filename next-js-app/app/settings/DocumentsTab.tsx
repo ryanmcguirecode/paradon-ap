@@ -337,6 +337,7 @@ interface FieldPropertyProps {
   isNew?: boolean;
   onChange?: (field: DocumentField) => void;
   onCreate?: () => void;
+  onDelete?: () => void;
   usedFieldIds: string[];
   indentation?: number;
   isNewField?: boolean;
@@ -347,6 +348,7 @@ function FieldProperty({
   isNew = false,
   onChange = (field) => {},
   onCreate = () => {},
+  onDelete = () => {},
   usedFieldIds = [],
   indentation = 0,
   isNewField = false,
@@ -477,6 +479,18 @@ function FieldProperty({
             options={[null, ...Object.keys(azureInvoiceFields)]}
             indentation={indentation + 1}
           />
+          {!isNewField && (
+            <Button
+              size="md"
+              color="danger"
+              onClick={onDelete}
+              disabled={isEmptyField(field) || !isFieldOk(field)}
+              sx={{ margin: "auto", marginTop: "20px" }}
+            >
+              Delete Field
+            </Button>
+          )}
+
           {isNewField && (
             <Button
               size="md"
@@ -550,7 +564,7 @@ function DocumentConfig(
           errorFunction={!documentIsEmpty ? displayNameErrorCheck : undefined}
         />
         <Typography level="h4">Fields</Typography>
-        <AccordionGroup>
+        <AccordionGroup key={document.fields.length}>
           {document.fields.map((field, index) => (
             <FieldProperty
               key={index}
@@ -570,6 +584,12 @@ function DocumentConfig(
                 onChange({
                   ...document,
                   fields: [...document.fields, null],
+                });
+              }}
+              onDelete={() => {
+                onChange({
+                  ...document,
+                  fields: document.fields.filter((_, i) => i !== index),
                 });
               }}
               usedFieldIds={usedFieldIds}
