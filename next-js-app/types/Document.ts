@@ -49,6 +49,5 @@ export interface DocumentField {
 export interface Document {
   id: string;
   displayName: string;
-  model?: "azure-invoice" | null;
   fields?: DocumentField[];
 }

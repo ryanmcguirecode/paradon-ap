@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { RgbColorPicker } from "react-colorful";
 
 import {
@@ -31,10 +30,120 @@ import InfoOutlined from "@mui/icons-material/InfoOutlined";
 import { useAuth } from "@/components/AuthContext";
 import { azureInvoiceFields, Document, DocumentField } from "@/types/Document";
 
+function idErrorCheck(value: string, usedValues: string[]) {
+  if (!value || value.length === 0) {
+    return {
+      error: true,
+      message: "Field ID cannot be empty",
+    };
+  } else if (value.includes(" ")) {
+    return {
+      error: true,
+      message: "Field ID cannot contain spaces",
+    };
+  } else if (
+    usedValues.reduce((count, current) => {
+      return current === value ? count + 1 : count;
+    }, 0) > 1
+  ) {
+    return {
+      error: true,
+      message: "Field ID used more than once",
+    };
+  }
+  return {
+    error: false,
+    message: "",
+  };
+}
+
+function displayNameErrorCheck(value: string) {
+  if (!value || value.length === 0) {
+    return {
+      error: true,
+      message: "Display Name cannot be empty",
+    };
+  }
+  return {
+    error: false,
+    message: "",
+  };
+}
+
+function fieldTypeErrorCheck(value: string) {
+  if (!value) {
+    return {
+      error: true,
+      message: "Field Type cannot be empty",
+    };
+  }
+  return {
+    error: false,
+    message: "",
+  };
+}
+
+function fieldColorErrorCheck(value: [number, number, number]) {
+  if (
+    !value ||
+    value.length !== 3 ||
+    value.some((v) => v === null) ||
+    value.some((v) => v < 0 || v > 255)
+  ) {
+    return {
+      error: true,
+      message: "Field color values must be between 0 and 255",
+    };
+  }
+  return {
+    error: false,
+    message: "",
+  };
+}
+
+function isEmptyDocument(document: Document) {
+  return (
+    !document.id &&
+    !document.displayName &&
+    document.fields.length === 1 &&
+    isEmptyField(document.fields[0])
+  );
+}
+
+function isEmptyField(field: DocumentField) {
+  return field === null || (!field.id && !field.displayName);
+}
+
+function isFieldOk(field: DocumentField) {
+  if (isEmptyField(field)) {
+    return true;
+  }
+  const fieldIdError = idErrorCheck(field.id, []).error;
+  const displayNameError = displayNameErrorCheck(field.displayName).error;
+  const kindError = fieldTypeErrorCheck(field.kind).error;
+  const colorError = fieldColorErrorCheck(field.color).error;
+
+  return !fieldIdError && !displayNameError && !kindError && !colorError;
+}
+
+function isDocumentOk(document: Document) {
+  if (isEmptyDocument(document)) {
+    return true;
+  }
+  const idError = idErrorCheck(document.id, []).error;
+  const displayNameError = displayNameErrorCheck(document.displayName).error;
+  const fieldErrors = document.fields.map((field) => {
+    return !isFieldOk(field);
+  });
+
+  return !idError && !displayNameError && !fieldErrors.some((error) => error);
+}
+
 interface InputPropertyProps {
   label: string;
   value?: string;
   onChange?: (value: string) => void;
+  errorFunction?: (value: string) => { error: boolean; message: string };
   maxWidth?: string;
   disabled?: boolean;
   indentation?: number;
@@ -44,17 +153,25 @@ function InputProperty({
   label,
   value = null,
   onChange = (s) => {},
+  errorFunction = (s) => ({ error: false, message: "" }),
   maxWidth = null,
   disabled = false,
   indentation = 0,
 }: InputPropertyProps) {
-  const error = false;
+  const [hasChanged, setHasChanged] = useState(false);
+  const error = hasChanged && errorFunction(value);
 
   return (
-    <FormControl error={error} sx={{ marginLeft: indentation * 20 + "px" }}>
+    <FormControl
+      error={error.error}
+      sx={{ marginLeft: indentation * 20 + "px" }}
+    >
       <FormLabel>{label}</FormLabel>
       <Input
         onChange={(e) => {
+          if (!hasChanged) {
+            setHasChanged(true);
+          }
           onChange(e.target.value);
         }}
         disabled={disabled}
@@ -63,10 +180,10 @@ function InputProperty({
           maxWidth: maxWidth ? maxWidth : "auto",
         }}
       ></Input>
-      {error && (
+      {error.error && (
         <FormHelperText>
           <InfoOutlined />
-          Oops! something is wrong.
+          {error.message}
         </FormHelperText>
       )}
     </FormControl>
@@ -77,6 +194,7 @@ interface SelectPropertyProps {
   label: string;
   value?: string;
   onChange?: (value: string) => void;
+  errorFunction?: (value: string) => { error: boolean; message: string };
   options: string[];
   disabled?: boolean;
   indentation?: number;
@@ -86,19 +204,27 @@ function SelectProperty({
   label,
   value,
   onChange = (s) => {},
+  errorFunction = (s) => ({ error: false, message: "" }),
   options,
   disabled = false,
   indentation = 0,
 }: SelectPropertyProps) {
-  const error = false;
+  const [hasChanged, setHasChanged] = useState(false);
+  const error = hasChanged && errorFunction(value);
 
   return (
-    <FormControl error={error} sx={{ marginLeft: indentation * 20 + "px" }}>
+    <FormControl
+      error={error.error}
+      sx={{ marginLeft: indentation * 20 + "px" }}
+    >
       <FormLabel>{label}</FormLabel>
       <Select
         disabled={disabled}
         defaultValue={value}
         onChange={(e, value) => {
+          if (!hasChanged) {
+            setHasChanged(true);
+          }
           onChange(value);
         }}
       >
@@ -108,10 +234,10 @@ function SelectProperty({
           </Option>
         ))}
       </Select>
-      {error && (
+      {error.error && (
         <FormHelperText>
           <InfoOutlined />
-          Oops! something is wrong.
+          {error.message}
         </FormHelperText>
       )}
     </FormControl>
@@ -122,18 +248,25 @@ interface ColorPickerProps {
   initialColor?: [number, number, number];
   onChange?: (color: [number, number, number]) => void;
   indentation?: number;
+  errorFunction?: (value: [number, number, number]) => {
+    error: boolean;
+    message: string;
+  };
 }
 
 function ColorPicker({
   initialColor = [235, 64, 52],
   onChange = (color: [number, number, number]) => {},
   indentation = 0,
-}) {
+  errorFunction = (color) => ({ error: false, message: "" }),
+}: ColorPickerProps) {
   const [color, setColor] = useState({
     r: initialColor[0],
     g: initialColor[1],
     b: initialColor[2],
   });
+  const error = errorFunction([color.r, color.g, color.b]);
+
   return (
     <Box sx={{ marginLeft: indentation * 20 + "px" }}>
       <Typography level="title-sm">Field Color</Typography>
@@ -152,7 +285,7 @@ function ColorPicker({
             onChange={(e) => {
               const value = parseInt(e.target.value);
               setColor({ ...color, r: value });
-              onChange([value, color.g, color.b]);
+              onChange([value, color.g || 0, color.b || 0]);
             }}
             sx={{ maxWidth: "75px" }}
           />
@@ -162,7 +295,7 @@ function ColorPicker({
             onChange={(e) => {
               const value = parseInt(e.target.value);
               setColor({ ...color, g: value });
-              onChange([color.r, value, color.b]);
+              onChange([color.r || 0, value, color.b || 0]);
             }}
             sx={{ maxWidth: "75px" }}
           />
@@ -172,7 +305,7 @@ function ColorPicker({
             onChange={(e) => {
               const value = parseInt(e.target.value);
               setColor({ ...color, b: value });
-              onChange([color.r, color.g, value]);
+              onChange([color.r || 0, color.g || 0, value]);
             }}
             sx={{ maxWidth: "75px" }}
           />
@@ -185,6 +318,12 @@ function ColorPicker({
             }}
           />
         </Box>
+        {error.error && (
+          <FormHelperText sx={{ marginTop: "-10px" }}>
+            <InfoOutlined />
+            {error.message}
+          </FormHelperText>
+        )}
         <Box sx={{ marginLeft: "25px", marginBottom: "15px" }}>
           <RgbColorPicker
             color={color}
@@ -204,7 +343,9 @@ interface FieldPropertyProps {
   isNew?: boolean;
   onChange?: (field: DocumentField) => void;
   onCreate?: () => void;
+  usedFieldIds: string[];
   indentation?: number;
+  isNewField?: boolean;
 }
 
 function FieldProperty({
@@ -212,7 +353,9 @@ function FieldProperty({
   isNew = false,
   onChange = (field) => {},
   onCreate = () => {},
+  usedFieldIds = [],
   indentation = 0,
+  isNewField = false,
 }: FieldPropertyProps) {
   let id: string,
     displayName: string,
@@ -224,7 +367,7 @@ function FieldProperty({
     id = "";
     displayName = "";
     kind = null;
-    color = [235, 64, 52];
+    color = [null, null, null];
     modelField = null;
   } else {
     id = field.id;
@@ -269,6 +412,7 @@ function FieldProperty({
                 id: value,
               });
             }}
+            errorFunction={(value) => idErrorCheck(value, usedFieldIds)}
             disabled={!isNew}
             indentation={indentation + 1}
           />
@@ -281,6 +425,7 @@ function FieldProperty({
                 displayName: value,
               });
             }}
+            errorFunction={displayNameErrorCheck}
             indentation={indentation + 1}
           />
           <SelectProperty
@@ -292,7 +437,8 @@ function FieldProperty({
                 kind: value as "string" | "number" | "date" | "currency", // TODO: Fix this
               });
             }}
-            options={[null, "string", "number", "date", "currency"]}
+            errorFunction={fieldTypeErrorCheck}
+            options={["string", "number", "date", "currency"]}
             indentation={indentation + 1}
           />
 
@@ -304,6 +450,7 @@ function FieldProperty({
                 color: color,
               });
             }}
+            errorFunction={fieldColorErrorCheck}
             indentation={indentation + 1}
           />
           <SelectProperty
@@ -315,14 +462,15 @@ function FieldProperty({
                 modelField: value as typeof field.modelField, // TODO: Fix this
               });
             }}
-            options={Object.keys(azureInvoiceFields)}
+            options={[null, ...Object.keys(azureInvoiceFields)]}
             indentation={indentation + 1}
           />
-          {field === null && (
+          {isNewField && (
             <Button
               size="md"
               color="primary"
               onClick={onCreate}
+              disabled={isEmptyField(field) || !isFieldOk(field)}
               sx={{ margin: "auto", marginTop: "20px" }}
             >
               Create Field
@@ -337,7 +485,9 @@ function FieldProperty({
 function DocumentConfig(
   document: Document,
   isNew: boolean,
-  onChange: (document: Document) => void
+  onChange: (document: Document) => void,
+  usedDocumentIds: string[],
+  usedFieldIds: string[]
 ) {
   return (
     <Box
@@ -366,6 +516,7 @@ function DocumentConfig(
           }}
           disabled={!isNew}
           indentation={1}
+          errorFunction={(value) => idErrorCheck(value, usedDocumentIds)}
         />
         <InputProperty
           label="Display Name"
@@ -377,18 +528,7 @@ function DocumentConfig(
           }}
           value={document.displayName}
           indentation={1}
-        />
-        <SelectProperty
-          label="Model"
-          onChange={(value) => {
-            onChange({
-              ...document,
-              model: value as "azure-invoice" | null, // TODO: Fix this
-            });
-          }}
-          value={document.model}
-          options={[null, "azure-invoice"]}
-          indentation={1}
+          errorFunction={displayNameErrorCheck}
         />
         <Typography level="h4">Fields</Typography>
         <AccordionGroup>
@@ -412,7 +552,9 @@ function DocumentConfig(
                   fields: [...document.fields, null],
                 });
               }}
+              usedFieldIds={usedFieldIds}
               indentation={1}
+              isNewField={index === document.fields.length - 1}
             />
           ))}
         </AccordionGroup>
@@ -425,6 +567,10 @@ export default function DocumentsTab() {
   const [documentTypes, setDocumentTypes] = useState<Array<Document>>([]);
   const [documentsLoading, setDocumentsLoading] = useState(true);
   const { user, loading, level, organization } = useAuth();
+
+  const usedDocumentIds = documentTypes
+    .filter((doc) => !isEmptyDocument(doc))
+    .map((document) => document.id);
 
   async function getOrganizationDocuments() {
     try {
@@ -446,10 +592,17 @@ export default function DocumentsTab() {
       const documents = data.map((document: Document) => {
         if (!document) {
           return {
-            id: "",
-            displayName: "",
-            model: null,
-            fields: [null],
+            id: null,
+            displayName: null,
+            fields: [
+              {
+                id: null,
+                displayName: null,
+                kind: null,
+                color: [0, 0, 0],
+                modelField: null,
+              },
+            ],
           };
         }
         return {
@@ -468,13 +621,15 @@ export default function DocumentsTab() {
   }
 
   async function setOrganizationDocuments() {
-    const formattedDocuments = documentTypes.map((document) => {
-      const fields = document.fields.filter((field) => field !== null);
-      return {
-        ...document,
-        fields: fields,
-      };
-    });
+    const formattedDocuments = documentTypes
+      .filter((doc) => !isEmptyDocument(doc))
+      .map((document) => {
+        const fields = document.fields.filter((field) => !isEmptyField(field));
+        return {
+          ...document,
+          fields: fields,
+        };
+      });
 
     try {
       const response = await fetch("/api/set-organization-document-types", {
@@ -489,7 +644,6 @@ export default function DocumentsTab() {
       });
 
       const data = await response.json();
-      console.log(data);
 
       getOrganizationDocuments();
     } catch (error) {
@@ -565,8 +719,11 @@ export default function DocumentsTab() {
                   newDocumentTypes[index] = document;
                   return newDocumentTypes;
                 });
-                console.log(document);
-              }
+              },
+              usedDocumentIds,
+              document.fields
+                .filter((field) => !isEmptyField(field))
+                .map((field) => field.id)
             )}
           </TabPanel>
         ))}
@@ -580,7 +737,12 @@ export default function DocumentsTab() {
           justifyContent: "flex-end",
         }}
       >
-        <Button size="lg" color="success" onClick={setOrganizationDocuments}>
+        <Button
+          size="lg"
+          color="success"
+          onClick={setOrganizationDocuments}
+          disabled={!documentTypes.every(isDocumentOk)}
+        >
           Save Changes
         </Button>
       </Box>
