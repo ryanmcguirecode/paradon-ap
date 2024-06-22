@@ -27,7 +27,16 @@ export async function GET(req: NextRequest) {
     const batchId = req.nextUrl.searchParams.get("batchId");
     const organization = req.nextUrl.searchParams.get("organization");
 
-    let query = firestore.collection("documents").where("organization", "==", organization);
+    if (!organization) {
+      return NextResponse.json(
+        { error: "Missing organization" },
+        { status: 400 }
+      );
+    }
+
+    let query = firestore
+      .collection("documents")
+      .where("organization", "==", organization);
 
     if (batchId) {
       query = query.where("BatchId", "==", batchId);
