@@ -10,14 +10,8 @@ const storage = new Storage({
 
 // Define variables
 const bucketName = "paradon-ap-test";
-const userId = "test";
-const files = [
-  "testing/test-invoices/test-invoice-1.pdf",
-  "testing/test-invoices/test-invoice-2.pdf",
-  "testing/test-invoices/test-invoice-3.pdf",
-  "testing/test-invoices/test-invoice-4.pdf",
-  "testing/test-invoices/test-invoice-5.pdf",
-];
+const userId = "utexas";
+const files = ["testing/test-invoices/test-invoice-8.pdf"];
 
 // Function to upload a file with metadata
 async function uploadFileWithMetadata(filePath, userId) {
@@ -27,7 +21,7 @@ async function uploadFileWithMetadata(filePath, userId) {
       destination: fileName,
       metadata: {
         metadata: {
-          userId: userId,
+          organization: userId,
           documentType: "invoice",
           model: "azureInvoice",
         },

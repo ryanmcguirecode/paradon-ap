@@ -36,12 +36,15 @@ module.exports = async function createDocumentMetadata(cloudEvent) {
       .file(fileName)
       .getMetadata();
 
-    const owner = metadata.metadata ? metadata.metadata.userId : null;
+    const organization =
+      metadata && metadata.metadata && metadata.metadata.organization
+        ? metadata.metadata.organization
+        : null;
 
     const fileMetadata = {
       timeCreated: file.timeCreated,
       updated: file.updated,
-      owner: owner,
+      organization: organization,
     };
 
     const docRef = firestore.collection("documents").doc(fileName);
