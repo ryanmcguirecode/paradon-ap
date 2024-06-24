@@ -11,7 +11,10 @@ const storage = new Storage({
 // Define variables
 const bucketName = "paradon-ap-test";
 const userId = "utexas";
-const files = ["testing/test-invoices/test-invoice-8.pdf"];
+const files = Array.from(
+  { length: 1700 },
+  (_, i) => `testing/test-invoices/test-invoice-${i + 1}.pdf`
+);
 
 // Function to upload a file with metadata
 async function uploadFileWithMetadata(filePath, userId) {
