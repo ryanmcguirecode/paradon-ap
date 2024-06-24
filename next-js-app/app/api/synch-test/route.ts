@@ -7,7 +7,7 @@ async function POST(req: NextRequest) {
 
     const promises = [];
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 1000; i++) {
       promises.push(docRef.update({ [i + "gloob"]: i + "gloober" }));
     }
 
