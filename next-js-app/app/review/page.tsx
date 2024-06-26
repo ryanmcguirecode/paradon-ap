@@ -32,7 +32,6 @@ const inputStyle: InputProps = {
 };
 
 export default function ReviewPage() {
-  const router = useRouter();
   const params = useSearchParams();
   const batchId = params.get("batchId");
   const { organization, loading } = useAuth();

@@ -34,7 +34,6 @@ export async function GET(req: NextRequest) {
 
     const snapshot = await query.get();
     const batches = snapshot.docs.map((doc) => doc.data());
-    console.log(batches);
     if (batches.length === 0) {
       return NextResponse.json(
         { error: "Failed to find batch" },
