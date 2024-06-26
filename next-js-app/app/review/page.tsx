@@ -78,23 +78,26 @@ export default function ReviewPage() {
     }
 
     async function acquireBatch(batchId: string) {
-      const response = await fetch(
-        `/api/acquire-batch?batchId=${batchId}&callerId=test`
-      );
-      const responseJson = await response.json();
-      const acquired = responseJson.acquired;
-      if (!acquired) {
-        router.push("/batches");
-      }
+      // const response = await fetch(
+      //   `/api/acquire-batch?batchId=${batchId}&callerId=test`
+      // );
+      // const responseJson = await response.json();
+      // const acquired = responseJson.acquired;
+      // if (!acquired) {
+      //   router.push("/batches");
+      // }
     }
 
     const fetchDocuments = async () => {
       const documentsResponse = await fetch(
-        `/api/get-documents?batchId=${batchId}&organization=${organization}`
+        `/api/get-batch-documents?batchId=${batchId}&organization=${organization}`
       );
       if (!documentsResponse.ok) {
-        throw new Error("Failed to fetch documents");
+        throw new Error(
+          "Failed to fetch documents: " + documentsResponse.status
+        );
       }
+
       const documents = await documentsResponse.json();
       setDocuments(documents);
     };

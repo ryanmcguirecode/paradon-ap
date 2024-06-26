@@ -16,7 +16,7 @@ import {
 import FolderCopyOutlinedIcon from "@mui/icons-material/FolderCopyOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 
-import { Batch } from "@/components/Batch";
+import { Batch } from "@/types/Batch";
 import NavigationLayout from "@/components/NavigationLayout";
 import { useAuth } from "@/components/AuthContext";
 
