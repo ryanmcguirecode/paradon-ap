@@ -111,7 +111,11 @@ export default function DocumentsPage() {
     getFilteredDocuments(documents.length, currentFilters, true);
   };
 
-  useEffect(() => getFilteredDocuments(0), [loading]);
+  useEffect(() => {
+    if (!loading) {
+      getFilteredDocuments(0);
+    }
+  }, [loading]);
 
   return (
     <>

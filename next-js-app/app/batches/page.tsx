@@ -16,8 +16,9 @@ import {
 import FolderCopyOutlinedIcon from "@mui/icons-material/FolderCopyOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 
-import NavigationLayout from "@/components/NavigationLayout";
 import { Batch } from "@/components/Batch";
+import NavigationLayout from "@/components/NavigationLayout";
+import { useAuth } from "@/components/AuthContext";
 
 function formatDateString(dateString: string) {
   const date = new Date(dateString);
@@ -64,7 +65,7 @@ function BatchComponent({ batch, onClick }: BatchComponentProps) {
         opacity: batch.isCheckedOut ? 0.6 : 1,
       }}
     >
-      <Box>
+      <Box sx={{ maxWidth: "100%" }}>
         {getPreviewImage(batch.isCheckedOut)}
         <Typography
           level="title-md"
@@ -76,7 +77,7 @@ function BatchComponent({ batch, onClick }: BatchComponentProps) {
             textOverflow: "ellipsis",
           }}
         >
-          {batch.batchType + " Batch " + batch.batchNumber}
+          {"Batch " + batch.batchId}
         </Typography>
 
         <Typography
@@ -90,7 +91,7 @@ function BatchComponent({ batch, onClick }: BatchComponentProps) {
         >
           {batch.documentCount + " documents"}
         </Typography>
-        <Typography
+        {/* <Typography
           level="body-sm"
           textAlign="center"
           sx={{
@@ -100,7 +101,7 @@ function BatchComponent({ batch, onClick }: BatchComponentProps) {
           }}
         >
           {formatDateString(batch.dateCreated)}
-        </Typography>
+        </Typography> */}
       </Box>
     </Button>
   );
@@ -108,9 +109,8 @@ function BatchComponent({ batch, onClick }: BatchComponentProps) {
 
 export default function BatchesPage() {
   const router = useRouter();
+  const { user, loading, level, organization } = useAuth();
   const [batches, setBatches] = useState<Batch[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
   const [currentFilters, setCurrentFilters] = useState<any>({
     batchType: null,
     createdFromDate: null,
@@ -136,14 +136,14 @@ export default function BatchesPage() {
     filters: any = currentFilters,
     append: boolean = false
   ) => {
-    setIsLoading(true);
     fetch(
       `/api/get-batches?` +
         (batchType ? `&batchType=${filters.batchType}` : "") +
         (createdFromDate ? `&createdFromDate=${filters.createdFromDate}` : "") +
         (createdToDate ? `&createdToDate=${filters.createdToDate}` : "") +
         (isFull != null ? `&isFull=${filters.isFull}` : "") +
-        (isCheckedOut != null ? `&isCheckedOut=${filters.isCheckedOut}` : "")
+        (isCheckedOut != null ? `&isCheckedOut=${filters.isCheckedOut}` : "") +
+        `&organization=${organization}`
     )
       .then((response) => response.json())
       .then((data) => {
@@ -152,11 +152,14 @@ export default function BatchesPage() {
         } else {
           setBatches(data);
         }
-        setIsLoading(false);
       });
   };
 
-  useEffect(() => getFilteredBatches(0), []);
+  useEffect(() => {
+    if (!loading) {
+      getFilteredBatches(0);
+    }
+  }, [loading]);
 
   return (
     <NavigationLayout>
@@ -263,7 +266,7 @@ export default function BatchesPage() {
           Filter
         </Button>
       </Box>
-      {isLoading ? (
+      {loading ? (
         <Box
           sx={{
             display: "flex",
