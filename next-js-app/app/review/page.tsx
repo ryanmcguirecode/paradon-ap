@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import {
@@ -32,9 +32,11 @@ const inputStyle: InputProps = {
 };
 
 export default function ReviewPage() {
+  const router = useRouter();
+
   const params = useSearchParams();
   const batchId = params.get("batchId");
-  const { organization, loading } = useAuth();
+  const { user, organization, loading } = useAuth();
 
   const [documents, setDocuments] = useState<Document[]>([]);
 
@@ -77,14 +79,24 @@ export default function ReviewPage() {
     }
 
     async function acquireBatch(batchId: string) {
-      // const response = await fetch(
-      //   `/api/acquire-batch?batchId=${batchId}&callerId=test`
-      // );
-      // const responseJson = await response.json();
-      // const acquired = responseJson.acquired;
-      // if (!acquired) {
-      //   router.push("/batches");
-      // }
+      console.log(batchId, user.email, organization);
+      const response = await fetch("/api/acquire-batch", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          batchId,
+          callerId: user.email,
+          organization,
+        }),
+      });
+      const responseJson = await response.json();
+      const acquired = responseJson.acquired;
+      if (!acquired) {
+        console.error("Failed to acquire batch:", responseJson.error);
+        router.push("/batches");
+      }
     }
 
     const fetchDocuments = async () => {
