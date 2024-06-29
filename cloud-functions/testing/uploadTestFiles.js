@@ -12,37 +12,49 @@ const storage = new Storage({
 const bucketName = "paradon-ap-test";
 const userId = "utexas";
 const files = Array.from(
-  { length: 1700 },
+  { length: 1300 },
   (_, i) => `testing/test-invoices/test-invoice-${i + 1}.pdf`
 );
 
 // Function to upload a file with metadata
 async function uploadFileWithMetadata(filePath, userId) {
-  try {
-    const fileName = path.basename(filePath);
-    await storage.bucket(bucketName).upload(filePath, {
-      destination: fileName,
-      metadata: {
+  const maxRetries = 10;
+  let retryCount = 0;
+  const baseDelay = 1000;
+
+  while (retryCount < maxRetries) {
+    try {
+      const fileName = path.basename(filePath);
+      await storage.bucket(bucketName).upload(filePath, {
+        destination: fileName,
         metadata: {
-          organization: userId,
-          documentType: "invoice",
-          model: "azureInvoice",
+          metadata: {
+            organization: userId,
+            documentType: "invoice",
+            model: "azureInvoice",
+          },
         },
-      },
-    });
-    console.log(
-      `File ${filePath} uploaded to ${bucketName} with userId ${userId}.`
-    );
-  } catch (err) {
-    console.error(`Failed to upload file ${filePath}: ${err.message}`);
+      });
+      console.log(
+        `File ${filePath} uploaded to ${bucketName} with userId ${userId}.`
+      );
+      return;
+    } catch (err) {
+      console.error(`Failed to upload file ${filePath}: ${err.message}`);
+      const delay =
+        baseDelay * Math.pow(2, retryCount) * (1 + 5 * Math.random());
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      retryCount++;
+    }
   }
 }
 
-// Loop through files and upload each with metadata
+// Function to upload files in parallel
 async function uploadFiles() {
-  for (const file of files) {
-    await uploadFileWithMetadata(file, userId);
-  }
+  const uploadPromises = files.map((file) =>
+    uploadFileWithMetadata(file, userId)
+  );
+  await Promise.all(uploadPromises);
   console.log("Upload complete.");
 }
 

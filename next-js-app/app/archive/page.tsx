@@ -48,7 +48,7 @@ function getPreviewImage(filename: string) {
   );
 }
 
-const FILES_PER_QUERY = 50;
+const FILES_PER_QUERY = 200;
 
 export default function DocumentsPage() {
   const { user, loading, level, organization } = useAuth();
@@ -111,7 +111,11 @@ export default function DocumentsPage() {
     getFilteredDocuments(documents.length, currentFilters, true);
   };
 
-  useEffect(() => getFilteredDocuments(0), [loading]);
+  useEffect(() => {
+    if (!loading) {
+      getFilteredDocuments(0);
+    }
+  }, [loading]);
 
   return (
     <>

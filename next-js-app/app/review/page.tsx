@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import {
@@ -8,6 +8,8 @@ import {
   Button,
   Input,
   InputProps,
+  Modal,
+  ModalDialog,
   Option,
   Select,
   Sheet,
@@ -33,9 +35,12 @@ const inputStyle: InputProps = {
 
 export default function ReviewPage() {
   const router = useRouter();
+
   const params = useSearchParams();
   const batchId = params.get("batchId");
-  const { organization, loading } = useAuth();
+  const { user, organization, loading } = useAuth();
+
+  const [exiting, setExiting] = useState(false);
 
   const [documents, setDocuments] = useState<Document[]>([]);
 
@@ -72,29 +77,89 @@ export default function ReviewPage() {
     setDocumentType(data[0].displayName);
   };
 
+  const releaseBatch = () => {
+    const data = JSON.stringify({
+      batchId: batchId,
+      callerId: user.email,
+      organization: organization,
+    });
+
+    // Use navigator.sendBeacon to ensure the batch release request is sent
+    const result = navigator.sendBeacon("/api/release-batch", data);
+  };
+
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+
+    /* Check batch back in when clicking link */
+    const handleClick = (event: MouseEvent) => {
+      releaseBatch();
+    };
+
+    /* Check batch back in when pressing back button */
+    const handlePopState = (event) => {
+      releaseBatch();
+    };
+
+    /* Checking batch back in when loading a page on a different origin */
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      releaseBatch();
+    };
+
+    document.querySelectorAll("a").forEach((link) => {
+      link.addEventListener("click", handleClick);
+    });
+    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      /* Checking batch back in when navigating to page within application (local route change) */
+      releaseBatch();
+      document.querySelectorAll("a").forEach((link) => {
+        link.removeEventListener("click", handleClick);
+      });
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [loading]);
+
   useEffect(() => {
     if (loading) {
       return;
     }
 
     async function acquireBatch(batchId: string) {
-      const response = await fetch(
-        `/api/acquire-batch?batchId=${batchId}&callerId=test`
-      );
+      const response = await fetch("/api/acquire-batch", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          batchId,
+          callerId: user.email,
+          organization,
+        }),
+      });
       const responseJson = await response.json();
       const acquired = responseJson.acquired;
       if (!acquired) {
+        console.error("Failed to acquire batch:", responseJson.error);
         router.push("/batches");
       }
     }
 
     const fetchDocuments = async () => {
       const documentsResponse = await fetch(
-        `/api/get-documents?batchId=${batchId}&organization=${organization}`
+        `/api/get-batch-documents?batchId=${batchId}&organization=${organization}`
       );
       if (!documentsResponse.ok) {
-        throw new Error("Failed to fetch documents");
+        throw new Error(
+          "Failed to fetch documents: " + documentsResponse.status
+        );
       }
+
       const documents = await documentsResponse.json();
       setDocuments(documents);
     };
@@ -136,8 +201,15 @@ export default function ReviewPage() {
   }, [documentsFetched, documents, documentIndex]);
 
   return (
-    <NavigationLayout>
+    <NavigationLayout disabled={true}>
       <Box sx={{ width: "100%", height: "100%", display: "flex" }}>
+        {exiting && (
+          <Modal open={exiting}>
+            <ModalDialog layout="center" variant="soft">
+              <Typography>Exiting</Typography>
+            </ModalDialog>
+          </Modal>
+        )}
         <Box
           sx={{
             flex: 3,

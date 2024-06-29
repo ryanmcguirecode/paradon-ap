@@ -1,7 +1,6 @@
-import { Firestore } from "@google-cloud/firestore";
+import { Firestore, Timestamp } from "@google-cloud/firestore";
 import { NextRequest, NextResponse } from "next/server";
 import { capitalizedToCamelObject } from "@/utils/snakeToCamel";
-import { Timestamp } from "@google-cloud/firestore";
 
 export async function GET(req: NextRequest) {
   try {
@@ -86,9 +85,9 @@ export async function GET(req: NextRequest) {
     };
 
     const formattedRows = rows.map(convertDatesToStrings);
-    const camelCaseRows = formattedRows.map(capitalizedToCamelObject);
+    // const camelCaseRows = formattedRows.map(capitalizedToCamelObject);
 
-    return NextResponse.json(camelCaseRows);
+    return NextResponse.json(formattedRows);
   } catch (error) {
     console.error("Error executing query:", error);
     return NextResponse.json(
