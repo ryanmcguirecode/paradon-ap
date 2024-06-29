@@ -4,6 +4,10 @@ import { Firestore } from "@google-cloud/firestore";
 export async function POST(req: NextRequest) {
   const { batchId, callerId, organization } = await req.json();
 
+  console.log("batchId", batchId);
+  console.log("callerId", callerId);
+  console.log("organization", organization);
+
   if (!batchId || batchId === "undefined") {
     return NextResponse.json(
       { acquired: false, error: "Missing batchId" },

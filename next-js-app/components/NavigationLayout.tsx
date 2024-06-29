@@ -5,13 +5,7 @@ import withAuth from "@/auth/withAuth";
 
 const AuthenticatedContent = withAuth(({ children }) => <>{children}</>);
 
-const NavigationLayout = ({
-  children,
-  disabled = false,
-}: {
-  children: ReactNode;
-  disabled: boolean;
-}) => {
+const NavigationLayout = ({ children }: { children: ReactNode }) => {
   return (
     <AuthenticatedContent>
       <Box
@@ -21,7 +15,7 @@ const NavigationLayout = ({
           height: "100vh",
         }}
       >
-        <Navigation disabled={disabled} />
+        <Navigation />
         <div
           style={{
             flex: 1,

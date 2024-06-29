@@ -108,7 +108,7 @@ const Drawer = styled(MuiDrawer, {
   }),
 }));
 
-export default function Navigation({ disabled }) {
+export default function Navigation() {
   const theme = useTheme();
   const [open, setOpen] = React.useState(false);
 
@@ -182,7 +182,6 @@ export default function Navigation({ disabled }) {
                 <ListItemButton
                   onClick={() => router.push(`/${url}`)}
                   selected={path === `/${url}`}
-                  disabled={disabled}
                   sx={{
                     minHeight: 48,
                     justifyContent: open ? "initial" : "center",
@@ -226,7 +225,6 @@ export default function Navigation({ disabled }) {
                 <ListItemButton
                   onClick={() => router.push(`/${url}`)}
                   selected={path === `/${url}`}
-                  disabled={disabled}
                   sx={{
                     minHeight: 48,
                     justifyContent: open ? "initial" : "center",
