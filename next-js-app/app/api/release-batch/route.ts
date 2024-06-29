@@ -45,31 +45,31 @@ export async function POST(req: NextRequest) {
       }
 
       const batchData = batchDoc.data();
-      if (batchData?.isCheckedOut) {
+      if (!batchData.isCheckedOut) {
         return NextResponse.json(
           {
-            acquired: false,
-            error: `Batch already acquired by ${batchData?.owner}`,
+            released: false,
+            error: `Batch not checked out`,
           },
           { status: 409 }
         );
       } else if (batchData?.organization !== organization) {
         return NextResponse.json(
-          { acquired: false, error: "Batch not owned by organization" },
+          { released: false, error: "Batch not owned by organization" },
           { status: 403 }
         );
       }
 
       transaction.update(batchRef, {
-        isCheckedOut: true,
-        owner: callerId,
+        isCheckedOut: false,
+        owner: null,
       });
     });
 
-    return NextResponse.json({ acquired: true }, { status: 200 });
+    return NextResponse.json({ released: true }, { status: 200 });
   } catch (error) {
     return NextResponse.json(
-      { acquired: false, error: error.message },
+      { released: false, error: error.message },
       { status: 500 }
     );
   }
