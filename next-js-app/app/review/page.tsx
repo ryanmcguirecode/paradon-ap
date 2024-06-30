@@ -92,6 +92,28 @@ export default function ReviewPage() {
     if (loading) {
       return;
     }
+    const data = JSON.stringify({
+      batchId: batchId,
+      callerId: user.email,
+      organization: organization,
+    });
+
+    // Tell the database that the user is still using the batch every 30s
+    const interval = setInterval(() => {
+      fetch("/api/heartbeat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: data,
+      });
+    }, 30000);
+  }, [loading]);
+
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
 
     /* Check batch back in when clicking link */
     const handleClick = (event: MouseEvent) => {

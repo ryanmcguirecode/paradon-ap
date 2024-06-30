@@ -162,7 +162,7 @@ export default function BatchesPage() {
   }, [loading]);
 
   return (
-    <NavigationLayout>
+    <NavigationLayout disabled={false}>
       <Box
         sx={{
           width: "80%",
