@@ -20,12 +20,18 @@ import {
 } from "@mui/joy";
 
 import { auth } from "@/utils/auth";
+import { useAuth } from "@/components/AuthContext";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
   const canLogin = email && password;
+
+  const { user, loading } = useAuth();
+  if (!loading && user) {
+    router.push("/batches");
+  }
 
   // Sign in function
   const signIn = async (email: string, password: string) => {
