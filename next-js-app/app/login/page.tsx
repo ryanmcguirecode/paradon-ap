@@ -43,7 +43,6 @@ export default function LoginPage() {
   };
 
   const handleKeyDown = (event) => {
-    console.log(event);
     if (canLogin && event.key === "Enter") {
       signIn(email, password);
     }
