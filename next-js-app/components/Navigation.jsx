@@ -29,6 +29,10 @@ import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import MenuIcon from "@mui/icons-material/Menu";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 
+import { ThemeProvider as JoyThemeProvider } from "@mui/joy/styles";
+import { Button } from "@mui/joy";
+import { signOut } from "firebase/auth";
+import { auth } from "@/auth/firebase";
 import Logo from "./Logo";
 
 const drawerWidth = 340;
@@ -162,7 +166,23 @@ export default function Navigation({ disabled }) {
                 <MenuIcon />
               </IconButton>
             </Toolbar>
-            <Logo />
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                width: "100%",
+                paddingLeft: "5%",
+                paddingRight: "8%",
+              }}
+            >
+              <Logo />
+              <JoyThemeProvider>
+                <Box>
+                  <Button onClick={() => signOut(auth)}> Sign Out </Button>
+                </Box>
+              </JoyThemeProvider>
+            </Box>
           </Box>
         </AppBar>
         <Drawer variant="permanent" open={open}>
