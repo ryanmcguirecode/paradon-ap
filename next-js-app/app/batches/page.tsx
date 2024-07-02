@@ -33,6 +33,16 @@ function getPreviewImage(isCheckedOut: boolean | null) {
   );
 }
 
+function formatDateString(dateString: string) {
+  const date = new Date(dateString);
+  const options: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  };
+  return new Intl.DateTimeFormat("en-US", options).format(date);
+}
+
 interface BatchComponentProps {
   batch: Batch;
   onClick?: () => void;
@@ -67,7 +77,7 @@ function BatchComponent({ batch, onClick }: BatchComponentProps) {
             textOverflow: "ellipsis",
           }}
         >
-          {"Batch " + batch.batchId}
+          {batch.batchName}
         </Typography>
 
         <Typography
@@ -81,7 +91,7 @@ function BatchComponent({ batch, onClick }: BatchComponentProps) {
         >
           {batch.documentCount + " documents"}
         </Typography>
-        {/* <Typography
+        <Typography
           level="body-sm"
           textAlign="center"
           sx={{
@@ -90,8 +100,8 @@ function BatchComponent({ batch, onClick }: BatchComponentProps) {
             textOverflow: "ellipsis",
           }}
         >
-          {formatDateString(batch.dateCreated)}
-        </Typography> */}
+          {formatDateString(batch.timeCreated)}
+        </Typography>
       </Box>
     </Button>
   );
@@ -108,21 +118,21 @@ export default function BatchesPage() {
     createdFromDate: null,
     createdToDate: null,
     isFull: null,
-    isFinished: false,
+    // isFinished: false,
     isCheckedOut: null,
   });
   const [createdFromDate, setCreatedFromDate] = useState<string | null>(null);
   const [createdToDate, setCreatedToDate] = useState<string | null>(null);
   const [isFull, setIsFull] = useState<boolean | null>(null);
-  const [isFinished, setIsFinished] = useState<boolean | null>(false);
+  // const [isFinished, setIsFinished] = useState<boolean | null>(false);
   const [isCheckedOut, setIsCheckedOut] = useState<boolean | null>(null);
 
   const canFilter =
     currentFilters.createdFromDate !== createdFromDate ||
     currentFilters.createdToDate !== createdToDate ||
     currentFilters.isFull !== isFull ||
-    currentFilters.isCheckedOut !== isCheckedOut ||
-    currentFilters.isFinished !== isFinished;
+    currentFilters.isCheckedOut !== isCheckedOut;
+  // currentFilters.isFinished !== isFinished;
 
   const getFilteredBatches = (
     offset: number,
@@ -277,7 +287,7 @@ export default function BatchesPage() {
               }}
             ></Input>
           </Box>
-          <Box>
+          {/* <Box>
             <FormLabel sx={{ paddingBottom: "5px" }}>Finished</FormLabel>
             <Select
               defaultValue={false}
@@ -293,7 +303,7 @@ export default function BatchesPage() {
                 No
               </Option>
             </Select>
-          </Box>
+          </Box> */}
 
           <Button
             disabled={!canFilter}
@@ -302,7 +312,7 @@ export default function BatchesPage() {
                 createdFromDate: createdFromDate,
                 createdToDate: createdToDate,
                 isCheckedOut: isCheckedOut,
-                isFinished: isFinished,
+                // isFinished: isFinished,
                 isFull: isFull,
               };
               setCurrentFilters(newFilters);

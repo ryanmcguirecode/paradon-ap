@@ -56,7 +56,8 @@ export async function GET(req: NextRequest) {
 
     let query = firestore
       .collection("batches")
-      .where("organization", "==", organization);
+      .where("organization", "==", organization)
+      .where("isFinished", "==", false);
 
     if (createdFromDate) {
       query = query.where(
@@ -75,9 +76,9 @@ export async function GET(req: NextRequest) {
     if (isCheckedOut !== null) {
       query = query.where("isCheckedOut", "==", isCheckedOut == "true");
     }
-    if (isFinished != null) {
-      query = query.where("isFinished", "==", isFinished == "true");
-    }
+    // if (isFinished != null) {
+    //   query = query.where("isFinished", "==", isFinished == "true");
+    // }
     if (isFull != null) {
       query = query.where("isFull", "==", isFull == "true");
     }
