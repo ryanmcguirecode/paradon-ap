@@ -130,14 +130,15 @@ export default function DocumentsPage() {
         >
           <Box
             sx={{
-              width: "80%",
+              width: "100%",
               display: "flex",
               gap: "30px",
               justifyContent: "center",
               alignItems: "flex-end",
               margin: "auto",
               padding: "10px",
-              paddingBottom: "35px",
+              paddingBottom: "25px",
+              boxShadow: "sm",
             }}
           >
             <Box>
@@ -227,6 +228,8 @@ export default function DocumentsPage() {
               flex: 1,
               overflow: "auto",
               margin: "auto",
+              paddingTop: "20px",
+              paddingBottom: "20px",
             }}
           >
             <InfiniteScroll
