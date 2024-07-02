@@ -19,6 +19,8 @@
     "@mui/icons-material": "^5.15.19",
     "@mui/joy": "^5.0.0-beta.36",
     "@mui/material": "^5.15.19",
+    "axios": "^1.7.2",
+    "dotenv": "^16.4.5",
     "firebase": "^10.12.2",
     "firebase-admin": "^12.1.1",
     "firebaseui": "^6.1.0",
