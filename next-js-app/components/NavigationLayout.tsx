@@ -5,13 +5,15 @@ import withAuth from "@/auth/withAuth";
 
 const AuthenticatedContent = withAuth(({ children }) => <>{children}</>);
 
+interface NavigationLayoutProps {
+  children: ReactNode;
+  disabled?: boolean;
+}
+
 const NavigationLayout = ({
   children,
   disabled = false,
-}: {
-  children: ReactNode;
-  disabled: boolean;
-}) => {
+}: NavigationLayoutProps) => {
   return (
     <AuthenticatedContent>
       <Box
