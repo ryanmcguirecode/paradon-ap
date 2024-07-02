@@ -118,13 +118,11 @@ export default function BatchesPage() {
     createdFromDate: null,
     createdToDate: null,
     isFull: null,
-    // isFinished: false,
     isCheckedOut: null,
   });
   const [createdFromDate, setCreatedFromDate] = useState<string | null>(null);
   const [createdToDate, setCreatedToDate] = useState<string | null>(null);
   const [isFull, setIsFull] = useState<boolean | null>(null);
-  // const [isFinished, setIsFinished] = useState<boolean | null>(false);
   const [isCheckedOut, setIsCheckedOut] = useState<boolean | null>(null);
 
   const canFilter =
@@ -132,7 +130,6 @@ export default function BatchesPage() {
     currentFilters.createdToDate !== createdToDate ||
     currentFilters.isFull !== isFull ||
     currentFilters.isCheckedOut !== isCheckedOut;
-  // currentFilters.isFinished !== isFinished;
 
   const getFilteredBatches = (
     offset: number,
@@ -287,24 +284,6 @@ export default function BatchesPage() {
               }}
             ></Input>
           </Box>
-          {/* <Box>
-            <FormLabel sx={{ paddingBottom: "5px" }}>Finished</FormLabel>
-            <Select
-              defaultValue={false}
-              onChange={(e, value: boolean | null) => setIsFinished(value)}
-            >
-              <Option key="all" value={null}>
-                Any
-              </Option>
-              <Option key="yes" value={true}>
-                Yes
-              </Option>
-              <Option key="no" value={false}>
-                No
-              </Option>
-            </Select>
-          </Box> */}
-
           <Button
             disabled={!canFilter}
             onClick={() => {
