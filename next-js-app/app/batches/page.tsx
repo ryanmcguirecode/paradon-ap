@@ -20,16 +20,6 @@ import { Batch } from "@/types/Batch";
 import NavigationLayout from "@/components/NavigationLayout";
 import { useAuth } from "@/components/AuthContext";
 
-function formatDateString(dateString: string) {
-  const date = new Date(dateString);
-  const options: Intl.DateTimeFormatOptions = {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  };
-  return new Intl.DateTimeFormat("en-US", options).format(date);
-}
-
 function getPreviewImage(isCheckedOut: boolean | null) {
   return (
     <AspectRatio
@@ -112,39 +102,45 @@ export default function BatchesPage() {
   const { user, loading, level, organization } = useAuth();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [currentFilters, setCurrentFilters] = useState<any>({
-    batchType: null,
     createdFromDate: null,
     createdToDate: null,
     isFull: null,
+    isFinished: false,
     isCheckedOut: null,
   });
-  const [batchType, setBatchType] = useState<string | null>(null);
   const [createdFromDate, setCreatedFromDate] = useState<string | null>(null);
   const [createdToDate, setCreatedToDate] = useState<string | null>(null);
   const [isFull, setIsFull] = useState<boolean | null>(null);
+  const [isFinished, setIsFinished] = useState<boolean | null>(false);
   const [isCheckedOut, setIsCheckedOut] = useState<boolean | null>(null);
 
   const canFilter =
-    currentFilters.batchType !== batchType ||
     currentFilters.createdFromDate !== createdFromDate ||
     currentFilters.createdToDate !== createdToDate ||
     currentFilters.isFull !== isFull ||
-    currentFilters.isCheckedOut !== isCheckedOut;
+    currentFilters.isCheckedOut !== isCheckedOut ||
+    currentFilters.isFinished !== isFinished;
 
   const getFilteredBatches = (
     offset: number,
     filters: any = currentFilters,
     append: boolean = false
   ) => {
-    fetch(
-      `/api/get-batches?` +
-        (batchType ? `&batchType=${filters.batchType}` : "") +
-        (createdFromDate ? `&createdFromDate=${filters.createdFromDate}` : "") +
-        (createdToDate ? `&createdToDate=${filters.createdToDate}` : "") +
-        (isFull != null ? `&isFull=${filters.isFull}` : "") +
-        (isCheckedOut != null ? `&isCheckedOut=${filters.isCheckedOut}` : "") +
-        `&organization=${organization}`
-    )
+    const url = new URL("/api/get-batches", window.location.origin);
+    url.searchParams.append("createdFromDate", filters.createdFromDate);
+    url.searchParams.append("createdToDate", filters.createdToDate);
+    url.searchParams.append("isCheckedOut", filters.isCheckedOut);
+    url.searchParams.append("isFinished", filters.isFinished);
+    url.searchParams.append("isFull", filters.isFull);
+    url.searchParams.append("organization", organization);
+    url.searchParams.append("offset", offset.toString());
+
+    fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
       .then((response) => response.json())
       .then((data) => {
         if (append) {
@@ -175,46 +171,6 @@ export default function BatchesPage() {
           paddingBottom: "35px",
         }}
       >
-        <Box>
-          <FormLabel sx={{ paddingBottom: "5px" }}>Batch Type</FormLabel>
-          <Select
-            defaultValue={null}
-            onChange={(e, value: string | null) => {
-              setBatchType(value);
-            }}
-          >
-            <Option key="all" value={null}>
-              Any
-            </Option>
-            <Option key="A-L" value="A-L">
-              A-L
-            </Option>
-            <Option key="M-Z" value="M-Z">
-              M-Z
-            </Option>
-            <Option key="credit" value="Credit">
-              Credit
-            </Option>
-          </Select>
-        </Box>
-        <Box>
-          <FormLabel sx={{ paddingBottom: "5px" }}>Created From</FormLabel>
-          <Input
-            type="date"
-            onChange={(e) => {
-              setCreatedFromDate(e.target.value);
-            }}
-          ></Input>
-        </Box>
-        <Box>
-          <FormLabel sx={{ paddingBottom: "5px" }}>Created To</FormLabel>
-          <Input
-            type="date"
-            onChange={(e) => {
-              setCreatedToDate(e.target.value);
-            }}
-          ></Input>
-        </Box>
         <Box>
           <FormLabel sx={{ paddingBottom: "5px" }}>Full</FormLabel>
           <Select
@@ -249,15 +205,51 @@ export default function BatchesPage() {
             </Option>
           </Select>
         </Box>
+        <Box>
+          <FormLabel sx={{ paddingBottom: "5px" }}>Created From</FormLabel>
+          <Input
+            type="date"
+            onChange={(e) => {
+              setCreatedFromDate(e.target.value);
+            }}
+          ></Input>
+        </Box>
+        <Box>
+          <FormLabel sx={{ paddingBottom: "5px" }}>Created To</FormLabel>
+          <Input
+            type="date"
+            onChange={(e) => {
+              setCreatedToDate(e.target.value);
+            }}
+          ></Input>
+        </Box>
+        <Box>
+          <FormLabel sx={{ paddingBottom: "5px" }}>Finished</FormLabel>
+          <Select
+            defaultValue={false}
+            onChange={(e, value: boolean | null) => setIsFinished(value)}
+          >
+            <Option key="all" value={null}>
+              Any
+            </Option>
+            <Option key="yes" value={true}>
+              Yes
+            </Option>
+            <Option key="no" value={false}>
+              No
+            </Option>
+          </Select>
+        </Box>
+
         <Button
           disabled={!canFilter}
           onClick={() => {
             const newFilters = {
-              batchType: batchType,
               createdFromDate: createdFromDate,
               createdToDate: createdToDate,
-              isFull: isFull,
               isCheckedOut: isCheckedOut,
+              isFinished: isFinished,
+              isFull: isFull,
             };
             setCurrentFilters(newFilters);
             getFilteredBatches(0, newFilters);

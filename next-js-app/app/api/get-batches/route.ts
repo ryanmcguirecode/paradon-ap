@@ -1,9 +1,39 @@
 import { Firestore, Timestamp } from "@google-cloud/firestore";
 import { NextRequest, NextResponse } from "next/server";
 
+function getSearchParameter(searchParams: URLSearchParams, key: string) {
+  const value = searchParams.get(key);
+  if (value === "null") {
+    return null;
+  }
+  return value;
+}
+
 export async function GET(req: NextRequest) {
   try {
-    const organization = req.nextUrl.searchParams.get("organization");
+    const createdFromDate = getSearchParameter(
+      req.nextUrl.searchParams,
+      "createdFromDate"
+    );
+    const createdToDate = getSearchParameter(
+      req.nextUrl.searchParams,
+      "createdToDate"
+    );
+    const isCheckedOut = getSearchParameter(
+      req.nextUrl.searchParams,
+      "isCheckedOut"
+    );
+    const isFull = getSearchParameter(req.nextUrl.searchParams, "isFull");
+    const isFinished = getSearchParameter(
+      req.nextUrl.searchParams,
+      "isFinished"
+    );
+    const limit = getSearchParameter(req.nextUrl.searchParams, "limit");
+    const offset = getSearchParameter(req.nextUrl.searchParams, "offset");
+    const organization = getSearchParameter(
+      req.nextUrl.searchParams,
+      "organization"
+    );
 
     if (!organization) {
       return NextResponse.json(
@@ -24,18 +54,33 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // const batchType = req.nextUrl.searchParams.get("batchType");
-    // const createdFromDate = req.nextUrl.searchParams.get("createdFromDate");
-    // const createdToDate = req.nextUrl.searchParams.get("createdToDate");
-    // const isFull = req.nextUrl.searchParams.get("isFull");
-    // const isCheckedOut = req.nextUrl.searchParams.get("isCheckedOut");
-
-    const offset = req.nextUrl.searchParams.get("offset");
-    const limit = req.nextUrl.searchParams.get("limit");
-
     let query = firestore
       .collection("batches")
       .where("organization", "==", organization);
+
+    if (createdFromDate) {
+      query = query.where(
+        "timeCreated",
+        ">=",
+        Timestamp.fromDate(new Date(createdFromDate))
+      );
+    }
+    if (createdToDate) {
+      query = query.where(
+        "timeCreated",
+        "<=",
+        Timestamp.fromDate(new Date(createdToDate))
+      );
+    }
+    if (isCheckedOut !== null) {
+      query = query.where("isCheckedOut", "==", isCheckedOut == "true");
+    }
+    if (isFinished != null) {
+      query = query.where("isFinished", "==", isFinished == "true");
+    }
+    if (isFull != null) {
+      query = query.where("isFull", "==", isFull == "true");
+    }
 
     if (limit) {
       query = query.limit(Number(limit));
