@@ -100,6 +100,9 @@ function BatchComponent({ batch, onClick }: BatchComponentProps) {
 export default function BatchesPage() {
   const router = useRouter();
   const { user, loading, level, organization } = useAuth();
+
+  const [documentsLoading, setDocumentsLoading] = useState<boolean>(false);
+
   const [batches, setBatches] = useState<Batch[]>([]);
   const [currentFilters, setCurrentFilters] = useState<any>({
     createdFromDate: null,
@@ -135,6 +138,8 @@ export default function BatchesPage() {
     url.searchParams.append("organization", organization);
     url.searchParams.append("offset", offset.toString());
 
+    setDocumentsLoading(true);
+
     fetch(url, {
       method: "GET",
       headers: {
@@ -148,7 +153,8 @@ export default function BatchesPage() {
         } else {
           setBatches(data);
         }
-      });
+      })
+      .then(() => setDocumentsLoading(false));
   };
 
   useEffect(() => {
@@ -157,135 +163,167 @@ export default function BatchesPage() {
     }
   }, [loading]);
 
-  return (
-    <NavigationLayout disabled={false}>
+  let batchDisplayComponent = null;
+  if (documentsLoading) {
+    batchDisplayComponent = (
       <Box
         sx={{
-          width: "80%",
           display: "flex",
-          gap: "30px",
           justifyContent: "center",
-          alignItems: "flex-end",
-          margin: "auto",
-          padding: "10px",
-          paddingBottom: "35px",
+          paddingTop: "30px",
         }}
       >
-        <Box>
-          <FormLabel sx={{ paddingBottom: "5px" }}>Full</FormLabel>
-          <Select
-            defaultValue={null}
-            onChange={(e, value: boolean | null) => setIsFull(value)}
-          >
-            <Option key="all" value={null}>
-              Any
-            </Option>
-            <Option key="yes" value={true}>
-              Yes
-            </Option>
-            <Option key="no" value={false}>
-              No
-            </Option>
-          </Select>
-        </Box>
-        <Box>
-          <FormLabel sx={{ paddingBottom: "5px" }}>Checked Out</FormLabel>
-          <Select
-            defaultValue={null}
-            onChange={(e, value: boolean | null) => setIsCheckedOut(value)}
-          >
-            <Option key="all" value={null}>
-              Any
-            </Option>
-            <Option key="yes" value="true">
-              Yes
-            </Option>
-            <Option key="no" value="false">
-              No
-            </Option>
-          </Select>
-        </Box>
-        <Box>
-          <FormLabel sx={{ paddingBottom: "5px" }}>Created From</FormLabel>
-          <Input
-            type="date"
-            onChange={(e) => {
-              setCreatedFromDate(e.target.value);
-            }}
-          ></Input>
-        </Box>
-        <Box>
-          <FormLabel sx={{ paddingBottom: "5px" }}>Created To</FormLabel>
-          <Input
-            type="date"
-            onChange={(e) => {
-              setCreatedToDate(e.target.value);
-            }}
-          ></Input>
-        </Box>
-        <Box>
-          <FormLabel sx={{ paddingBottom: "5px" }}>Finished</FormLabel>
-          <Select
-            defaultValue={false}
-            onChange={(e, value: boolean | null) => setIsFinished(value)}
-          >
-            <Option key="all" value={null}>
-              Any
-            </Option>
-            <Option key="yes" value={true}>
-              Yes
-            </Option>
-            <Option key="no" value={false}>
-              No
-            </Option>
-          </Select>
-        </Box>
-
-        <Button
-          disabled={!canFilter}
-          onClick={() => {
-            const newFilters = {
-              createdFromDate: createdFromDate,
-              createdToDate: createdToDate,
-              isCheckedOut: isCheckedOut,
-              isFinished: isFinished,
-              isFull: isFull,
-            };
-            setCurrentFilters(newFilters);
-            getFilteredBatches(0, newFilters);
-          }}
-        >
-          Filter
-        </Button>
+        <CircularProgress variant="outlined" />
       </Box>
-      {loading ? (
+    );
+  } else if (batches.length === 0) {
+    batchDisplayComponent = (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          paddingTop: "50px",
+        }}
+      >
+        <Typography level="body-lg">No batches found</Typography>
+      </Box>
+    );
+  } else {
+    batchDisplayComponent = (
+      <Box
+        sx={{
+          display: "flex",
+          flexWrap: "wrap",
+          width: "80%",
+          margin: "auto",
+        }}
+      >
+        {batches.map((batch, index) => (
+          <BatchComponent
+            key={index}
+            batch={batch}
+            onClick={() => router.push(`/review?batchId=${batch.batchId}`)}
+          />
+        ))}
+      </Box>
+    );
+  }
+
+  return (
+    <NavigationLayout disabled={false}>
+      <Box sx={{ display: "flex", flexDirection: "column", maxHeight: "100%" }}>
         <Box
           sx={{
+            width: "100%",
             display: "flex",
+            gap: "30px",
             justifyContent: "center",
-            paddingTop: "10px",
+            alignItems: "flex-end",
+            margin: "auto",
+            padding: "10px",
+            paddingBottom: "25px",
+            boxShadow: "sm",
           }}
         >
-          <CircularProgress variant="outlined" />
+          <Box>
+            <FormLabel sx={{ paddingBottom: "5px" }}>Full</FormLabel>
+            <Select
+              defaultValue={null}
+              onChange={(e, value: boolean | null) => setIsFull(value)}
+            >
+              <Option key="all" value={null}>
+                Any
+              </Option>
+              <Option key="yes" value={true}>
+                Yes
+              </Option>
+              <Option key="no" value={false}>
+                No
+              </Option>
+            </Select>
+          </Box>
+          <Box>
+            <FormLabel sx={{ paddingBottom: "5px" }}>Checked Out</FormLabel>
+            <Select
+              defaultValue={null}
+              onChange={(e, value: boolean | null) => setIsCheckedOut(value)}
+            >
+              <Option key="all" value={null}>
+                Any
+              </Option>
+              <Option key="yes" value="true">
+                Yes
+              </Option>
+              <Option key="no" value="false">
+                No
+              </Option>
+            </Select>
+          </Box>
+          <Box>
+            <FormLabel sx={{ paddingBottom: "5px" }}>Created From</FormLabel>
+            <Input
+              type="date"
+              onChange={(e) => {
+                setCreatedFromDate(e.target.value);
+              }}
+            ></Input>
+          </Box>
+          <Box>
+            <FormLabel sx={{ paddingBottom: "5px" }}>Created To</FormLabel>
+            <Input
+              type="date"
+              onChange={(e) => {
+                setCreatedToDate(e.target.value);
+              }}
+            ></Input>
+          </Box>
+          <Box>
+            <FormLabel sx={{ paddingBottom: "5px" }}>Finished</FormLabel>
+            <Select
+              defaultValue={false}
+              onChange={(e, value: boolean | null) => setIsFinished(value)}
+            >
+              <Option key="all" value={null}>
+                Any
+              </Option>
+              <Option key="yes" value={true}>
+                Yes
+              </Option>
+              <Option key="no" value={false}>
+                No
+              </Option>
+            </Select>
+          </Box>
+
+          <Button
+            disabled={!canFilter}
+            onClick={() => {
+              const newFilters = {
+                createdFromDate: createdFromDate,
+                createdToDate: createdToDate,
+                isCheckedOut: isCheckedOut,
+                isFinished: isFinished,
+                isFull: isFull,
+              };
+              setCurrentFilters(newFilters);
+              getFilteredBatches(0, newFilters);
+            }}
+          >
+            Filter
+          </Button>
         </Box>
-      ) : (
         <Box
           sx={{
-            display: "flex",
-            flexWrap: "wrap",
-            width: "80%",
+            flex: 1,
+            overflow: "auto",
             margin: "auto",
+            paddingTop: "20px",
+            paddingBottom: "20px",
           }}
         >
-          {batches.map((batch, index) => (
-            <BatchComponent
-              key={index}
-              batch={batch}
-              onClick={() => router.push(`/review?batchId=${batch.batchId}`)}
-            />
-          ))}
+          {batchDisplayComponent}
         </Box>
-      )}
+      </Box>
     </NavigationLayout>
   );
 }
