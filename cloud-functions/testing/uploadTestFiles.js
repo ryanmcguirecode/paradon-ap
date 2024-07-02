@@ -12,7 +12,7 @@ const storage = new Storage({
 const bucketName = "paradon-ap-test";
 const userId = "utexas";
 const files = Array.from(
-  { length: 1300 },
+  { length: 100 },
   (_, i) => `testing/test-invoices/test-invoice-${i + 1}.pdf`
 );
 

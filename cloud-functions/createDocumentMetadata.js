@@ -45,6 +45,7 @@ async function addDocumentToBatch(fileName, organization) {
             documents: [],
             isCheckedOut: false,
             isFinished: false,
+            isFull: false,
             organization: organization,
             owner: null,
             reviewers: [],
@@ -57,6 +58,7 @@ async function addDocumentToBatch(fileName, organization) {
         transaction.update(batchRef, {
           documents: FieldValue.arrayUnion(fileName),
           documentCount: FieldValue.increment(1),
+          isFull: batchData.documentCount + 1 >= maxBatchSize,
         });
       });
       return;
