@@ -54,6 +54,7 @@ export default function DocumentsPage() {
   const { user, loading, level, organization } = useAuth();
 
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [loadingDocuments, setLoadingDocuments] = useState<boolean>(true);
   const [moreDocuments, setMoreDocuments] = useState<boolean>(true);
   const [openFile, setOpenFile] = useState<string | null>(null);
   const [fileViewPopupOpen, setFileViewPopupOpen] = useState(false);
@@ -104,7 +105,8 @@ export default function DocumentsPage() {
         } else {
           setMoreDocuments(true);
         }
-      });
+      })
+      .then(() => setLoadingDocuments(false));
   };
 
   const fetchMoreData = () => {
@@ -116,6 +118,130 @@ export default function DocumentsPage() {
       getFilteredDocuments(0);
     }
   }, [loading]);
+
+  let documentsDisplayComponent = null;
+  if (loadingDocuments) {
+    documentsDisplayComponent = (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          paddingTop: "30px",
+        }}
+      >
+        <CircularProgress variant="outlined" />
+      </Box>
+    );
+  } else if (documents.length === 0) {
+    documentsDisplayComponent = (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          paddingTop: "50px",
+        }}
+      >
+        <Typography level="body-lg">No batches found</Typography>
+      </Box>
+    );
+  } else {
+    documentsDisplayComponent = (
+      <div
+        id="scrollableDiv"
+        style={{
+          flex: 1,
+          overflow: "auto",
+          margin: "auto",
+          paddingTop: "20px",
+          paddingBottom: "20px",
+        }}
+      >
+        <InfiniteScroll
+          dataLength={documents.length}
+          next={fetchMoreData}
+          hasMore={moreDocuments}
+          loader={
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                paddingTop: "10px",
+              }}
+            >
+              <CircularProgress variant="outlined" />
+            </Box>
+          }
+          scrollableTarget="scrollableDiv"
+        >
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              width: "80%",
+              margin: "auto",
+            }}
+          >
+            {documents.map((file, index) => (
+              <Box
+                key={index}
+                onClick={() => {
+                  setOpenFile(file.filename);
+                  setFileViewPopupOpen(true);
+                }}
+                sx={{
+                  marginBottom: "20px",
+                  width: "135px",
+                  borderRadius: "10px",
+                  margin: "4px",
+                  "&:hover": {
+                    backgroundColor: "rgb(243, 246, 252)",
+                    transition: "background-color 0.3s ease",
+                    cursor: "pointer",
+                  },
+                }}
+              >
+                {getPreviewImage(file.filename)}
+                <Typography
+                  level="title-sm"
+                  textAlign="center"
+                  sx={{
+                    marginTop: "10px",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {file.filename}
+                </Typography>
+                <Typography
+                  level="body-xs"
+                  textAlign="center"
+                  sx={{
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {file.documentType
+                    ? file.documentType.toLocaleUpperCase()
+                    : ""}
+                </Typography>
+                <Typography
+                  level="body-xs"
+                  textAlign="center"
+                  sx={{
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {formatDate(file.timeReceived)}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </InfiniteScroll>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -222,100 +348,7 @@ export default function DocumentsPage() {
               Filter
             </Button>
           </Box>
-          <div
-            id="scrollableDiv"
-            style={{
-              flex: 1,
-              overflow: "auto",
-              margin: "auto",
-              paddingTop: "20px",
-              paddingBottom: "20px",
-            }}
-          >
-            <InfiniteScroll
-              dataLength={documents.length}
-              next={fetchMoreData}
-              hasMore={moreDocuments}
-              loader={
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    paddingTop: "10px",
-                  }}
-                >
-                  <CircularProgress variant="outlined" />
-                </Box>
-              }
-              scrollableTarget="scrollableDiv"
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  width: "80%",
-                  margin: "auto",
-                }}
-              >
-                {documents.map((file, index) => (
-                  <Box
-                    key={index}
-                    onClick={() => {
-                      setOpenFile(file.filename);
-                      setFileViewPopupOpen(true);
-                    }}
-                    sx={{
-                      marginBottom: "20px",
-                      width: "135px",
-                      borderRadius: "10px",
-                      margin: "4px",
-                      "&:hover": {
-                        backgroundColor: "rgb(243, 246, 252)",
-                        transition: "background-color 0.3s ease",
-                        cursor: "pointer",
-                      },
-                    }}
-                  >
-                    {getPreviewImage(file.filename)}
-                    <Typography
-                      level="title-sm"
-                      textAlign="center"
-                      sx={{
-                        marginTop: "10px",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {file.filename}
-                    </Typography>
-                    <Typography
-                      level="body-xs"
-                      textAlign="center"
-                      sx={{
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {file.documentType
-                        ? file.documentType.toLocaleUpperCase()
-                        : ""}
-                    </Typography>
-                    <Typography
-                      level="body-xs"
-                      textAlign="center"
-                      sx={{
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {formatDate(file.timeReceived)}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            </InfiniteScroll>
-          </div>
+          {documentsDisplayComponent}
         </Box>
       </NavigationLayout>
     </>
