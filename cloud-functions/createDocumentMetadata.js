@@ -1,5 +1,5 @@
 const functions = require("@google-cloud/functions-framework");
-const { Firestore, FieldValue } = require("@google-cloud/firestore");
+const { Firestore, FieldValue, Timestamp } = require("@google-cloud/firestore");
 const { Storage } = require("@google-cloud/storage");
 const extractFields = require("./azureInvoice");
 
@@ -49,7 +49,7 @@ async function addDocumentToBatch(fileName, organization) {
             organization: organization,
             owner: null,
             reviewers: [],
-            timeCreated: Firestore.Timestamp.now(),
+            timeCreated: Timestamp.now(),
             timeFinished: null,
           };
           transaction.set(batchRef, batchData);
@@ -115,8 +115,9 @@ module.exports = async function createDocumentMetadata(cloudEvent) {
         : null;
 
     const fileMetadata = {
-      timeCreated: file.timeCreated,
-      updated: file.updated,
+      timeCreated: Timestamp.fromDate(new Date(file.timeCreated)),
+      updated: null,
+      reviewed: false,
       organization: organization,
     };
 
@@ -135,7 +136,10 @@ module.exports = async function createDocumentMetadata(cloudEvent) {
       .download();
     const extractedFields = await extractFields(fileContent[0]);
     const docRef = firestore.collection("documents").doc(fileName);
-    await docRef.update({ fields: extractedFields });
+    await docRef.update({
+      fields: extractedFields,
+      updated: Timestamp.now(),
+    });
   } catch (error) {
     console.error(
       "Error downloading file or extracting fields from document",
