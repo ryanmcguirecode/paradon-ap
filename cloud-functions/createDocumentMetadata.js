@@ -103,6 +103,7 @@ module.exports = async function createDocumentMetadata(cloudEvent) {
   const bucketName = file.bucket;
   const fileName = file.name;
 
+  let generatedDocId = null;
   try {
     const [metadata] = await storage
       .bucket(bucketName)
@@ -116,13 +117,15 @@ module.exports = async function createDocumentMetadata(cloudEvent) {
 
     const fileMetadata = {
       timeCreated: Timestamp.fromDate(new Date(file.timeCreated)),
+      filename: fileName,
       updated: null,
       reviewed: false,
       organization: organization,
     };
 
-    const docRef = firestore.collection("documents").doc(fileName);
+    const docRef = firestore.collection("documents").doc();
     await docRef.set(fileMetadata);
+    generatedDocId = docRef.id;
 
     await addDocumentToBatch(fileName, organization);
   } catch (error) {
@@ -130,12 +133,16 @@ module.exports = async function createDocumentMetadata(cloudEvent) {
   }
 
   try {
+    if (!generatedDocId) {
+      throw new Error("No document ID generated");
+    }
+
     const fileContent = await storage
       .bucket(bucketName)
       .file(fileName)
       .download();
     const extractedFields = await extractFields(fileContent[0]);
-    const docRef = firestore.collection("documents").doc(fileName);
+    const docRef = firestore.collection("documents").doc(generatedDocId);
     await docRef.update({
       fields: extractedFields,
       updated: Timestamp.now(),
