@@ -1,36 +1,29 @@
 import { Firestore, Timestamp } from "@google-cloud/firestore";
 import { NextRequest, NextResponse } from "next/server";
-
-function getSearchParameter(searchParams: URLSearchParams, key: string) {
-  const value = searchParams.get(key);
-  if (value === "null") {
-    return null;
-  }
-  return value;
-}
+import getUrlSearchParameter from "@/utils/getUrlSearchParameter";
 
 export async function GET(req: NextRequest) {
   try {
-    const createdFromDate = getSearchParameter(
+    const createdFromDate = getUrlSearchParameter(
       req.nextUrl.searchParams,
       "createdFromDate"
     );
-    const createdToDate = getSearchParameter(
+    const createdToDate = getUrlSearchParameter(
       req.nextUrl.searchParams,
       "createdToDate"
     );
-    const isCheckedOut = getSearchParameter(
+    const isCheckedOut = getUrlSearchParameter(
       req.nextUrl.searchParams,
       "isCheckedOut"
     );
-    const isFull = getSearchParameter(req.nextUrl.searchParams, "isFull");
-    const isFinished = getSearchParameter(
+    const isFull = getUrlSearchParameter(req.nextUrl.searchParams, "isFull");
+    const isFinished = getUrlSearchParameter(
       req.nextUrl.searchParams,
       "isFinished"
     );
-    const limit = getSearchParameter(req.nextUrl.searchParams, "limit");
-    const offset = getSearchParameter(req.nextUrl.searchParams, "offset");
-    const organization = getSearchParameter(
+    const limit = getUrlSearchParameter(req.nextUrl.searchParams, "limit");
+    const offset = getUrlSearchParameter(req.nextUrl.searchParams, "offset");
+    const organization = getUrlSearchParameter(
       req.nextUrl.searchParams,
       "organization"
     );
