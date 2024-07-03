@@ -60,23 +60,23 @@ export default function DocumentsPage() {
   const [fileViewPopupOpen, setFileViewPopupOpen] = useState(false);
 
   const [currentFilters, setCurrentFilters] = useState<any>({
-    documentType: null,
-    reviewed: null,
-    fromDate: null,
-    toDate: null,
+    // documentType: null,
+    reviewed: true,
+    createdFromDate: null,
+    createdToDate: null,
     filename: null,
   });
-  const [documentType, setDocumentType] = useState<string | null>(null);
-  const [reviewed, setReviewed] = useState<boolean | null>(null);
-  const [fromDate, setFromDate] = useState<string | null>(null);
-  const [toDate, setToDate] = useState<string | null>(null);
+  // const [documentType, setDocumentType] = useState<string | null>(null);
+  const [reviewed, setReviewed] = useState<boolean | null>(true);
+  const [createdFromDate, setCreatedFromDate] = useState<string | null>(null);
+  const [createdToDate, setCreatedToDate] = useState<string | null>(null);
   const [filename, setFilename] = useState<string | null>(null);
 
   const canFilter =
-    currentFilters.documentType !== documentType ||
+    // currentFilters.documentType !== documentType ||
     currentFilters.reviewed !== reviewed ||
-    currentFilters.fromDate !== fromDate ||
-    currentFilters.toDate !== toDate ||
+    currentFilters.createdFromDate !== createdFromDate ||
+    currentFilters.createdToDate !== createdToDate ||
     currentFilters.filename !== filename;
 
   const getFilteredDocuments = (
@@ -84,13 +84,14 @@ export default function DocumentsPage() {
     filters: any = currentFilters,
     append: boolean = false
   ) => {
-    var url = `/api/get-documents?limit=${FILES_PER_QUERY}&offset=${offset}`;
-    if (documentType) url = url.concat(`&documentType=${filters.documentType}`);
-    if (reviewed != null) url.concat(`&reviewed=${filters.reviewed}`);
-    if (fromDate) url.concat(`&fromDate=${filters.fromDate}`);
-    if (toDate) url.concat(`&toDate=${filters.toDate}`);
-    if (filename) url.concat(`&filename=${filters.filename}`);
-    url = url.concat(`&organization=${organization}`);
+    const url = new URL("/api/get-documents", window.location.origin);
+    url.searchParams.append("organization", organization);
+    url.searchParams.append("limit", String(FILES_PER_QUERY));
+    url.searchParams.append("offset", String(offset));
+    url.searchParams.append("reviewed", String(filters.reviewed));
+    url.searchParams.append("createdFromDate", filters.createdFromDate);
+    url.searchParams.append("createdToDate", filters.createdToDate);
+    url.searchParams.append("filename", filters.filename);
 
     fetch(url)
       .then((response) => response.json())
@@ -141,7 +142,7 @@ export default function DocumentsPage() {
           paddingTop: "50px",
         }}
       >
-        <Typography level="body-lg">No batches found</Typography>
+        <Typography level="body-lg">No documents found</Typography>
       </Box>
     );
   } else {
@@ -267,7 +268,7 @@ export default function DocumentsPage() {
               boxShadow: "sm",
             }}
           >
-            <Box>
+            {/* <Box>
               <FormLabel sx={{ paddingBottom: "5px" }}>Document Type</FormLabel>
               <Select
                 defaultValue={null}
@@ -285,11 +286,11 @@ export default function DocumentsPage() {
                   Credit
                 </Option>
               </Select>
-            </Box>
+            </Box> */}
             <Box>
               <FormLabel sx={{ paddingBottom: "5px" }}>Reviewed</FormLabel>
               <Select
-                defaultValue={null}
+                defaultValue={true}
                 onChange={(e, value: boolean | null) => {
                   setReviewed(value);
                 }}
@@ -310,7 +311,7 @@ export default function DocumentsPage() {
               <Input
                 type="date"
                 onChange={(e) => {
-                  setFromDate(e.target.value);
+                  setCreatedFromDate(e.target.value);
                 }}
               />
             </Box>
@@ -319,7 +320,7 @@ export default function DocumentsPage() {
               <Input
                 type="date"
                 onChange={(e) => {
-                  setToDate(e.target.value);
+                  setCreatedToDate(e.target.value);
                 }}
               />
             </Box>
@@ -335,10 +336,10 @@ export default function DocumentsPage() {
               disabled={!canFilter}
               onClick={() => {
                 const newFilters = {
-                  documentType: documentType,
+                  // documentType: documentType,
                   reviewed: reviewed,
-                  fromDate: fromDate,
-                  toDate: toDate,
+                  createdFromDate: createdFromDate,
+                  createdToDate: createdToDate,
                   filename: filename,
                 };
                 setCurrentFilters(newFilters);

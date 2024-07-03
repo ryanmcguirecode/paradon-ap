@@ -1,6 +1,6 @@
 import { Firestore, Timestamp } from "@google-cloud/firestore";
 import { NextRequest, NextResponse } from "next/server";
-import { capitalizedToCamelObject } from "@/utils/snakeToCamel";
+import getUrlSearchParameter from "@/utils/getUrlSearchParameter";
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,15 +16,40 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const offset = req.nextUrl.searchParams.get("offset");
-    const limit = req.nextUrl.searchParams.get("limit");
-    const documentType = req.nextUrl.searchParams.get("documentType");
-    const reviewed = req.nextUrl.searchParams.get("reviewed");
-    const fromDate = req.nextUrl.searchParams.get("fromDate");
-    const toDate = req.nextUrl.searchParams.get("toDate");
-    const filename = req.nextUrl.searchParams.get("filename");
-    const batchId = req.nextUrl.searchParams.get("batchId");
-    const organization = req.nextUrl.searchParams.get("organization");
+    // const documentType = getUrlSearchParameter(req.nextUrl.searchParams, "documentType");
+    const createdFromDate = getUrlSearchParameter(
+      req.nextUrl.searchParams,
+      "createdFromDate"
+    );
+    const createdToDate = getUrlSearchParameter(
+      req.nextUrl.searchParams,
+      "createdToDate"
+    );
+    const filename = getUrlSearchParameter(
+      req.nextUrl.searchParams,
+      "filename"
+    );
+    const reviewed = getUrlSearchParameter(
+      req.nextUrl.searchParams,
+      "reviewed"
+    );
+    const offset = getUrlSearchParameter(req.nextUrl.searchParams, "offset");
+    const limit = getUrlSearchParameter(req.nextUrl.searchParams, "limit");
+    const organization = getUrlSearchParameter(
+      req.nextUrl.searchParams,
+      "organization"
+    );
+
+    // console.log("offset", offset);
+    // console.log("limit", limit);
+    // console.log("documentType", documentType);
+    // console.log("reviewed", reviewed);
+    // console.log("createdFromDate", createdFromDate);
+    // console.log("createdToDate", createdToDate);
+    // console.log("filename", filename);
+    // console.log("organization", organization);
+
+    // console.log(Timestamp.fromDate(new Date(createdToDate)));
 
     if (!organization) {
       return NextResponse.json(
@@ -37,27 +62,26 @@ export async function GET(req: NextRequest) {
       .collection("documents")
       .where("organization", "==", organization);
 
-    if (batchId) {
-      query = query.where("BatchId", "==", batchId);
+    if (createdFromDate) {
+      query = query.where(
+        "timeCreated",
+        ">=",
+        Timestamp.fromDate(new Date(createdFromDate))
+      );
     }
-    if (documentType) {
-      query = query.where("DocumentType", "==", documentType);
+    if (createdToDate) {
+      query = query.where(
+        "timeCreated",
+        "<=",
+        Timestamp.fromDate(new Date(createdToDate))
+      );
+    }
+    console.log("filename:", filename);
+    if (filename) {
+      query = query.where("filename", "==", filename);
     }
     if (reviewed) {
-      if (reviewed === "true") {
-        query = query.where("TimeReviewed", "!=", null);
-      } else {
-        query = query.where("TimeReviewed", "==", null);
-      }
-    }
-    if (fromDate) {
-      query = query.where("TimeReceived", ">=", new Date(fromDate));
-    }
-    if (toDate) {
-      query = query.where("TimeReceived", "<=", new Date(toDate));
-    }
-    if (filename) {
-      query = query.where("Filename", "==", filename);
+      query = query.where("reviewed", "==", reviewed === "true");
     }
     if (limit) {
       query = query.limit(Number(limit));
