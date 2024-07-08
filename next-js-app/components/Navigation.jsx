@@ -159,7 +159,7 @@ export default function Navigation({ disabled }) {
                 onClick={handleDrawerOpen}
                 edge="start"
                 sx={{
-                  marginRight: 5,
+                  marginRight: 0,
                   ...(open && { display: "none" }),
                 }}
               >
@@ -172,8 +172,8 @@ export default function Navigation({ disabled }) {
                 justifyContent: "space-between",
                 alignItems: "center",
                 width: "100%",
-                paddingLeft: "5%",
-                paddingRight: "8%",
+                paddingLeft: "0px",
+                paddingRight: "8px",
               }}
             >
               <Logo />

@@ -396,16 +396,13 @@ export default function ReviewPage() {
                           </Typography>
                           <IconButton
                             onClick={() => {
-                              const page = documents[documentIndex]["fields"][field.modelField].page;
+                              const page =
+                                documents[documentIndex]["fields"][
+                                  field.modelField
+                                ].page;
                               if (page) {
                                 setPageNum(page);
                               }
-                              if (pdfUrl.includes("#page=")) {
-                                setPdfUrl((pdfUrl) => pdfUrl.split("#")[0]);
-                              }
-                              setPdfUrl(
-                                (pdfUrl) => `${pdfUrl}#page=${2}`
-                              );
                             }}
                           >
                             <SearchIcon />
