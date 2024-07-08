@@ -17,10 +17,10 @@ import {
   Typography,
   IconButton,
   FormControl,
-  FormLabel,
   Divider,
 } from "@mui/joy";
 import SearchIcon from "@mui/icons-material/Search";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 
 import { useAuth } from "@/components/AuthContext";
 import NavigationLayout from "@/components/NavigationLayout";
@@ -351,20 +351,24 @@ export default function ReviewPage() {
             {documentConfigs && (
               <FormControl>
                 <Select
-                  size="md"
+                  size="lg"
                   defaultValue={"Invoice / Debit Memo"}
+                  startDecorator={<AssignmentOutlinedIcon />}
                   onChange={(event, newValue: string | null) => {
                     setDocumentType(newValue);
                   }}
-                  sx={{ boxShadow: "sm", fontWeight: "bold", width: "100%" }}
+                  renderValue={(value) => (
+                    <Typography level="title-lg">{value.label}</Typography>
+                  )}
                 >
                   {Object.values(documentConfigs).map((documentType) => (
                     <Option
                       key={documentType.id}
                       value={documentType.displayName}
-                      sx={{ fontWeight: "bold" }}
                     >
-                      {documentType.displayName}
+                      <Typography level="body-lg">
+                        {documentType.displayName}
+                      </Typography>
                     </Option>
                   ))}
                 </Select>
@@ -374,6 +378,7 @@ export default function ReviewPage() {
           <Divider
             sx={{
               marginTop: "8px",
+              marginBottom: "8px",
               marginLeft: "5px",
               width: "calc(100% - 10px)",
             }}
