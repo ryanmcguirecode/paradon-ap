@@ -207,7 +207,8 @@ export default function DocumentsPage() {
                   textAlign="center"
                   sx={{
                     marginTop: "10px",
-                    textOverflow: "ellipsis",
+                    overflowWrap: "break-word",
+                    wordWrap: "break-word",
                   }}
                 >
                   {file.filename}

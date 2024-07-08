@@ -15,6 +15,9 @@ import {
   Sheet,
   Typography,
   IconButton,
+  FormControl,
+  FormLabel,
+  Divider,
 } from "@mui/joy";
 import SearchIcon from "@mui/icons-material/Search";
 
@@ -34,7 +37,11 @@ import { Document as DocumentType } from "@/types/Document";
 
 const inputStyle: InputProps = {
   variant: "outlined",
-  sx: { marginBottom: "5px", boxShadow: "sm" },
+  size: "sm",
+  sx: {
+    marginBottom: "5px",
+    boxShadow: "sm",
+  },
 };
 
 export default function ReviewPage() {
@@ -99,6 +106,13 @@ export default function ReviewPage() {
       batchId: batchId,
       callerId: user.email,
       organization: organization,
+    });
+    fetch("/api/heartbeat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: data,
     });
 
     // Tell the database that the user is still using the batch every 30s
@@ -330,33 +344,44 @@ export default function ReviewPage() {
           <Sheet
             variant="plain"
             sx={{
-              padding: "10px",
+              padding: "4px",
+              width: "100%",
+              mt: "10px",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
             }}
           >
-            <Typography level="h3">Doc Type</Typography>
             {documentTypesJson && (
-              <Select
-                size="lg"
-                defaultValue={"Invoice / Debit Memo"}
-                onChange={(event, newValue: string | null) => {
-                  setDocumentType(newValue);
-                }}
-                sx={{ boxShadow: "sm" }}
-              >
-                {Object.values(documentTypesJson).map((documentType) => (
-                  <Option
-                    key={documentType.id}
-                    value={documentType.displayName}
-                  >
-                    {documentType.displayName}
-                  </Option>
-                ))}
-              </Select>
+              <FormControl>
+                <Select
+                  size="md"
+                  defaultValue={"Invoice / Debit Memo"}
+                  onChange={(event, newValue: string | null) => {
+                    setDocumentType(newValue);
+                  }}
+                  sx={{ boxShadow: "sm", fontWeight: "bold", width: "100%" }}
+                >
+                  {Object.values(documentTypesJson).map((documentType) => (
+                    <Option
+                      key={documentType.id}
+                      value={documentType.displayName}
+                      sx={{ fontWeight: "bold" }}
+                    >
+                      {documentType.displayName}
+                    </Option>
+                  ))}
+                </Select>
+              </FormControl>
             )}
           </Sheet>
+          <Divider
+            sx={{
+              marginTop: "8px",
+              marginLeft: "5px",
+              width: "calc(100% - 10px)",
+            }}
+          />
           {documentTypesJson[documentType] && (
             <Sheet sx={{ padding: "5px", overflow: "scroll" }}>
               {organization &&
@@ -364,12 +389,15 @@ export default function ReviewPage() {
                   let defaultValue = undefined;
                   if (
                     documents[documentIndex] &&
-                    documents[documentIndex]["fields"][field.modelField] &&
+                    documents[documentIndex]["detectedFields"][
+                      field.modelField
+                    ] &&
                     documents.length > 0
                   ) {
                     defaultValue =
-                      documents[documentIndex]["fields"][field.modelField]
-                        .value;
+                      documents[documentIndex]["detectedFields"][
+                        field.modelField
+                      ].value;
                   }
 
                   return (
@@ -382,22 +410,21 @@ export default function ReviewPage() {
                             justifyContent: "space-between",
                             paddingLeft: "10px",
                             paddingRight: "10px",
-                            paddingTop: "2px",
-                            paddingBottom: "2px",
+                            height: "28px",
                             marginBottom: "5px",
                             backgroundColor: `rgb(${field.color.join(",")})`,
                           }}
                         >
-                          <Typography
-                            level="title-md"
-                            sx={{ textAlign: "center" }}
-                          >
+                          <Typography level="title-md">
                             {field.displayName}
                           </Typography>
                           <IconButton
+                            sx={{
+                              "--IconButton-size": "20px",
+                            }}
                             onClick={() => {
                               const page =
-                                documents[documentIndex]["fields"][
+                                documents[documentIndex]["detectedFields"][
                                   field.modelField
                                 ].page;
                               if (page) {
