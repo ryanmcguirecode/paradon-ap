@@ -141,10 +141,10 @@ module.exports = async function createDocumentMetadata(cloudEvent) {
       .bucket(bucketName)
       .file(fileName)
       .download();
-    const extractedFields = await extractFields(fileContent[0]);
+    const detectedFields = await extractFields(fileContent[0]);
     const docRef = firestore.collection("documents").doc(generatedDocId);
     await docRef.update({
-      fields: extractedFields,
+      detectedFields: detectedFields,
       updated: Timestamp.now(),
     });
   } catch (error) {
