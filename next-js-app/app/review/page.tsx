@@ -14,7 +14,10 @@ import {
   Select,
   Sheet,
   Typography,
+  IconButton
 } from "@mui/joy";
+import SearchIcon from "@mui/icons-material/Search";
+
 import { PDFDocument } from "pdf-lib";
 
 import NavigationLayout from "@/components/NavigationLayout";
@@ -201,7 +204,7 @@ export default function ReviewPage() {
     const fetchPdf = async () => {
       try {
         const response = await fetch(
-          `/api/get-pdf?fileName=${documents[documentIndex].filename}`
+          `/api/get-pdf?filename=${documents[documentIndex].filename}`
         );
         if (!response.ok) {
           throw new Error("Failed to fetch PDF");
@@ -221,6 +224,14 @@ export default function ReviewPage() {
 
     fetchPdf();
   }, [documentsFetched, documents, documentIndex]);
+
+  const jumpToPage = (pageNum: number) => {
+    if (pdfUrl.includes("#")) {
+      setPdfUrl(pdfUrl.split("#")[0] + `#page=${pageNum}`);
+    } else {
+      setPdfUrl(pdfUrl + `#page=${pageNum}`);
+    }
+  };
 
   return (
     <NavigationLayout disabled={true}>
@@ -343,20 +354,29 @@ export default function ReviewPage() {
                   return (
                     <div key={index}>
                       {field.displayName && (
-                        <Typography
-                          level="title-md"
+                        <Box
                           sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
                             paddingLeft: "10px",
                             paddingRight: "10px",
                             paddingTop: "2px",
                             paddingBottom: "2px",
                             marginBottom: "5px",
-                            textAlign: "center",
                             backgroundColor: `rgb(${field.color.join(",")})`,
                           }}
                         >
-                          {field.displayName}
-                        </Typography>
+                          <Typography
+                            level="title-md"
+                            sx={{ textAlign: "center" }}
+                          >
+                            {field.displayName}
+                          </Typography>
+                          <IconButton onClick={() => jumpToPage(2)}>
+                            <SearchIcon />
+                          </IconButton>
+                        </Box>
                       )}
                       {field.kind === "currency" ? (
                         <CurrencyInput

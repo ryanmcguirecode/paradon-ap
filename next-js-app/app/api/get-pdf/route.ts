@@ -17,14 +17,14 @@ const storage = new Storage({
 const bucketName = "paradon-ap-test";
 
 async function GET(req: NextRequest) {
-  const fileName = req.nextUrl.searchParams.get("fileName");
-  if (!fileName) {
-    return NextResponse.json({ error: "Missing fileName" }, { status: 400 });
+  const filename = req.nextUrl.searchParams.get("filename");
+  if (!filename) {
+    return NextResponse.json({ error: "Missing filename" }, { status: 400 });
   }
 
   try {
     const bucket = storage.bucket(bucketName);
-    const file = bucket.file(fileName);
+    const file = bucket.file(filename);
     const [exists] = await file.exists();
 
     if (!exists) {
@@ -42,7 +42,7 @@ async function GET(req: NextRequest) {
     return new NextResponse(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${fileName
+        "Content-Disposition": `attachment; filename="${filename
           .split("/")
           .pop()}"`,
       },
