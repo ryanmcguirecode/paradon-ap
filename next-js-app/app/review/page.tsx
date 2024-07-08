@@ -44,8 +44,6 @@ export default function ReviewPage() {
   const batchId = params.get("batchId");
   const { user, organization, loading } = useAuth();
 
-  const [exiting, setExiting] = useState(false);
-
   const [documents, setDocuments] = useState<Document[]>([]);
 
   const [documentType, setDocumentType] = useState<string>();
@@ -235,13 +233,6 @@ export default function ReviewPage() {
   return (
     <NavigationLayout disabled={true}>
       <Box sx={{ width: "100%", height: "100%", display: "flex" }}>
-        {exiting && (
-          <Modal open={exiting}>
-            <ModalDialog layout="center" variant="soft">
-              <Typography>Exiting</Typography>
-            </ModalDialog>
-          </Modal>
-        )}
         <Box
           sx={{
             flex: 3,
