@@ -14,7 +14,7 @@ import {
   Select,
   Sheet,
   Typography,
-  IconButton
+  IconButton,
 } from "@mui/joy";
 import SearchIcon from "@mui/icons-material/Search";
 
@@ -22,7 +22,8 @@ import { PDFDocument } from "pdf-lib";
 import { Timestamp } from "firebase/firestore";
 
 import NavigationLayout from "@/components/NavigationLayout";
-import Document from "@/components/Document";
+import Document from "@/types/Document";
+import { DocumentType } from "@/types/DocumentType";
 
 import CurrencyInput from "./CurrencyInput";
 import DateInput from "./DateInput";
@@ -30,7 +31,6 @@ import { fields } from "./testData";
 import renderAnnotations from "../../utils/renderAnnotations";
 
 import { useAuth } from "@/components/AuthContext";
-import { Document as DocumentType } from "@/types/Document";
 
 const inputStyle: InputProps = {
   variant: "outlined",
@@ -343,8 +343,14 @@ export default function ReviewPage() {
               {organization &&
                 documentTypesJson[documentType].fields.map((field, index) => {
                   let defaultValue = undefined;
-                  if (documents[documentIndex] && documents[documentIndex]["fields"][field.modelField] && documents.length > 0) {
-                    defaultValue = documents[documentIndex]["fields"][field.modelField].value;
+                  if (
+                    documents[documentIndex] &&
+                    documents[documentIndex]["fields"][field.modelField] &&
+                    documents.length > 0
+                  ) {
+                    defaultValue =
+                      documents[documentIndex]["fields"][field.modelField]
+                        .value;
                   }
 
                   return (
@@ -377,12 +383,24 @@ export default function ReviewPage() {
                       {field.kind === "currency" ? (
                         <CurrencyInput
                           {...inputStyle}
-                          defaultValue={defaultValue ? defaultValue.amount : null}
+                          defaultValue={
+                            defaultValue ? defaultValue.amount : null
+                          }
                         />
                       ) : field.kind === "date" ? (
                         <DateInput
                           {...inputStyle}
-                          defaultValue={defaultValue ? new Timestamp(defaultValue._seconds, defaultValue._nanoseconds).toDate().toISOString().slice(0, 10) : null}
+                          defaultValue={
+                            defaultValue
+                              ? new Timestamp(
+                                  defaultValue._seconds,
+                                  defaultValue._nanoseconds
+                                )
+                                  .toDate()
+                                  .toISOString()
+                                  .slice(0, 10)
+                              : null
+                          }
                         />
                       ) : field.kind === "number" ? (
                         <Input

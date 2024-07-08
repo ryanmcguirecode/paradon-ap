@@ -1,4 +1,4 @@
-import { Document } from "./Document";
+import Document from "./Document";
 
 export interface Batch {
   batchId: string;
