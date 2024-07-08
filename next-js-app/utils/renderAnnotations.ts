@@ -1,6 +1,6 @@
 import { PDFDocument, rgb } from "pdf-lib";
-import Document from "@/components/Document";
-import Field from "@/components/Field";
+import Document from "@/types/Document";
+import Field from "@/types/Field";
 
 function convertToInches(coordinates: number[]) {
   return coordinates.map((coord) => coord * 72);
@@ -32,8 +32,9 @@ export default function renderAnnotations(
   }
 
   for (const field of fields) {
-    let coordinates = (document as any)[field.databaseId + "Coordinates"];
-    let page = (document as any)[field.databaseId + "Page"];
+    if (!field.azureId) continue;
+    let coordinates = document.fields[field.azureId].coordinates;
+    let page = document.fields[field.azureId].page;
     if (!coordinates || !page) {
       continue;
     }
