@@ -32,7 +32,7 @@ export default function renderAnnotations(
   }
 
   for (const field of fields) {
-    if (!field.modelField) continue;
+    if (!field.modelField || !document.fields[field.modelField]) continue;
     let coordinates = document.fields[field.modelField].coordinates;
     let page = document.fields[field.modelField].page;
     if (!coordinates || !page) {

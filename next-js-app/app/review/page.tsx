@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import {
@@ -50,6 +50,7 @@ export default function ReviewPage() {
   const [documentTypesJson, setDocumentTypesJson] = useState<{
     [key: string]: DocumentConfig;
   }>({});
+  const [pageNum, setPageNum] = useState<number>(1);
 
   const getTypes = async () => {
     if (loading) {
@@ -221,15 +222,37 @@ export default function ReviewPage() {
     };
 
     fetchPdf();
+    setPageNum(1);
   }, [documentsFetched, documents, documentIndex]);
 
-  const jumpToPage = (pageNum: number) => {
-    if (pdfUrl.includes("#")) {
-      setPdfUrl(pdfUrl.split("#")[0] + `#page=${pageNum}`);
-    } else {
-      setPdfUrl(pdfUrl + `#page=${pageNum}`);
-    }
-  };
+  useEffect(() => {
+    const jumpToPage = async () => {
+      try {
+        const response = await fetch(
+          `/api/get-pdf?filename=${documents[documentIndex].filename}`
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch PDF");
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(arrayBuffer);
+        renderAnnotations(
+          pdfDoc,
+          documents[documentIndex],
+          documentTypesJson[documentType].fields
+        );
+        const pdfBytes = await pdfDoc.save();
+        const annotatedBlob = new Blob([pdfBytes], { type: "application/pdf" });
+        const annotatedUrl = URL.createObjectURL(annotatedBlob);
+        setPdfUrl(annotatedUrl + "#page=" + pageNum);
+        console.log("jumping to page", pdfUrl);
+      } catch (error) {
+        console.error("Error fetching PDF:", error);
+      }
+    };
+    jumpToPage();
+  }, [pageNum]);
 
   return (
     <NavigationLayout disabled={true}>
@@ -367,7 +390,17 @@ export default function ReviewPage() {
                           >
                             {field.displayName}
                           </Typography>
-                          <IconButton onClick={() => jumpToPage(2)}>
+                          <IconButton
+                            onClick={() => {
+                              const targetField =
+                                documents[documentIndex]["fields"][
+                                  field.modelField
+                                ];
+                              if (targetField && targetField.page) {
+                                setPageNum(targetField.page);
+                              }
+                            }}
+                          >
                             <SearchIcon />
                           </IconButton>
                         </Box>
