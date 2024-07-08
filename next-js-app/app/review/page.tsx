@@ -19,6 +19,7 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 
 import { PDFDocument } from "pdf-lib";
+import { Timestamp } from "firebase/firestore";
 
 import NavigationLayout from "@/components/NavigationLayout";
 import Document from "@/components/Document";
@@ -51,7 +52,6 @@ export default function ReviewPage() {
   const [pdfUrl, setPdfUrl] = useState<string>("");
   const [documentIndex, setDocumentIndex] = useState<number>(0);
   const [documentsFetched, setDocumentsFetched] = useState(false);
-  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
   const [documentTypesJson, setDocumentTypesJson] = useState<{
     [key: string]: DocumentType;
   }>({});
@@ -75,7 +75,6 @@ export default function ReviewPage() {
     data.map((documentType: DocumentType) => {
       mergedJson[documentType.displayName] = documentType;
     });
-    setDocumentTypes(data);
     setDocumentTypesJson(mergedJson);
     setDocumentType(data[0].displayName);
   };
@@ -319,7 +318,7 @@ export default function ReviewPage() {
             }}
           >
             <Typography level="h3">Doc Type</Typography>
-            {documentTypes && documentTypes.length > 0 && (
+            {documentTypesJson && (
               <Select
                 size="lg"
                 defaultValue={"Invoice / Debit Memo"}
@@ -328,15 +327,14 @@ export default function ReviewPage() {
                 }}
                 sx={{ boxShadow: "sm" }}
               >
-                {documentTypes &&
-                  documentTypes.map((documentType) => (
-                    <Option
-                      key={documentType.id}
-                      value={documentType.displayName}
-                    >
-                      {documentType.displayName}
-                    </Option>
-                  ))}
+                {Object.values(documentTypesJson).map((documentType) => (
+                  <Option
+                    key={documentType.id}
+                    value={documentType.displayName}
+                  >
+                    {documentType.displayName}
+                  </Option>
+                ))}
               </Select>
             )}
           </Sheet>
@@ -345,10 +343,8 @@ export default function ReviewPage() {
               {organization &&
                 documentTypesJson[documentType].fields.map((field, index) => {
                   let defaultValue = undefined;
-                  if (field.id && documents.length > 0) {
-                    defaultValue = (documents[documentIndex] as any)[
-                      field.id + "Detected"
-                    ];
+                  if (documents[documentIndex] && documents[documentIndex]["fields"][field.modelField] && documents.length > 0) {
+                    defaultValue = documents[documentIndex]["fields"][field.modelField].value;
                   }
 
                   return (
@@ -381,12 +377,12 @@ export default function ReviewPage() {
                       {field.kind === "currency" ? (
                         <CurrencyInput
                           {...inputStyle}
-                          defaultValue={defaultValue}
+                          defaultValue={defaultValue ? defaultValue.amount : null}
                         />
                       ) : field.kind === "date" ? (
                         <DateInput
                           {...inputStyle}
-                          defaultValue={defaultValue}
+                          defaultValue={defaultValue ? new Timestamp(defaultValue._seconds, defaultValue._nanoseconds).toDate().toISOString().slice(0, 10) : null}
                         />
                       ) : field.kind === "number" ? (
                         <Input
