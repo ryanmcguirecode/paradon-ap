@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import {
@@ -55,6 +55,7 @@ export default function ReviewPage() {
   const [documentTypesJson, setDocumentTypesJson] = useState<{
     [key: string]: DocumentType;
   }>({});
+  const [pageNum, setPageNum] = useState<number>(1);
 
   const getTypes = async () => {
     if (loading) {
@@ -222,15 +223,9 @@ export default function ReviewPage() {
     };
 
     fetchPdf();
+    console.log("fetching pdf");
+    setPageNum(1);
   }, [documentsFetched, documents, documentIndex]);
-
-  const jumpToPage = (pageNum: number) => {
-    if (pdfUrl.includes("#")) {
-      setPdfUrl(pdfUrl.split("#")[0] + `#page=${pageNum}`);
-    } else {
-      setPdfUrl(pdfUrl + `#page=${pageNum}`);
-    }
-  };
 
   return (
     <NavigationLayout disabled={true}>
@@ -369,7 +364,14 @@ export default function ReviewPage() {
                           >
                             {field.displayName}
                           </Typography>
-                          <IconButton onClick={() => jumpToPage(2)}>
+                          <IconButton onClick={() => {
+                            setPageNum(2);
+                            if (pdfUrl.includes("#page=")) {
+                              setPdfUrl((pdfUrl) => pdfUrl.split("#")[0]);
+                            }
+                            setPdfUrl((pdfUrl) => `${pdfUrl}#page=${2}`)
+                            console.log(pdfUrl)
+                          }}>
                             <SearchIcon />
                           </IconButton>
                         </Box>
