@@ -4,5 +4,5 @@ export default interface Document {
   reviewed: boolean;
   timeCreated: string;
   updated: string;
-  fields: any;
+  detectedFields: any;
 }

@@ -360,12 +360,15 @@ export default function ReviewPage() {
                   let defaultValue = undefined;
                   if (
                     documents[documentIndex] &&
-                    documents[documentIndex]["fields"][field.modelField] &&
+                    documents[documentIndex]["detectedFields"][
+                      field.modelField
+                    ] &&
                     documents.length > 0
                   ) {
                     defaultValue =
-                      documents[documentIndex]["fields"][field.modelField]
-                        .value;
+                      documents[documentIndex]["detectedFields"][
+                        field.modelField
+                      ].value;
                   }
 
                   return (
@@ -393,7 +396,7 @@ export default function ReviewPage() {
                           <IconButton
                             onClick={() => {
                               const targetField =
-                                documents[documentIndex]["fields"][
+                                documents[documentIndex]["detectedFields"][
                                   field.modelField
                                 ];
                               if (targetField && targetField.page) {
