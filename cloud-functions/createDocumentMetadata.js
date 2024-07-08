@@ -3,7 +3,7 @@ const { Firestore, FieldValue, Timestamp } = require("@google-cloud/firestore");
 const { Storage } = require("@google-cloud/storage");
 const extractFields = require("./azureInvoice");
 
-async function addDocumentToBatch(fileName, organization) {
+async function addDocumentToBatch(docId, organization) {
   let retryCount = 0;
   const maxRetries = 10;
   const baseDelay = 500;
@@ -56,7 +56,7 @@ async function addDocumentToBatch(fileName, organization) {
         }
 
         transaction.update(batchRef, {
-          documents: FieldValue.arrayUnion(fileName),
+          documents: FieldValue.arrayUnion(docId),
           documentCount: FieldValue.increment(1),
           isFull: batchData.documentCount + 1 >= maxBatchSize,
         });
@@ -64,7 +64,7 @@ async function addDocumentToBatch(fileName, organization) {
       return;
     } catch (error) {
       if (error.code === 10) {
-        console.error(`${fileName} on attempt ${retryCount}:  `, error.details);
+        console.error(`${docId} on attempt ${retryCount}:  `, error.details);
         const delay =
           baseDelay * Math.pow(2, retryCount) * (1 + 5 * Math.random());
         await new Promise((resolve) => setTimeout(resolve, delay));
@@ -127,7 +127,7 @@ module.exports = async function createDocumentMetadata(cloudEvent) {
     await docRef.set(fileMetadata);
     generatedDocId = docRef.id;
 
-    await addDocumentToBatch(fileName, organization);
+    await addDocumentToBatch(generatedDocId, organization);
   } catch (error) {
     console.error("Error processing document and assigning to a batch", error);
   }
