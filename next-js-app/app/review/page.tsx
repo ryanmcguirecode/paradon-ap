@@ -1,13 +1,16 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { PDFDocument } from "pdf-lib";
+import { Timestamp } from "firebase/firestore";
+
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
+
 import {
   Box,
   Button,
   Input,
-  InputProps,
   Option,
   Select,
   Sheet,
@@ -16,135 +19,35 @@ import {
 } from "@mui/joy";
 import SearchIcon from "@mui/icons-material/Search";
 
-import { PDFDocument } from "pdf-lib";
-import { Timestamp } from "firebase/firestore";
-
+import { useAuth } from "@/components/AuthContext";
 import NavigationLayout from "@/components/NavigationLayout";
 import Document from "@/types/Document";
 import { DocumentConfig } from "@/types/DocumentConfig";
 
 import CurrencyInput from "./CurrencyInput";
 import DateInput from "./DateInput";
-import renderAnnotations from "../../utils/renderAnnotations";
-
-import { useAuth } from "@/components/AuthContext";
-
-const inputStyle: InputProps = {
-  variant: "outlined",
-  sx: { marginBottom: "5px", boxShadow: "sm" },
-};
+import InputStyle from "./InputStyle";
+import renderAnnotations from "@/utils/renderAnnotations";
 
 export default function ReviewPage() {
   const router = useRouter();
+  const { user, organization, loading } = useAuth();
 
   const params = useSearchParams();
   const batchId = params.get("batchId");
-  const { user, organization, loading } = useAuth();
 
   const [documents, setDocuments] = useState<Document[]>([]);
-
-  const [documentType, setDocumentType] = useState<string>();
-  const [pdfUrl, setPdfUrl] = useState<string>("");
-  const [documentIndex, setDocumentIndex] = useState<number>(0);
   const [documentsFetched, setDocumentsFetched] = useState(false);
-  const [documentTypesJson, setDocumentTypesJson] = useState<{
-    [key: string]: DocumentConfig;
-  }>({});
+  const [documentIndex, setDocumentIndex] = useState<number>(0);
+  const [pdfUrl, setPdfUrl] = useState<string>("");
   const [pageNum, setPageNum] = useState<number>(1);
 
-  const getTypes = async () => {
-    if (loading) {
-      return;
-    }
-    const response = await fetch("/api/get-organization-document-types", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        organization: organization,
-      }),
-    });
+  const [documentType, setDocumentType] = useState<string>();
+  const [documentConfigs, setDocumentConfigs] = useState<{
+    [key: string]: DocumentConfig;
+  }>({});
 
-    const data = await response.json();
-    const mergedJson: { [key: string]: DocumentConfig } = {};
-    data.map((documentType: DocumentConfig) => {
-      mergedJson[documentType.displayName] = documentType;
-    });
-    setDocumentTypesJson(mergedJson);
-    setDocumentType(data[0].displayName);
-  };
-
-  const releaseBatch = () => {
-    const data = JSON.stringify({
-      batchId: batchId,
-      callerId: user.email,
-      organization: organization,
-    });
-
-    // Use navigator.sendBeacon to ensure the batch release request is sent
-    const result = navigator.sendBeacon("/api/release-batch", data);
-  };
-
-  useEffect(() => {
-    if (loading) {
-      return;
-    }
-    const data = JSON.stringify({
-      batchId: batchId,
-      callerId: user.email,
-      organization: organization,
-    });
-
-    // Tell the database that the user is still using the batch every 30s
-    const interval = setInterval(() => {
-      fetch("/api/heartbeat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: data,
-      });
-    }, 30000);
-  }, [loading]);
-
-  useEffect(() => {
-    if (loading) {
-      return;
-    }
-
-    /* Check batch back in when clicking link */
-    const handleClick = (event: MouseEvent) => {
-      releaseBatch();
-    };
-
-    /* Check batch back in when pressing back button */
-    const handlePopState = (event) => {
-      releaseBatch();
-    };
-
-    /* Checking batch back in when loading a page on a different origin */
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      releaseBatch();
-    };
-
-    document.querySelectorAll("a").forEach((link) => {
-      link.addEventListener("click", handleClick);
-    });
-    window.addEventListener("popstate", handlePopState);
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      /* Checking batch back in when navigating to page within application (local route change) */
-      releaseBatch();
-      document.querySelectorAll("a").forEach((link) => {
-        link.removeEventListener("click", handleClick);
-      });
-      window.removeEventListener("popstate", handlePopState);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [loading]);
-
+  // Acquire batch and fetch documents
   useEffect(() => {
     if (loading) {
       return;
@@ -187,12 +90,113 @@ export default function ReviewPage() {
     acquireBatch(batchId || "").then(() =>
       fetchDocuments().then(() => setDocumentsFetched(true))
     );
-
-    getTypes();
   }, [loading]);
 
+  // Heartbeat to database that the user is still using the batch every 30s
   useEffect(() => {
-    if (!documentsFetched || !documents.length) {
+    if (loading) {
+      return;
+    }
+    const data = JSON.stringify({
+      batchId: batchId,
+      callerId: user.email,
+      organization: organization,
+    });
+    const interval = setInterval(() => {
+      fetch("/api/heartbeat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: data,
+      });
+    }, 30000);
+  }, [loading]);
+
+  // Check batch back in when the user navigates away from the page
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+
+    const releaseBatch = () => {
+      const data = JSON.stringify({
+        batchId: batchId,
+        callerId: user.email,
+        organization: organization,
+      });
+
+      // Use navigator.sendBeacon to ensure the batch release request is sent
+      const result = navigator.sendBeacon("/api/release-batch", data);
+    };
+
+    /* Check batch back in when clicking link */
+    const handleClick = (event: MouseEvent) => {
+      releaseBatch();
+    };
+
+    /* Check batch back in when pressing back button */
+    const handlePopState = (event) => {
+      releaseBatch();
+    };
+
+    /* Checking batch back in when loading a page on a different origin */
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      releaseBatch();
+    };
+
+    document.querySelectorAll("a").forEach((link) => {
+      link.addEventListener("click", handleClick);
+    });
+    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      /* Checking batch back in when navigating to page within application (local route change) */
+      releaseBatch();
+      document.querySelectorAll("a").forEach((link) => {
+        link.removeEventListener("click", handleClick);
+      });
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [loading]);
+
+  // Fetch document configs
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+
+    async function fetchDocumentConfigs() {
+      if (loading) {
+        return;
+      }
+      const response = await fetch("/api/get-organization-document-types", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          organization: organization,
+        }),
+      });
+
+      const data = await response.json();
+      const mergedJson: { [key: string]: DocumentConfig } = {};
+      data.map((documentType: DocumentConfig) => {
+        mergedJson[documentType.displayName] = documentType;
+      });
+      setDocumentConfigs(mergedJson);
+      setDocumentType(data[0].displayName);
+    }
+
+    fetchDocumentConfigs();
+  }, [loading]);
+
+  // Fetch PDF and render annotations
+  useEffect(() => {
+    if (!documentsFetched || !documents.length || !documentConfigs) {
       return;
     }
 
@@ -210,7 +214,7 @@ export default function ReviewPage() {
         renderAnnotations(
           pdfDoc,
           documents[documentIndex],
-          documentTypesJson[documentType].fields
+          documentConfigs[documentType].fields
         );
         const pdfBytes = await pdfDoc.save();
         const annotatedBlob = new Blob([pdfBytes], { type: "application/pdf" });
@@ -223,8 +227,9 @@ export default function ReviewPage() {
 
     fetchPdf();
     setPageNum(1);
-  }, [documentsFetched, documents, documentIndex]);
+  }, [documentsFetched, documents, documentIndex, documentConfigs]);
 
+  // Jump to page to find specific field
   useEffect(() => {
     const jumpToPage = async () => {
       try {
@@ -240,13 +245,12 @@ export default function ReviewPage() {
         renderAnnotations(
           pdfDoc,
           documents[documentIndex],
-          documentTypesJson[documentType].fields
+          documentConfigs[documentType].fields
         );
         const pdfBytes = await pdfDoc.save();
         const annotatedBlob = new Blob([pdfBytes], { type: "application/pdf" });
         const annotatedUrl = URL.createObjectURL(annotatedBlob);
         setPdfUrl(annotatedUrl + "#page=" + pageNum);
-        console.log("jumping to page", pdfUrl);
       } catch (error) {
         console.error("Error fetching PDF:", error);
       }
@@ -333,7 +337,7 @@ export default function ReviewPage() {
             }}
           >
             <Typography level="h3">Doc Type</Typography>
-            {documentTypesJson && (
+            {documentConfigs && (
               <Select
                 size="lg"
                 defaultValue={"Invoice / Debit Memo"}
@@ -342,7 +346,7 @@ export default function ReviewPage() {
                 }}
                 sx={{ boxShadow: "sm" }}
               >
-                {Object.values(documentTypesJson).map((documentType) => (
+                {Object.values(documentConfigs).map((documentType) => (
                   <Option
                     key={documentType.id}
                     value={documentType.displayName}
@@ -353,10 +357,10 @@ export default function ReviewPage() {
               </Select>
             )}
           </Sheet>
-          {documentTypesJson[documentType] && (
+          {documentConfigs[documentType] && (
             <Sheet sx={{ padding: "5px", overflow: "scroll" }}>
               {organization &&
-                documentTypesJson[documentType].fields.map((field, index) => {
+                documentConfigs[documentType].fields.map((field, index) => {
                   let defaultValue = undefined;
                   if (
                     documents[documentIndex] &&
@@ -410,14 +414,14 @@ export default function ReviewPage() {
                       )}
                       {field.kind === "currency" ? (
                         <CurrencyInput
-                          {...inputStyle}
+                          {...InputStyle}
                           defaultValue={
                             defaultValue ? defaultValue.amount : null
                           }
                         />
                       ) : field.kind === "date" ? (
                         <DateInput
-                          {...inputStyle}
+                          {...InputStyle}
                           defaultValue={
                             defaultValue
                               ? new Timestamp(
@@ -432,13 +436,13 @@ export default function ReviewPage() {
                         />
                       ) : field.kind === "number" ? (
                         <Input
-                          {...inputStyle}
+                          {...InputStyle}
                           defaultValue={defaultValue}
                           type="number"
                         ></Input>
                       ) : (
                         <Input
-                          {...inputStyle}
+                          {...InputStyle}
                           defaultValue={defaultValue}
                         ></Input>
                       )}
