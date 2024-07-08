@@ -1,6 +1,6 @@
 import { PDFDocument, rgb } from "pdf-lib";
-import Document from "@/components/Document";
-import Field from "@/components/Field";
+import Document from "@/types/Document";
+import { DocumentConfigField } from "@/types/DocumentConfig";
 
 function convertToInches(coordinates: number[]) {
   return coordinates.map((coord) => coord * 72);
@@ -25,15 +25,17 @@ function addPadding(coordinates: number[]) {
 export default function renderAnnotations(
   pdf: PDFDocument,
   document: Document,
-  fields: Field[]
+  fields: DocumentConfigField[]
 ) {
   if (!pdf || !document || !fields) {
     return;
   }
 
   for (const field of fields) {
-    let coordinates = (document as any)[field.databaseId + "Coordinates"];
-    let page = (document as any)[field.databaseId + "Page"];
+    if (!field.modelField || !document.detectedFields[field.modelField])
+      continue;
+    let coordinates = document.detectedFields[field.modelField].coordinates;
+    let page = document.detectedFields[field.modelField].page;
     if (!coordinates || !page) {
       continue;
     }

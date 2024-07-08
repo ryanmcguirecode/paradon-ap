@@ -8,8 +8,6 @@ import {
   Button,
   Input,
   InputProps,
-  Modal,
-  ModalDialog,
   Option,
   Select,
   Sheet,
@@ -25,15 +23,14 @@ import { PDFDocument } from "pdf-lib";
 import { Timestamp } from "firebase/firestore";
 
 import NavigationLayout from "@/components/NavigationLayout";
-import Document from "@/components/Document";
+import Document from "@/types/Document";
+import { DocumentConfig } from "@/types/DocumentConfig";
 
 import CurrencyInput from "./CurrencyInput";
 import DateInput from "./DateInput";
-import { fields } from "./testData";
 import renderAnnotations from "../../utils/renderAnnotations";
 
 import { useAuth } from "@/components/AuthContext";
-import { Document as DocumentType } from "@/types/Document";
 
 const inputStyle: InputProps = {
   variant: "outlined",
@@ -51,8 +48,6 @@ export default function ReviewPage() {
   const batchId = params.get("batchId");
   const { user, organization, loading } = useAuth();
 
-  const [exiting, setExiting] = useState(false);
-
   const [documents, setDocuments] = useState<Document[]>([]);
 
   const [documentType, setDocumentType] = useState<string>();
@@ -60,7 +55,7 @@ export default function ReviewPage() {
   const [documentIndex, setDocumentIndex] = useState<number>(0);
   const [documentsFetched, setDocumentsFetched] = useState(false);
   const [documentTypesJson, setDocumentTypesJson] = useState<{
-    [key: string]: DocumentType;
+    [key: string]: DocumentConfig;
   }>({});
   const [pageNum, setPageNum] = useState<number>(1);
 
@@ -79,8 +74,8 @@ export default function ReviewPage() {
     });
 
     const data = await response.json();
-    const mergedJson: { [key: string]: DocumentType } = {};
-    data.map((documentType: DocumentType) => {
+    const mergedJson: { [key: string]: DocumentConfig } = {};
+    data.map((documentType: DocumentConfig) => {
       mergedJson[documentType.displayName] = documentType;
     });
     setDocumentTypesJson(mergedJson);
@@ -226,7 +221,11 @@ export default function ReviewPage() {
 
         const arrayBuffer = await response.arrayBuffer();
         const pdfDoc = await PDFDocument.load(arrayBuffer);
-        renderAnnotations(pdfDoc, documents[documentIndex], fields);
+        renderAnnotations(
+          pdfDoc,
+          documents[documentIndex],
+          documentTypesJson[documentType].fields
+        );
         const pdfBytes = await pdfDoc.save();
         const annotatedBlob = new Blob([pdfBytes], { type: "application/pdf" });
         const annotatedUrl = URL.createObjectURL(annotatedBlob);
@@ -252,7 +251,11 @@ export default function ReviewPage() {
 
         const arrayBuffer = await response.arrayBuffer();
         const pdfDoc = await PDFDocument.load(arrayBuffer);
-        renderAnnotations(pdfDoc, documents[documentIndex], fields);
+        renderAnnotations(
+          pdfDoc,
+          documents[documentIndex],
+          documentTypesJson[documentType].fields
+        );
         const pdfBytes = await pdfDoc.save();
         const annotatedBlob = new Blob([pdfBytes], { type: "application/pdf" });
         const annotatedUrl = URL.createObjectURL(annotatedBlob);
@@ -268,13 +271,6 @@ export default function ReviewPage() {
   return (
     <NavigationLayout disabled={true}>
       <Box sx={{ width: "100%", height: "100%", display: "flex" }}>
-        {exiting && (
-          <Modal open={exiting}>
-            <ModalDialog layout="center" variant="soft">
-              <Typography>Exiting</Typography>
-            </ModalDialog>
-          </Modal>
-        )}
         <Box
           sx={{
             flex: 3,
@@ -419,16 +415,17 @@ export default function ReviewPage() {
                             {field.displayName}
                           </Typography>
                           <IconButton
+                            tabIndex={-1}
                             sx={{
                               "--IconButton-size": "20px",
                             }}
                             onClick={() => {
-                              const page =
+                              const targetField =
                                 documents[documentIndex]["detectedFields"][
                                   field.modelField
-                                ].page;
-                              if (page) {
-                                setPageNum(page);
+                                ];
+                              if (targetField && targetField.page) {
+                                setPageNum(targetField.page);
                               }
                             }}
                           >
