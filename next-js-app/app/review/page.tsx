@@ -14,7 +14,7 @@ import {
   Select,
   Sheet,
   Typography,
-  IconButton
+  IconButton,
 } from "@mui/joy";
 import SearchIcon from "@mui/icons-material/Search";
 
@@ -223,9 +223,33 @@ export default function ReviewPage() {
     };
 
     fetchPdf();
-    console.log("fetching pdf");
     setPageNum(1);
   }, [documentsFetched, documents, documentIndex]);
+
+  useEffect(() => {
+    const jumpToPage = async () => {
+      try {
+        const response = await fetch(
+          `/api/get-pdf?filename=${documents[documentIndex].filename}`
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch PDF");
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(arrayBuffer);
+        renderAnnotations(pdfDoc, documents[documentIndex], fields);
+        const pdfBytes = await pdfDoc.save();
+        const annotatedBlob = new Blob([pdfBytes], { type: "application/pdf" });
+        const annotatedUrl = URL.createObjectURL(annotatedBlob);
+        setPdfUrl(annotatedUrl + "#page=" + pageNum);
+        console.log("jumping to page", pdfUrl);
+      } catch (error) {
+        console.error("Error fetching PDF:", error);
+      }
+    };
+    jumpToPage();
+  }, [pageNum]);
 
   return (
     <NavigationLayout disabled={true}>
@@ -338,8 +362,14 @@ export default function ReviewPage() {
               {organization &&
                 documentTypesJson[documentType].fields.map((field, index) => {
                   let defaultValue = undefined;
-                  if (documents[documentIndex] && documents[documentIndex]["fields"][field.modelField] && documents.length > 0) {
-                    defaultValue = documents[documentIndex]["fields"][field.modelField].value;
+                  if (
+                    documents[documentIndex] &&
+                    documents[documentIndex]["fields"][field.modelField] &&
+                    documents.length > 0
+                  ) {
+                    defaultValue =
+                      documents[documentIndex]["fields"][field.modelField]
+                        .value;
                   }
 
                   return (
@@ -364,14 +394,20 @@ export default function ReviewPage() {
                           >
                             {field.displayName}
                           </Typography>
-                          <IconButton onClick={() => {
-                            setPageNum(2);
-                            if (pdfUrl.includes("#page=")) {
-                              setPdfUrl((pdfUrl) => pdfUrl.split("#")[0]);
-                            }
-                            setPdfUrl((pdfUrl) => `${pdfUrl}#page=${2}`)
-                            console.log(pdfUrl)
-                          }}>
+                          <IconButton
+                            onClick={() => {
+                              const page = documents[documentIndex]["fields"][field.modelField].page;
+                              if (page) {
+                                setPageNum(page);
+                              }
+                              if (pdfUrl.includes("#page=")) {
+                                setPdfUrl((pdfUrl) => pdfUrl.split("#")[0]);
+                              }
+                              setPdfUrl(
+                                (pdfUrl) => `${pdfUrl}#page=${2}`
+                              );
+                            }}
+                          >
                             <SearchIcon />
                           </IconButton>
                         </Box>
@@ -379,12 +415,24 @@ export default function ReviewPage() {
                       {field.kind === "currency" ? (
                         <CurrencyInput
                           {...inputStyle}
-                          defaultValue={defaultValue ? defaultValue.amount : null}
+                          defaultValue={
+                            defaultValue ? defaultValue.amount : null
+                          }
                         />
                       ) : field.kind === "date" ? (
                         <DateInput
                           {...inputStyle}
-                          defaultValue={defaultValue ? new Timestamp(defaultValue._seconds, defaultValue._nanoseconds).toDate().toISOString().slice(0, 10) : null}
+                          defaultValue={
+                            defaultValue
+                              ? new Timestamp(
+                                  defaultValue._seconds,
+                                  defaultValue._nanoseconds
+                                )
+                                  .toDate()
+                                  .toISOString()
+                                  .slice(0, 10)
+                              : null
+                          }
                         />
                       ) : field.kind === "number" ? (
                         <Input

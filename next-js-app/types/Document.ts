@@ -39,6 +39,7 @@ export const azureInvoiceFields = {
 type AzureInvoiceField = keyof typeof azureInvoiceFields;
 
 export interface DocumentField {
+  page: number;
   id: string;
   displayName: string;
   kind: "string" | "number" | "date" | "currency";
