@@ -16,6 +16,9 @@ import {
   Sheet,
   Typography,
   IconButton,
+  FormControl,
+  FormLabel,
+  Divider,
 } from "@mui/joy";
 import SearchIcon from "@mui/icons-material/Search";
 
@@ -101,6 +104,13 @@ export default function ReviewPage() {
       batchId: batchId,
       callerId: user.email,
       organization: organization,
+    });
+    fetch("/api/heartbeat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: data,
     });
     const interval = setInterval(() => {
       fetch("/api/heartbeat", {
@@ -330,33 +340,44 @@ export default function ReviewPage() {
           <Sheet
             variant="plain"
             sx={{
-              padding: "10px",
+              padding: "4px",
+              width: "100%",
+              mt: "10px",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
             }}
           >
-            <Typography level="h3">Doc Type</Typography>
             {documentConfigs && (
-              <Select
-                size="lg"
-                defaultValue={"Invoice / Debit Memo"}
-                onChange={(event, newValue: string | null) => {
-                  setDocumentType(newValue);
-                }}
-                sx={{ boxShadow: "sm" }}
-              >
-                {Object.values(documentConfigs).map((documentType) => (
-                  <Option
-                    key={documentType.id}
-                    value={documentType.displayName}
-                  >
-                    {documentType.displayName}
-                  </Option>
-                ))}
-              </Select>
+              <FormControl>
+                <Select
+                  size="md"
+                  defaultValue={"Invoice / Debit Memo"}
+                  onChange={(event, newValue: string | null) => {
+                    setDocumentType(newValue);
+                  }}
+                  sx={{ boxShadow: "sm", fontWeight: "bold", width: "100%" }}
+                >
+                  {Object.values(documentConfigs).map((documentType) => (
+                    <Option
+                      key={documentType.id}
+                      value={documentType.displayName}
+                      sx={{ fontWeight: "bold" }}
+                    >
+                      {documentType.displayName}
+                    </Option>
+                  ))}
+                </Select>
+              </FormControl>
             )}
           </Sheet>
+          <Divider
+            sx={{
+              marginTop: "8px",
+              marginLeft: "5px",
+              width: "calc(100% - 10px)",
+            }}
+          />
           {documentConfigs[documentType] && (
             <Sheet sx={{ padding: "5px", overflow: "scroll" }}>
               {organization &&
@@ -385,19 +406,19 @@ export default function ReviewPage() {
                             justifyContent: "space-between",
                             paddingLeft: "10px",
                             paddingRight: "10px",
-                            paddingTop: "2px",
-                            paddingBottom: "2px",
+                            height: "28px",
                             marginBottom: "5px",
                             backgroundColor: `rgb(${field.color.join(",")})`,
                           }}
                         >
-                          <Typography
-                            level="title-md"
-                            sx={{ textAlign: "center" }}
-                          >
+                          <Typography level="title-md">
                             {field.displayName}
                           </Typography>
                           <IconButton
+                            tabIndex={-1}
+                            sx={{
+                              "--IconButton-size": "20px",
+                            }}
                             onClick={() => {
                               const targetField =
                                 documents[documentIndex]["detectedFields"][
