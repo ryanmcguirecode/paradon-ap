@@ -8,8 +8,6 @@ import {
   Button,
   Input,
   InputProps,
-  Modal,
-  ModalDialog,
   Option,
   Select,
   Sheet,
@@ -23,11 +21,10 @@ import { Timestamp } from "firebase/firestore";
 
 import NavigationLayout from "@/components/NavigationLayout";
 import Document from "@/types/Document";
-import { DocumentType } from "@/types/DocumentType";
+import { DocumentConfig } from "@/types/DocumentConfig";
 
 import CurrencyInput from "./CurrencyInput";
 import DateInput from "./DateInput";
-import { fields } from "./testData";
 import renderAnnotations from "../../utils/renderAnnotations";
 
 import { useAuth } from "@/components/AuthContext";
@@ -51,7 +48,7 @@ export default function ReviewPage() {
   const [documentIndex, setDocumentIndex] = useState<number>(0);
   const [documentsFetched, setDocumentsFetched] = useState(false);
   const [documentTypesJson, setDocumentTypesJson] = useState<{
-    [key: string]: DocumentType;
+    [key: string]: DocumentConfig;
   }>({});
 
   const getTypes = async () => {
@@ -69,8 +66,8 @@ export default function ReviewPage() {
     });
 
     const data = await response.json();
-    const mergedJson: { [key: string]: DocumentType } = {};
-    data.map((documentType: DocumentType) => {
+    const mergedJson: { [key: string]: DocumentConfig } = {};
+    data.map((documentType: DocumentConfig) => {
       mergedJson[documentType.displayName] = documentType;
     });
     setDocumentTypesJson(mergedJson);
@@ -209,7 +206,11 @@ export default function ReviewPage() {
 
         const arrayBuffer = await response.arrayBuffer();
         const pdfDoc = await PDFDocument.load(arrayBuffer);
-        renderAnnotations(pdfDoc, documents[documentIndex], fields);
+        renderAnnotations(
+          pdfDoc,
+          documents[documentIndex],
+          documentTypesJson[documentType].fields
+        );
         const pdfBytes = await pdfDoc.save();
         const annotatedBlob = new Blob([pdfBytes], { type: "application/pdf" });
         const annotatedUrl = URL.createObjectURL(annotatedBlob);
