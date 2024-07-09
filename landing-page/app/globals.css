@@ -1,0 +1,40 @@
+html {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: rgb(247, 251, 253);
+  background-image: 
+    /* linear-gradient(to right, #d7dede 1px, transparent 1px), */
+    /* linear-gradient(to bottom, #d7dede 1px, transparent 1px), */
+    linear-gradient(to bottom, rgb(210, 236, 249), rgb(247, 251, 253));
+  background-repeat: 
+    /* repeat,  */
+    /* repeat,  */
+    no-repeat;
+  background-size: 
+    /* 50vw 100%,  */
+    /* 100% 33%,  */
+    100% 100vh;
+  background-position:
+    /* -50% 0,  */
+    /* 0 0,  */
+    0 0; 
+}
+
+#__next {
+  height: 100%;
+}
+
+  /*background-size: 100vw 301px, 33.3vw 100vh; */
+  /* background-image:
+    linear-gradient(to bottom, #d7dede 1px, transparent 1px),
+    linear-gradient(to right, #d7dede 1px, transparent 1px);
+  */

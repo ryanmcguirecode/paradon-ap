@@ -1,0 +1,26 @@
+@keyframes moveAndDisappear {
+  0% {
+    opacity: 0; /* Start fully transparent */
+  }
+  15% {
+    opacity: 0; /* Fully visible by 10% of the animation */
+  }
+  30% {
+    opacity: 1; /* Fully visible by 10% of the animation */
+  }
+  90% {
+    left: 50%;
+    top: 50%;
+    opacity: 1; /* Maintain full visibility until 90% */
+  }
+  99% {
+    left: 50%;
+    top: 50%;
+    opacity: 1; /* Still fully visible just before the end */
+  }
+  100% {
+    left: 50%;
+    top: 50%;
+    opacity: 0; /* Abruptly disappear at the end */
+  }
+}

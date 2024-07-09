@@ -39,3 +39,19 @@ next-js-app/next-env.d.ts
 cloud-functions/service-account.json
 cloud-functions/testing/test-invoices/
 cloud-functions/.env*.local
+
+#landing page
+/landing-page/.pnp
+/landing-page.pnp.js
+/landing-page.yarn/install-state.gz
+/landing-page/coverage
+/landing-page/.next/
+/landing-page/out/
+/landing-page/build
+landing-page/npm-debug.log*
+landing-page/yarn-debug.log*
+landing-page/yarn-error.log*
+landing-page/.env*.local
+landing-page/.vercel
+landing-page/*.tsbuildinfo
+landing-page/next-env.d.ts
