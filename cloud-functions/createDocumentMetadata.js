@@ -42,6 +42,7 @@ async function addDocumentToBatch(docId, organization) {
             batchId: newBatchDoc.id,
             batchName: "Batch",
             documentCount: 0,
+            documentIndex: 0,
             documents: [],
             isCheckedOut: false,
             isFinished: false,
@@ -116,16 +117,16 @@ module.exports = async function createDocumentMetadata(cloudEvent) {
         : null;
 
     const fileMetadata = {
-      timeCreated: Timestamp.fromDate(new Date(file.timeCreated)),
       filename: fileName,
-      updated: null,
-      reviewed: false,
       organization: organization,
+      reviewed: false,
+      timeCreated: Timestamp.fromDate(new Date(file.timeCreated)),
+      updated: null,
     };
 
     const docRef = firestore.collection("documents").doc();
-    await docRef.set(fileMetadata);
     generatedDocId = docRef.id;
+    await docRef.set({ id: generatedDocId, ...fileMetadata });
 
     await addDocumentToBatch(generatedDocId, organization);
   } catch (error) {
