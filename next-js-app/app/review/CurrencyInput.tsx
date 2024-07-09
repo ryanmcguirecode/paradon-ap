@@ -4,7 +4,7 @@ import { Input, InputProps } from "@mui/joy";
 
 export const currencyToNumber: (currency: any) => number = (currency) => {
   if (!currency) {
-    return 0;
+    return currency;
   }
   return currency.value;
 };

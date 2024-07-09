@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { PDFDocument } from "pdf-lib";
-import { Timestamp } from "firebase/firestore";
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -89,6 +88,7 @@ export default function ReviewPage() {
       }
 
       const documents = await documentsResponse.json();
+      console.log(documents);
       setDocuments(documents);
       setDocumentsFetched(true);
     };
@@ -279,42 +279,54 @@ export default function ReviewPage() {
       return;
     }
 
-    if (documents[documentIndex]) {
-      const newInputValues = {};
-      documentConfigs[documentType].fields.forEach((field) => {
-        let defaultValue = null;
-        const detectedField =
-          documents[documentIndex].fields?.[field.id] ||
-          documents[documentIndex].detectedFields[field.modelField]?.value;
+    const newInputValues = {};
+    documentConfigs[documentType].fields.forEach((field) => {
+      let defaultValue: any;
+      const detectedField =
+        documents[documentIndex].fields?.[field.id] ||
+        documents[documentIndex].detectedFields[field.modelField]?.value ||
+        "";
 
-        if (detectedField) {
-          if (field.kind === "currency") {
-            defaultValue = currencyToNumber(detectedField);
-          } else if (field.kind === "date") {
-            defaultValue = dateToIsoString(detectedField);
-          } else {
-            defaultValue = detectedField;
-          }
-        }
-        newInputValues[field.id] = defaultValue;
-      });
-      setInputValues(newInputValues);
-    }
+      if (field.kind === "currency") {
+        defaultValue = currencyToNumber(detectedField);
+      } else if (field.kind === "date") {
+        defaultValue = dateToIsoString(detectedField);
+      } else {
+        defaultValue = detectedField;
+      }
+      newInputValues[field.id] = defaultValue;
+    });
+    setInputValues(newInputValues);
   }, [documentsFetched, documentConfigs, documentIndex, documentType]);
 
   function saveDocumentValues() {
-    setDocuments(
-      documents.map((document, index) => {
-        if (index === documentIndex) {
-          return {
-            ...document,
-            fields: { ...inputValues },
-          };
-        }
-        return document;
-      })
-    );
-    setDocumentIndex(documentIndex + 1);
+    const newDocument = {
+      ...documents[documentIndex],
+      fields: { ...inputValues },
+    };
+    const newDocumentIndex = documentIndex + 1;
+
+    const newDocuments = documents.map((document, index) => {
+      if (index === documentIndex) {
+        return newDocument;
+      }
+      return document;
+    });
+
+    setDocuments(newDocuments);
+    setDocumentIndex(newDocumentIndex);
+    fetch("/api/save-batch-progress", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        batch: batchId,
+        documentIndex: newDocumentIndex,
+        document: newDocument,
+        organization: organization,
+      }),
+    });
   }
 
   return (
@@ -363,7 +375,6 @@ export default function ReviewPage() {
                 color="danger"
                 onClick={() => {
                   setDocumentIndex(documentIndex + 1);
-                  console.log(documents);
                 }}
                 disabled={documentIndex === documents.length - 1}
                 sx={{ paddingLeft: "30px", paddingRight: "30px" }}

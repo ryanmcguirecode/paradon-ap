@@ -3,7 +3,7 @@ import { Input, InputProps } from "@mui/joy";
 
 export const dateToIsoString: (date: any) => string = (date) => {
   if (!date || !(date._seconds || date._nanoseconds)) {
-    return "";
+    return date;
   }
 
   return new Timestamp(date._seconds, date._nanoseconds)
