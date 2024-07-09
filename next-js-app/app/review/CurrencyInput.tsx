@@ -2,6 +2,13 @@ import { forwardRef, useState, useEffect } from "react";
 import { NumericFormat, NumericFormatProps } from "react-number-format";
 import { Input, InputProps } from "@mui/joy";
 
+export const currencyToNumber: (currency: any) => number = (currency) => {
+  if (!currency) {
+    return 0;
+  }
+  return currency.value;
+};
+
 interface CurrencyFormatProps {
   onChange: (event: { target: { name: string; value: string } }) => void;
   name: string;
