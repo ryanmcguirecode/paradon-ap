@@ -284,6 +284,7 @@ export default function ReviewPage() {
       documentConfigs[documentType].fields.forEach((field) => {
         let defaultValue = null;
         const detectedField =
+          documents[documentIndex].fields?.[field.id] ||
           documents[documentIndex].detectedFields[field.modelField]?.value;
 
         if (detectedField) {
@@ -300,6 +301,21 @@ export default function ReviewPage() {
       setInputValues(newInputValues);
     }
   }, [documentsFetched, documentConfigs, documentIndex, documentType]);
+
+  function saveDocumentValues() {
+    setDocuments(
+      documents.map((document, index) => {
+        if (index === documentIndex) {
+          return {
+            ...document,
+            fields: { ...inputValues },
+          };
+        }
+        return document;
+      })
+    );
+    setDocumentIndex(documentIndex + 1);
+  }
 
   return (
     <NavigationLayout disabled={true}>
@@ -345,7 +361,10 @@ export default function ReviewPage() {
               <Button
                 size="sm"
                 color="danger"
-                onClick={() => setDocumentIndex(documentIndex + 1)}
+                onClick={() => {
+                  setDocumentIndex(documentIndex + 1);
+                  console.log(documents);
+                }}
                 disabled={documentIndex === documents.length - 1}
                 sx={{ paddingLeft: "30px", paddingRight: "30px" }}
               >
@@ -353,9 +372,7 @@ export default function ReviewPage() {
               </Button>
               <Button
                 size="sm"
-                onClick={() => {
-                  setDocumentIndex(documentIndex + 1);
-                }}
+                onClick={saveDocumentValues}
                 disabled={documentIndex === documents.length - 1}
                 sx={{ paddingLeft: "30px", paddingRight: "30px" }}
               >
