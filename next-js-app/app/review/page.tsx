@@ -88,7 +88,6 @@ export default function ReviewPage() {
       }
 
       const documents = await documentsResponse.json();
-      console.log(documents);
       setDocuments(documents);
       setDocumentsFetched(true);
     };
@@ -299,13 +298,12 @@ export default function ReviewPage() {
     setInputValues(newInputValues);
   }, [documentsFetched, documentConfigs, documentIndex, documentType]);
 
-  function saveDocumentValues() {
+  async function saveDocumentValues(submit: boolean) {
     const newDocument = {
       ...documents[documentIndex],
       fields: { ...inputValues },
     };
-    const newDocumentIndex = documentIndex + 1;
-
+    const newDocumentIndex = submit ? documentIndex : documentIndex + 1;
     const newDocuments = documents.map((document, index) => {
       if (index === documentIndex) {
         return newDocument;
@@ -315,7 +313,7 @@ export default function ReviewPage() {
 
     setDocuments(newDocuments);
     setDocumentIndex(newDocumentIndex);
-    fetch("/api/save-batch-progress", {
+    await fetch("/api/save-batch-progress", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -327,6 +325,21 @@ export default function ReviewPage() {
         organization: organization,
       }),
     });
+
+    if (submit) {
+      await fetch("/api/submit-batch", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          batch: batchId,
+          organization: organization,
+        }),
+      }).then(() => {
+        router.push("/batches");
+      });
+    }
   }
 
   return (
@@ -381,14 +394,24 @@ export default function ReviewPage() {
               >
                 Kick Out
               </Button>
-              <Button
-                size="sm"
-                onClick={saveDocumentValues}
-                disabled={documentIndex === documents.length - 1}
-                sx={{ paddingLeft: "30px", paddingRight: "30px" }}
-              >
-                Verify
-              </Button>
+              {documentIndex === documents.length - 1 ? (
+                <Button
+                  size="sm"
+                  color="success"
+                  onClick={() => saveDocumentValues(true)}
+                  sx={{ paddingLeft: "30px", paddingRight: "30px" }}
+                >
+                  Submit
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={() => saveDocumentValues(false)}
+                  sx={{ paddingLeft: "30px", paddingRight: "30px" }}
+                >
+                  Verify
+                </Button>
+              )}
             </Box>
           </Box>
         </Box>
