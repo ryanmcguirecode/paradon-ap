@@ -15,6 +15,7 @@ interface Field {
 
 export default interface Document {
   filename: string;
+  id: string;
   organization: string;
   reviewed: boolean;
   timeCreated: string;

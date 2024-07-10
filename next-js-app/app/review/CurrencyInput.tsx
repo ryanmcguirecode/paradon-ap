@@ -2,6 +2,15 @@ import { forwardRef, useState, useEffect } from "react";
 import { NumericFormat, NumericFormatProps } from "react-number-format";
 import { Input, InputProps } from "@mui/joy";
 
+export const currencyToNumber: (currency: any) => number = (currency) => {
+  if (!currency) {
+    return currency;
+  } else if (typeof currency === "number") {
+    return currency;
+  }
+  return currency.amount;
+};
+
 interface CurrencyFormatProps {
   onChange: (event: { target: { name: string; value: string } }) => void;
   name: string;
@@ -34,25 +43,14 @@ const CurrencyFormatAdapter = forwardRef<
 });
 
 export default function CurrencyInput(props: InputProps) {
-  const [value, setValue] = useState(props.defaultValue || 0);
-
-  useEffect(() => {
-    setValue(props.defaultValue || 0);
-  }, [props.defaultValue]);
-
   return (
     <Input
       {...props}
       slotProps={{
         input: {
           component: CurrencyFormatAdapter,
-          value: value,
-          onChange: (event) => {
-            setValue(event.target.value);
-            if (props.onChange) {
-              props.onChange(event);
-            }
-          },
+          value: props.value,
+          onChange: props.onChange,
         },
       }}
     />

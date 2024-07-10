@@ -2,7 +2,6 @@
 
 import { act, useEffect, useState } from "react";
 import { PDFDocument } from "pdf-lib";
-import { Timestamp } from "firebase/firestore";
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -27,8 +26,8 @@ import NavigationLayout from "@/components/NavigationLayout";
 import Document from "@/types/Document";
 import { DocumentConfig } from "@/types/DocumentConfig";
 
-import CurrencyInput from "./CurrencyInput";
-import DateInput from "./DateInput";
+import CurrencyInput, { currencyToNumber } from "./CurrencyInput";
+import DateInput, { dateToIsoString } from "./DateInput";
 import InputStyle from "./InputStyle";
 import renderAnnotations from "@/utils/renderAnnotations";
 
@@ -49,6 +48,8 @@ export default function ReviewPage() {
   const [documentConfigs, setDocumentConfigs] = useState<{
     [key: string]: DocumentConfig;
   }>({});
+
+  const [inputValues, setInputValues] = useState<{ [key: string]: any }>({});
 
   const [activeField, setActiveField] = useState("");
 
@@ -90,11 +91,10 @@ export default function ReviewPage() {
 
       const documents = await documentsResponse.json();
       setDocuments(documents);
+      setDocumentsFetched(true);
     };
 
-    acquireBatch(batchId || "").then(() =>
-      fetchDocuments().then(() => setDocumentsFetched(true))
-    );
+    acquireBatch(batchId || "").then(() => fetchDocuments());
   }, [loading]);
 
   // Heartbeat to database that the user is still using the batch every 30s
@@ -208,7 +208,7 @@ export default function ReviewPage() {
 
   // Fetch PDF and render annotations
   useEffect(() => {
-    if (!documentsFetched || !documents.length || !documentConfigs) {
+    if (!documentsFetched || !documentConfigs) {
       return;
     }
 
@@ -239,10 +239,14 @@ export default function ReviewPage() {
 
     fetchPdf();
     setPageNum(1);
-  }, [documentsFetched, documents, documentIndex, documentConfigs]);
+  }, [documentsFetched, documentIndex, documentConfigs]);
 
   // Jump to page to find specific field
   useEffect(() => {
+    if (loading) {
+      return;
+    }
+
     const jumpToPage = async () => {
       try {
         const response = await fetch(
@@ -269,6 +273,76 @@ export default function ReviewPage() {
     };
     jumpToPage();
   }, [pageNum]);
+
+  // Reset input values when document or document type changes
+  useEffect(() => {
+    if (!documentsFetched || !documentConfigs) {
+      return;
+    }
+
+    const newInputValues = {};
+    documentConfigs[documentType].fields.forEach((field) => {
+      let defaultValue: any;
+      const detectedField =
+        documents[documentIndex].fields?.[field.id] ||
+        documents[documentIndex].detectedFields[field.modelField]?.value ||
+        "";
+
+      if (field.kind === "currency") {
+        defaultValue = currencyToNumber(detectedField);
+      } else if (field.kind === "date") {
+        defaultValue = dateToIsoString(detectedField);
+      } else {
+        defaultValue = detectedField;
+      }
+      newInputValues[field.id] = defaultValue;
+    });
+    setInputValues(newInputValues);
+  }, [documentsFetched, documentConfigs, documentIndex, documentType]);
+
+  async function saveDocumentValues(submit: boolean) {
+    const newDocument = {
+      ...documents[documentIndex],
+      fields: { ...inputValues },
+    };
+    const newDocumentIndex = submit ? documentIndex : documentIndex + 1;
+    const newDocuments = documents.map((document, index) => {
+      if (index === documentIndex) {
+        return newDocument;
+      }
+      return document;
+    });
+
+    setDocuments(newDocuments);
+    setDocumentIndex(newDocumentIndex);
+    await fetch("/api/save-batch-progress", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        batch: batchId,
+        documentIndex: newDocumentIndex,
+        document: newDocument,
+        organization: organization,
+      }),
+    });
+
+    if (submit) {
+      await fetch("/api/submit-batch", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          batch: batchId,
+          organization: organization,
+        }),
+      }).then(() => {
+        router.push("/batches");
+      });
+    }
+  }
 
   return (
     <NavigationLayout disabled={true}>
@@ -314,20 +388,32 @@ export default function ReviewPage() {
               <Button
                 size="sm"
                 color="danger"
-                onClick={() => setDocumentIndex(documentIndex + 1)}
+                onClick={() => {
+                  setDocumentIndex(documentIndex + 1);
+                }}
                 disabled={documentIndex === documents.length - 1}
                 sx={{ paddingLeft: "30px", paddingRight: "30px" }}
               >
                 Kick Out
               </Button>
-              <Button
-                size="sm"
-                onClick={() => setDocumentIndex(documentIndex + 1)}
-                disabled={documentIndex === documents.length - 1}
-                sx={{ paddingLeft: "30px", paddingRight: "30px" }}
-              >
-                Verify
-              </Button>
+              {documentIndex === documents.length - 1 ? (
+                <Button
+                  size="sm"
+                  color="success"
+                  onClick={() => saveDocumentValues(true)}
+                  sx={{ paddingLeft: "30px", paddingRight: "30px" }}
+                >
+                  Submit
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={() => saveDocumentValues(false)}
+                  sx={{ paddingLeft: "30px", paddingRight: "30px" }}
+                >
+                  Verify
+                </Button>
+              )}
             </Box>
           </Box>
         </Box>
@@ -354,13 +440,15 @@ export default function ReviewPage() {
               <FormControl>
                 <Select
                   size="lg"
-                  defaultValue={"Invoice / Debit Memo"}
+                  defaultValue={"Invoice / Debit Memo"} // TODO: Change to first document type
                   startDecorator={<AssignmentOutlinedIcon />}
                   onChange={(event, newValue: string | null) => {
                     setDocumentType(newValue);
                   }}
                   renderValue={(value) => (
-                    <Typography level="title-lg">{value.label}</Typography>
+                    <Typography level="title-lg" color="neutral">
+                      {value.label}
+                    </Typography>
                   )}
                 >
                   {Object.values(documentConfigs).map((documentType) => (
@@ -368,7 +456,7 @@ export default function ReviewPage() {
                       key={documentType.id}
                       value={documentType.displayName}
                     >
-                      <Typography level="body-lg">
+                      <Typography level="body-lg" color="neutral">
                         {documentType.displayName}
                       </Typography>
                     </Option>
@@ -385,134 +473,124 @@ export default function ReviewPage() {
               width: "calc(100% - 10px)",
             }}
           />
-          {documentConfigs[documentType] && (
-            <Sheet sx={{ paddingX: "5px", overflow: "scroll" }}>
-              {organization &&
-                documentConfigs[documentType].fields.map((field, index) => {
-                  let defaultValue = undefined;
-                  if (
-                    documents[documentIndex] &&
-                    documents[documentIndex]["detectedFields"][
-                      field.modelField
-                    ] &&
-                    documents.length > 0
-                  ) {
-                    defaultValue =
-                      documents[documentIndex]["detectedFields"][
-                        field.modelField
-                      ].value;
-                  }
-                  return (
-                    <div key={index}>
-                      {field.displayName && (
-                        <Box
+          {documentConfigs[documentType] && documentsFetched && organization ? (
+            <Sheet sx={{ padding: "5px", overflow: "scroll" }}>
+              {documentConfigs[documentType].fields.map((field, index) => {
+                const handleInputChange = (
+                  fieldId: string,
+                  value: string | number
+                ) => {
+                  setInputValues({
+                    ...inputValues,
+                    [fieldId]: value,
+                  });
+                };
+
+                return (
+                  <div key={index}>
+                    {field.displayName && (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          paddingLeft: "10px",
+                          paddingRight: "10px",
+                          height: "28px",
+                          marginBottom: "5px",
+
+                          backgroundColor:
+                            activeField == field.id
+                              ? `rgb(${field.color.join(",")})`
+                              : "transparent",
+                        }}
+                      >
+                        <Typography level="title-md">
+                          {field.displayName}
+                        </Typography>
+                        <IconButton
+                          tabIndex={-1}
                           sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            height: "28px",
-                            marginBottom: "5px",
-                            borderRadius: "5px",
-                            backgroundColor:
-                              activeField == field.id
-                                ? `rgb(${field.color.join(",")})`
-                                : "transparent",
+                            "--IconButton-size": "20px",
+                            transition: "background-color 0.3s ease",
+                            backgroundColor: `rgb(${field.color.join(",")})`,
+                            ":hover": {
+                              backgroundColor: "rgba(0, 0, 0, 0.1)", // adjust this value to change the hover color
+                            },
+                          }}
+                          onClick={() => {
+                            const targetField =
+                              documents[documentIndex].detectedFields[
+                                field.modelField
+                              ];
+                            if (targetField && targetField.page) {
+                              setPageNum(targetField.page);
+                            }
                           }}
                         >
-                          <Typography
-                            level="title-sm"
-                            sx={{
-                              paddingLeft: "10px",
-                              paddingRight: "10px",
-                              height: "20px",
-                            }}
-                          >
-                            {field.displayName}
-                          </Typography>
-                          <Box
-                            sx={{
-                              borderRadius: "5px",
-                              marginBottom: "-10px",
-                            }}
-                          >
-                            <IconButton
-                              tabIndex={-1}
-                              sx={{
-                                "--IconButton-size": "20px",
-                                transition: "background-color 0.3s ease",
-                                backgroundColor: `rgb(${field.color.join(
-                                  ","
-                                )})`,
-                                ":hover": {
-                                  backgroundColor: "rgba(0, 0, 0, 0.1)", // adjust this value to change the hover color
-                                },
-                              }}
-                              onClick={() => {
-                                const targetField =
-                                  documents[documentIndex]["detectedFields"][
-                                    field.modelField
-                                  ];
-                                if (targetField && targetField.page) {
-                                  setPageNum(targetField.page);
-                                }
-                              }}
-                            >
-                              <SearchIcon />
-                            </IconButton>
-                          </Box>
-                        </Box>
-                      )}
-                      {field.kind === "currency" ? (
-                        <CurrencyInput
-                          {...InputStyle}
-                          onFocus={() => {
-                            setActiveField(field.id);
-                          }}
-                          defaultValue={
-                            defaultValue ? defaultValue.amount : null
-                          }
-                        />
-                      ) : field.kind === "date" ? (
-                        <DateInput
-                          {...InputStyle}
-                          onFocus={() => {
-                            setActiveField(field.id);
-                          }}
-                          defaultValue={
-                            defaultValue
-                              ? new Timestamp(
-                                  defaultValue._seconds,
-                                  defaultValue._nanoseconds
-                                )
-                                  .toDate()
-                                  .toISOString()
-                                  .slice(0, 10)
-                              : null
-                          }
-                        />
-                      ) : field.kind === "number" ? (
-                        <Input
-                          onFocus={() => {
-                            setActiveField(field.id);
-                          }}
-                          {...InputStyle}
-                          defaultValue={defaultValue}
-                          type="number"
-                        ></Input>
-                      ) : (
-                        <Input
-                          onFocus={() => {
-                            setActiveField(field.id);
-                          }}
-                          {...InputStyle}
-                          defaultValue={defaultValue}
-                        ></Input>
-                      )}
-                    </div>
-                  );
-                })}
+                          <SearchIcon />
+                        </IconButton>
+                      </Box>
+                    )}
+                    {field.kind === "currency" ? (
+                      <CurrencyInput
+                        {...InputStyle}
+                        value={inputValues[field.id]}
+                        onChange={(
+                          event: React.ChangeEvent<HTMLInputElement>
+                        ) => {
+                          handleInputChange(field.id, event.target.value);
+                        }}
+                        onFocus={() => {
+                          setActiveField(field.id);
+                        }}
+                      />
+                    ) : field.kind === "date" ? (
+                      <DateInput
+                        {...InputStyle}
+                        value={inputValues[field.id]}
+                        onChange={(
+                          event: React.ChangeEvent<HTMLInputElement>
+                        ) => {
+                          handleInputChange(field.id, event.target.value);
+                        }}
+                        onFocus={() => {
+                          setActiveField(field.id);
+                        }}
+                      />
+                    ) : field.kind === "number" ? (
+                      <Input
+                        {...InputStyle}
+                        value={inputValues[field.id]}
+                        type="number"
+                        onChange={(
+                          event: React.ChangeEvent<HTMLInputElement>
+                        ) => {
+                          handleInputChange(field.id, event.target.value);
+                        }}
+                        onFocus={() => {
+                          setActiveField(field.id);
+                        }}
+                      />
+                    ) : (
+                      <Input
+                        {...InputStyle}
+                        value={inputValues[field.id]}
+                        onChange={(
+                          event: React.ChangeEvent<HTMLInputElement>
+                        ) => {
+                          handleInputChange(field.id, event.target.value);
+                        }}
+                        onFocus={() => {
+                          setActiveField(field.id);
+                        }}
+                      />
+                    )}
+                  </div>
+                );
+              })}
             </Sheet>
-          )}
+          ) : null}
         </Box>
       </Box>
     </NavigationLayout>

@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       }
 
       const batchData = batchDoc.data();
-      if (!batchData.isCheckedOut) {
+      if (!batchData?.isCheckedOut) {
         return NextResponse.json(
           {
             released: false,
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
           { status: 403 }
         );
       }
-      
+
       transaction.update(batchRef, {
         heartbeat: new Date(),
       });
