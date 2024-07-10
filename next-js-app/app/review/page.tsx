@@ -1,6 +1,6 @@
 "use client";
 
-import { act, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { PDFDocument } from "pdf-lib";
 
 import { useRouter } from "next/navigation";
@@ -30,6 +30,8 @@ import CurrencyInput, { currencyToNumber } from "./CurrencyInput";
 import DateInput, { dateToIsoString } from "./DateInput";
 import InputStyle from "./InputStyle";
 import renderAnnotations from "@/utils/renderAnnotations";
+
+// import styles from "./animations.module.css";
 
 export default function ReviewPage() {
   const router = useRouter();
@@ -498,11 +500,22 @@ export default function ReviewPage() {
                           paddingRight: "10px",
                           height: "28px",
                           marginBottom: "5px",
-
                           backgroundColor:
                             activeField == field.id
                               ? `rgb(${field.color.join(",")})`
                               : "transparent",
+                          animation:
+                            activeField == field.id
+                              ? `fillFromRight 1s forwards`
+                              : "none",
+                          "@keyframes fillFromRight": {
+                            "0%": {
+                              backgroundColor: "transparent",
+                            },
+                            "100%": {
+                              backgroundColor: `rgb(${field.color.join(",")})`,
+                            },
+                          },
                         }}
                       >
                         <Typography level="title-md">
