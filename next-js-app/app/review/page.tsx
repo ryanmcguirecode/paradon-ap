@@ -45,6 +45,7 @@ export default function ReviewPage() {
   const [documentIndex, setDocumentIndex] = useState<number>(0);
   const [pdfUrl, setPdfUrl] = useState<string>("");
   const [pageNum, setPageNum] = useState<number>(1);
+  const [numPages, setNumPages] = useState<number>(0);
 
   const [documentType, setDocumentType] = useState<string>();
   const [documentConfigs, setDocumentConfigs] = useState<{
@@ -225,6 +226,7 @@ export default function ReviewPage() {
 
         const arrayBuffer = await response.arrayBuffer();
         const pdfDoc = await PDFDocument.load(arrayBuffer);
+        setNumPages(pdfDoc.getPages().length);
         renderAnnotations(
           pdfDoc,
           documents[documentIndex],
@@ -488,6 +490,11 @@ export default function ReviewPage() {
                   });
                 };
 
+                const searchable =
+                  field.modelField &&
+                  documents[documentIndex].detectedFields?.[field.modelField] &&
+                  numPages > 1;
+
                 return (
                   <div key={index}>
                     {field.displayName && (
@@ -517,28 +524,41 @@ export default function ReviewPage() {
                         <Typography level="title-md">
                           {field.displayName}
                         </Typography>
-                        <IconButton
-                          tabIndex={-1}
-                          sx={{
-                            "--IconButton-size": "20px",
-                            transition: "background-color 0.3s ease",
-                            backgroundColor: `rgb(${field.color.join(",")})`,
-                            ":hover": {
-                              backgroundColor: "rgba(0, 0, 0, 0.1)", // adjust this value to change the hover color
-                            },
-                          }}
-                          onClick={() => {
-                            const targetField =
-                              documents[documentIndex].detectedFields[
-                                field.modelField
-                              ];
-                            if (targetField && targetField.page) {
-                              setPageNum(targetField.page);
-                            }
-                          }}
-                        >
-                          <SearchIcon />
-                        </IconButton>
+                        {searchable ? (
+                          <IconButton
+                            tabIndex={-1}
+                            sx={{
+                              "--IconButton-size": "20px",
+                              transition: "background-color 0.3s ease",
+                              backgroundColor: `rgb(${field.color.join(",")})`,
+                              ":hover": {
+                                backgroundColor: `rgba(${field.color.join(
+                                  ","
+                                )}, 0.35)`,
+                              },
+                            }}
+                            onClick={() => {
+                              const targetField =
+                                documents[documentIndex].detectedFields[
+                                  field.modelField
+                                ];
+                              if (targetField && targetField.page) {
+                                setPageNum(targetField.page);
+                              }
+                            }}
+                          >
+                            <SearchIcon />
+                          </IconButton>
+                        ) : (
+                          <Box
+                            sx={{
+                              width: "31px",
+                              height: "24px",
+                              borderRadius: "22%",
+                              backgroundColor: `rgb(${field.color.join(",")})`,
+                            }}
+                          ></Box>
+                        )}
                       </Box>
                     )}
                     {field.kind === "currency" ? (
