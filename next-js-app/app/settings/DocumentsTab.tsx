@@ -23,7 +23,8 @@ import ErrorOutlineOutlinedIcon from "@mui/icons-material/ErrorOutlineOutlined";
 
 import { useAuth } from "@/components/AuthContext";
 import ColorPicker from "@/components/ColorPicker";
-import { azureInvoiceFields, Document, DocumentField } from "@/types/Document";
+import { DocumentConfig as Document, DocumentConfigField as DocumentField } from "@/types/DocumentConfig";
+import { azureInvoiceFields } from "@/types/AzureField";
 
 import {
   displayNameErrorCheck,

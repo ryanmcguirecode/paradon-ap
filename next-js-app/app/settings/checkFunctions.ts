@@ -1,4 +1,4 @@
-import { Document, DocumentField } from "@/types/Document";
+import { DocumentConfig, DocumentConfigField } from "@/types/DocumentConfig";
 
 export function idErrorCheck(value: string, usedValues: string[]) {
   if (!value || value.length === 0) {
@@ -71,7 +71,7 @@ export function fieldColorErrorCheck(value: [number, number, number]) {
   };
 }
 
-export function isEmptyDocument(document: Document) {
+export function isEmptyDocument(document: DocumentConfig) {
   return (
     !document.id &&
     !document.displayName &&
@@ -80,11 +80,11 @@ export function isEmptyDocument(document: Document) {
   );
 }
 
-export function isEmptyField(field: DocumentField) {
+export function isEmptyField(field: DocumentConfigField) {
   return field === null || (!field.id && !field.displayName);
 }
 
-export function isFieldOk(field: DocumentField) {
+export function isFieldOk(field: DocumentConfigField) {
   if (isEmptyField(field)) {
     return true;
   }
@@ -96,7 +96,7 @@ export function isFieldOk(field: DocumentField) {
   return !fieldIdError && !displayNameError && !kindError && !colorError;
 }
 
-export function isDocumentOk(document: Document) {
+export function isDocumentOk(document: DocumentConfig) {
   if (isEmptyDocument(document)) {
     return true;
   }

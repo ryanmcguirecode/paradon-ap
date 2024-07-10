@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { act, useEffect, useState } from "react";
 import { PDFDocument } from "pdf-lib";
 import { Timestamp } from "firebase/firestore";
 
@@ -49,6 +49,8 @@ export default function ReviewPage() {
   const [documentConfigs, setDocumentConfigs] = useState<{
     [key: string]: DocumentConfig;
   }>({});
+
+  const [activeField, setActiveField] = useState("");
 
   // Acquire batch and fetch documents
   useEffect(() => {
@@ -384,7 +386,7 @@ export default function ReviewPage() {
             }}
           />
           {documentConfigs[documentType] && (
-            <Sheet sx={{ padding: "5px", overflow: "scroll" }}>
+            <Sheet sx={{ paddingX: "5px", overflow: "scroll" }}>
               {organization &&
                 documentConfigs[documentType].fields.map((field, index) => {
                   let defaultValue = undefined;
@@ -400,7 +402,6 @@ export default function ReviewPage() {
                         field.modelField
                       ].value;
                   }
-
                   return (
                     <div key={index}>
                       {field.displayName && (
@@ -409,38 +410,64 @@ export default function ReviewPage() {
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "space-between",
-                            paddingLeft: "10px",
-                            paddingRight: "10px",
                             height: "28px",
                             marginBottom: "5px",
-                            backgroundColor: `rgb(${field.color.join(",")})`,
+                            borderRadius: "5px",
+                            backgroundColor:
+                              activeField == field.id
+                                ? `rgb(${field.color.join(",")})`
+                                : "transparent",
                           }}
                         >
-                          <Typography level="title-md">
-                            {field.displayName}
-                          </Typography>
-                          <IconButton
-                            tabIndex={-1}
+                          <Typography
+                            level="title-sm"
                             sx={{
-                              "--IconButton-size": "20px",
-                            }}
-                            onClick={() => {
-                              const targetField =
-                                documents[documentIndex]["detectedFields"][
-                                  field.modelField
-                                ];
-                              if (targetField && targetField.page) {
-                                setPageNum(targetField.page);
-                              }
+                              paddingLeft: "10px",
+                              paddingRight: "10px",
+                              height: "20px",
                             }}
                           >
-                            <SearchIcon />
-                          </IconButton>
+                            {field.displayName}
+                          </Typography>
+                          <Box
+                            sx={{
+                              borderRadius: "5px",
+                              marginBottom: "-10px",
+                            }}
+                          >
+                            <IconButton
+                              tabIndex={-1}
+                              sx={{
+                                "--IconButton-size": "20px",
+                                transition: "background-color 0.3s ease",
+                                backgroundColor: `rgb(${field.color.join(
+                                  ","
+                                )})`,
+                                ":hover": {
+                                  backgroundColor: "rgba(0, 0, 0, 0.1)", // adjust this value to change the hover color
+                                },
+                              }}
+                              onClick={() => {
+                                const targetField =
+                                  documents[documentIndex]["detectedFields"][
+                                    field.modelField
+                                  ];
+                                if (targetField && targetField.page) {
+                                  setPageNum(targetField.page);
+                                }
+                              }}
+                            >
+                              <SearchIcon />
+                            </IconButton>
+                          </Box>
                         </Box>
                       )}
                       {field.kind === "currency" ? (
                         <CurrencyInput
                           {...InputStyle}
+                          onFocus={() => {
+                            setActiveField(field.id);
+                          }}
                           defaultValue={
                             defaultValue ? defaultValue.amount : null
                           }
@@ -448,6 +475,9 @@ export default function ReviewPage() {
                       ) : field.kind === "date" ? (
                         <DateInput
                           {...InputStyle}
+                          onFocus={() => {
+                            setActiveField(field.id);
+                          }}
                           defaultValue={
                             defaultValue
                               ? new Timestamp(
@@ -462,12 +492,18 @@ export default function ReviewPage() {
                         />
                       ) : field.kind === "number" ? (
                         <Input
+                          onFocus={() => {
+                            setActiveField(field.id);
+                          }}
                           {...InputStyle}
                           defaultValue={defaultValue}
                           type="number"
                         ></Input>
                       ) : (
                         <Input
+                          onFocus={() => {
+                            setActiveField(field.id);
+                          }}
                           {...InputStyle}
                           defaultValue={defaultValue}
                         ></Input>
