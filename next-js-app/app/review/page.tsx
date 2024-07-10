@@ -500,22 +500,18 @@ export default function ReviewPage() {
                           paddingRight: "10px",
                           height: "28px",
                           marginBottom: "5px",
-                          backgroundColor:
+                          background:
                             activeField == field.id
-                              ? `rgb(${field.color.join(",")})`
-                              : "transparent",
-                          animation:
+                              ? `linear-gradient(to left, rgb(${field.color.join(
+                                  ","
+                                )}) 50%, transparent 50%)`
+                              : `linear-gradient(to left, transparent 50%, transparent 50%)`,
+                          backgroundSize: "200% 100%",
+                          backgroundPosition:
                             activeField == field.id
-                              ? `fillFromRight 1s forwards`
-                              : "none",
-                          "@keyframes fillFromRight": {
-                            "0%": {
-                              backgroundColor: "transparent",
-                            },
-                            "100%": {
-                              backgroundColor: `rgb(${field.color.join(",")})`,
-                            },
-                          },
+                              ? "right bottom"
+                              : "left bottom",
+                          transition: "background-position 0.25s ease-out",
                         }}
                       >
                         <Typography level="title-md">

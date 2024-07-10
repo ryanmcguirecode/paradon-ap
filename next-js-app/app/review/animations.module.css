@@ -1,8 +1,0 @@
-@keyframes fillFromRight {
-  from {
-    background-color: transparent;
-  }
-  to {
-    background-color: rgb(var(--field-color));
-  }
-}
