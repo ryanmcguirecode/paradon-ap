@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PDFDocument } from "pdf-lib";
+import PdfViewer from "@/components/PdfViewer";
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -31,8 +31,6 @@ import DateInput, { dateToIsoString } from "./DateInput";
 import InputStyle from "./InputStyle";
 import renderAnnotations from "@/utils/renderAnnotations";
 
-// import styles from "./animations.module.css";
-
 export default function ReviewPage() {
   const router = useRouter();
   const { user, organization, loading } = useAuth();
@@ -44,6 +42,7 @@ export default function ReviewPage() {
   const [documentsFetched, setDocumentsFetched] = useState(false);
   const [documentIndex, setDocumentIndex] = useState<number>(0);
   const [pdfUrl, setPdfUrl] = useState<string>("");
+  const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
   const [pageNum, setPageNum] = useState<number>(1);
   const [numPages, setNumPages] = useState<number>(0);
 
@@ -225,17 +224,18 @@ export default function ReviewPage() {
         }
 
         const arrayBuffer = await response.arrayBuffer();
-        const pdfDoc = await PDFDocument.load(arrayBuffer);
-        setNumPages(pdfDoc.getPages().length);
-        renderAnnotations(
-          pdfDoc,
-          documents[documentIndex],
-          documentConfigs[documentType].fields
-        );
-        const pdfBytes = await pdfDoc.save();
-        const annotatedBlob = new Blob([pdfBytes], { type: "application/pdf" });
-        const annotatedUrl = URL.createObjectURL(annotatedBlob);
-        setPdfUrl(annotatedUrl);
+        setPdfData(arrayBuffer);
+        // const pdfDoc = await PDFDocument.load(arrayBuffer);
+        // setNumPages(pdfDoc.getPages().length);
+        // renderAnnotations(
+        //   pdfDoc,
+        //   documents[documentIndex],
+        //   documentConfigs[documentType].fields
+        // );
+        // const pdfBytes = await pdfDoc.save();
+        // const annotatedBlob = new Blob([pdfBytes], { type: "application/pdf" });
+        // const annotatedUrl = URL.createObjectURL(annotatedBlob);
+        // setPdfUrl(annotatedUrl);
       } catch (error) {
         console.error("Error fetching PDF:", error);
       }
@@ -246,37 +246,37 @@ export default function ReviewPage() {
   }, [documentsFetched, documentIndex, documentConfigs]);
 
   // Jump to page to find specific field
-  useEffect(() => {
-    if (loading) {
-      return;
-    }
+  // useEffect(() => {
+  //   if (loading) {
+  //     return;
+  //   }
 
-    const jumpToPage = async () => {
-      try {
-        const response = await fetch(
-          `/api/get-pdf?filename=${documents[documentIndex].filename}`
-        );
-        if (!response.ok) {
-          throw new Error("Failed to fetch PDF");
-        }
+  //   // const jumpToPage = async () => {
+  //   //   try {
+  //   //     const response = await fetch(
+  //   //       `/api/get-pdf?filename=${documents[documentIndex].filename}`
+  //   //     );
+  //   //     if (!response.ok) {
+  //   //       throw new Error("Failed to fetch PDF");
+  //   //     }
 
-        const arrayBuffer = await response.arrayBuffer();
-        const pdfDoc = await PDFDocument.load(arrayBuffer);
-        renderAnnotations(
-          pdfDoc,
-          documents[documentIndex],
-          documentConfigs[documentType].fields
-        );
-        const pdfBytes = await pdfDoc.save();
-        const annotatedBlob = new Blob([pdfBytes], { type: "application/pdf" });
-        const annotatedUrl = URL.createObjectURL(annotatedBlob);
-        setPdfUrl(annotatedUrl + "#page=" + pageNum);
-      } catch (error) {
-        console.error("Error fetching PDF:", error);
-      }
-    };
-    jumpToPage();
-  }, [pageNum]);
+  //   //     const arrayBuffer = await response.arrayBuffer();
+  //   //     const pdfDoc = await PDFDocument.load(arrayBuffer);
+  //   //     renderAnnotations(
+  //   //       pdfDoc,
+  //   //       documents[documentIndex],
+  //   //       documentConfigs[documentType].fields
+  //   //     );
+  //   //     const pdfBytes = await pdfDoc.save();
+  //   //     const annotatedBlob = new Blob([pdfBytes], { type: "application/pdf" });
+  //   //     const annotatedUrl = URL.createObjectURL(annotatedBlob);
+  //   //     setPdfUrl(annotatedUrl + "#page=" + pageNum);
+  //   //   } catch (error) {
+  //   //     console.error("Error fetching PDF:", error);
+  //   //   }
+  //   };
+  //   // jumpToPage();
+  // }, [pageNum]);
 
   // Reset input values when document or document type changes
   useEffect(() => {
@@ -350,30 +350,39 @@ export default function ReviewPage() {
 
   return (
     <NavigationLayout disabled={true}>
-      <Box sx={{ width: "100%", height: "100%", display: "flex" }}>
+      <Box
+        sx={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+        }}
+      >
         <Box
           sx={{
             flex: 3,
-            height: "100%",
             display: "flex",
             flexDirection: "column",
+            height: "100%",
           }}
         >
-          <iframe
-            src={pdfUrl}
-            style={{
-              flex: 1,
-              marginLeft: "10px",
-              marginRight: "10px",
-              marginTop: "10px",
-            }}
-          ></iframe>
+          {pdfData && (
+            <Box
+              sx={{
+                height: "0px",
+                flexGrow: 1,
+                display: "flex",
+              }}
+            >
+              <PdfViewer arrayBuffer={pdfData}></PdfViewer>
+            </Box>
+          )}
           <Box
             sx={{
               display: "flex",
               padding: "10px",
               justifyContent: "space-between",
               alignItems: "center",
+              flex: 0,
             }}
           >
             <Button

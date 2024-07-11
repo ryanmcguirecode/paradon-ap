@@ -2,30 +2,32 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Box, Button, Divider, IconButton, Stack, Typography } from "@mui/joy";
 import AddIcon from "@mui/icons-material/Add";
+import AutoFixNormalIcon from "@mui/icons-material/AutoFixNormal";
+import AutoFixOffIcon from "@mui/icons-material/AutoFixOff";
 import RemoveIcon from "@mui/icons-material/Remove";
 import * as pdfjsLib from "pdfjs-dist/webpack.mjs";
 import RotateRightIcon from "@mui/icons-material/RotateRight";
 import { Input } from "@mui/joy";
 
 const initialAnnotations = [
-  {
-    coordinates: [0.9767, 1.9313, 1.9574, 2.1151],
-    page: 2,
-    value: "PO BOX 961001",
-  },
-  {
-    coordinates: [7.6596, 8.0463, 0.8355, 0.974],
-    page: 4,
-    value: 56683,
-  },
-  {
-    coordinates: [7.5402, 8.1562, 10.1979, 10.3411],
-    page: 3,
-    value: 1676.43,
-  },
+  // {
+  //   coordinates: [0.9767, 1.9313, 1.9574, 2.1151],
+  //   page: 2,
+  //   value: "PO BOX 961001",
+  // },
+  // {
+  //   coordinates: [7.6596, 8.0463, 0.8355, 0.974],
+  //   page: 4,
+  //   value: 56683,
+  // },
+  // {
+  //   coordinates: [7.5402, 8.1562, 10.1979, 10.3411],
+  //   page: 3,
+  //   value: 1676.43,
+  // },
 ];
 
-const PdfViewer = ({ pdfPath }) => {
+const PdfViewer = ({ arrayBuffer }) => {
   const containerRef = useRef(null);
   const [pdfDoc, setPdfDoc] = useState(null);
   const [scale, setScale] = useState(1);
@@ -40,13 +42,13 @@ const PdfViewer = ({ pdfPath }) => {
 
   useEffect(() => {
     const loadPdf = async () => {
-      const pdf = await pdfjsLib.getDocument(pdfPath).promise;
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       setPdfDoc(pdf);
       renderAllPages(pdf, scale, rotation);
     };
 
     loadPdf();
-  }, [pdfPath]);
+  }, [arrayBuffer]);
 
   useEffect(() => {
     if (pdfDoc) {
@@ -266,12 +268,19 @@ const PdfViewer = ({ pdfPath }) => {
   };
 
   return (
-    <Box>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        flexGrow: 1,
+      }}
+    >
       <Stack
         direction="row"
         justifyContent="center"
         alignItems="center"
         spacing={1}
+        flexGrow={0}
         sx={{ padding: "10px", margin: "auto" }}
       >
         <Input
@@ -296,24 +305,27 @@ const PdfViewer = ({ pdfPath }) => {
         <IconButton onClick={handleRotateRight}>
           <RotateRightIcon />
         </IconButton>
-        {/* <Button onClick={toggleAnnotations}>
-          {showAnnotations ? "Hide" : "Show"} Annotations
-        </Button> */}
+        <IconButton onClick={toggleAnnotations}>
+          {showAnnotations ? <AutoFixOffIcon /> : <AutoFixNormalIcon />}
+        </IconButton>
       </Stack>
       <Box
         sx={{
-          backgroundColor: "lightgray",
           display: "flex",
           flexDirection: "column",
+          flexGrow: 1,
+          backgroundColor: "lightgray",
           alignItems: "center",
+          overflow: "hidden",
         }}
       >
         <Box
           ref={containerRef}
           sx={{
-            height: "calc(100vh - 64px)", // Adjust height to leave space for toolbar
-            overflowY: "scroll",
-            overflowX: "hidden",
+            width: "100%",
+            height: "100%", // Ensure the Box takes the full height of its parent
+            overflowY: "auto",
+            overflowX: "auto",
             position: "relative",
           }}
         />
