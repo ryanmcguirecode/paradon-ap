@@ -62,6 +62,55 @@ export function InputProperty({
   );
 }
 
+interface TrueFalsePropertyProps {
+  label: string;
+  value?: boolean;
+  onChange?: (value: boolean) => void;
+  errorFunction?: (value: boolean) => { error: boolean; message: string };
+  disabled?: boolean;
+  indentation?: number;
+}
+
+export function TrueFalseProperty({
+  label,
+  value,
+  onChange = (s) => {},
+  errorFunction = (s) => ({ error: false, message: "" }),
+  disabled = false,
+  indentation = 0,
+}: TrueFalsePropertyProps) {
+  const error = errorFunction(value);
+
+  return (
+    <FormControl
+      error={error.error}
+      sx={{ marginLeft: indentation * 20 + "px" }}
+    >
+      <FormLabel>{label}</FormLabel>
+      <Select
+        disabled={disabled}
+        defaultValue={value}
+        onChange={(e, value) => {
+          onChange(value);
+        }}
+      >
+        <Option key={"true"} value={true}>
+          {"true"}
+        </Option>
+        <Option key={"false"} value={false}>
+          {"false"}
+        </Option>
+      </Select>
+      {error.error && (
+        <FormHelperText>
+          <InfoOutlined />
+          {error.message}
+        </FormHelperText>
+      )}
+    </FormControl>
+  );
+}
+
 interface SelectPropertyProps {
   label: string;
   value?: string;

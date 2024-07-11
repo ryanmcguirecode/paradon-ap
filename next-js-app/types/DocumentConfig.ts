@@ -5,6 +5,7 @@ export interface DocumentConfigField {
   displayName: string;
   kind: "string" | "number" | "date" | "currency";
   color: [number, number, number];
+  required: boolean;
   modelField?: AzureField | null;
 }
 

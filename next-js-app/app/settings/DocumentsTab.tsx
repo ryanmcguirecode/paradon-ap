@@ -9,6 +9,7 @@ import {
   AccordionSummary,
   Box,
   Button,
+  Checkbox,
   CircularProgress,
   Tab,
   tabClasses,
@@ -23,7 +24,10 @@ import ErrorOutlineOutlinedIcon from "@mui/icons-material/ErrorOutlineOutlined";
 
 import { useAuth } from "@/components/AuthContext";
 import ColorPicker from "@/components/ColorPicker";
-import { DocumentConfig as Document, DocumentConfigField as DocumentField } from "@/types/DocumentConfig";
+import {
+  DocumentConfig as Document,
+  DocumentConfigField as DocumentField,
+} from "@/types/DocumentConfig";
 import { azureInvoiceFields } from "@/types/AzureField";
 
 import {
@@ -36,7 +40,11 @@ import {
   isFieldOk,
   isDocumentOk,
 } from "./checkFunctions";
-import { InputProperty, SelectProperty } from "./SettingsInputs";
+import {
+  InputProperty,
+  SelectProperty,
+  TrueFalseProperty,
+} from "./SettingsInputs";
 
 interface FieldPropertyProps {
   field: DocumentField;
@@ -63,7 +71,8 @@ function FieldProperty({
     displayName: string,
     kind: "string" | "number" | "date" | "currency" | null,
     color: [number, number, number],
-    modelField: string | null;
+    modelField: string | null,
+    required: boolean;
 
   if (!field) {
     id = "";
@@ -77,6 +86,7 @@ function FieldProperty({
     kind = field.kind;
     color = field.color;
     modelField = field.modelField || null;
+    required = field.required;
   }
 
   const fieldHasError = !isFieldOk(field);
@@ -161,7 +171,17 @@ function FieldProperty({
             options={["string", "number", "date", "currency"]}
             indentation={indentation + 1}
           />
-
+          <TrueFalseProperty
+            label="Required"
+            value={required}
+            onChange={(value) => {
+              onChange({
+                ...field,
+                required: value,
+              });
+            }}
+            indentation={indentation + 1}
+          />
           <ColorPicker
             initialColor={color}
             onChange={(color) => {

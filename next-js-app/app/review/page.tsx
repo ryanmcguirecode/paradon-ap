@@ -18,6 +18,7 @@ import {
   IconButton,
   FormControl,
   Divider,
+  Alert,
 } from "@mui/joy";
 import SearchIcon from "@mui/icons-material/Search";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
@@ -51,7 +52,6 @@ export default function ReviewPage() {
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [activeField, setActiveField] = useState<string>("");
   const [searchedField, setSearchedField] = useState<string>("");
-  const [numPages, setNumPages] = useState<number>(0);
 
   const [documentType, setDocumentType] = useState<string>();
   const [documentConfigs, setDocumentConfigs] = useState<{
@@ -230,7 +230,6 @@ export default function ReviewPage() {
 
         const arrayBuffer = await response.arrayBuffer();
         const pdfDoc = await PDFDocument.load(arrayBuffer);
-        setNumPages(pdfDoc.getPages().length);
         renderAnnotations(
           pdfDoc,
           documents[documentIndex],
@@ -321,7 +320,22 @@ export default function ReviewPage() {
     setInputValues(newInputValues);
   }, [documentsFetched, documentConfigs, documentIndex, documentType]);
 
-  async function saveDocumentValues(submit: boolean) {
+  function requiredFieldsFilledOut() {
+    if (!documentConfigs || !documentConfigs[documentType] || !inputValues) {
+      return false;
+    }
+    const requiredFields = documentConfigs[documentType].fields
+      .filter((field) => field.required)
+      .map((field) => field.id);
+    for (const field of requiredFields) {
+      if (!inputValues[field]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  async function saveDocumentValues(submit: boolean, requiredFields: string[]) {
     const newDocument = {
       ...documents[documentIndex],
       fields: { ...inputValues },
@@ -424,7 +438,14 @@ export default function ReviewPage() {
                 <Button
                   size="sm"
                   color="success"
-                  onClick={() => saveDocumentValues(true)}
+                  onClick={() =>
+                    saveDocumentValues(
+                      true,
+                      documentConfigs[documentType].fields
+                        .filter((field) => field.required)
+                        .map((field) => field.id)
+                    )
+                  }
                   tabIndex={-1}
                   sx={{ paddingLeft: "30px", paddingRight: "30px" }}
                 >
@@ -433,8 +454,16 @@ export default function ReviewPage() {
               ) : (
                 <Button
                   size="sm"
-                  onClick={() => saveDocumentValues(false)}
+                  onClick={() =>
+                    saveDocumentValues(
+                      false,
+                      documentConfigs[documentType].fields
+                        .filter((field) => field.required)
+                        .map((field) => field.id)
+                    )
+                  }
                   sx={{ paddingLeft: "30px", paddingRight: "30px" }}
+                  disabled={!requiredFieldsFilledOut()} // Remove the arrow function
                 >
                   Verify
                 </Button>
@@ -461,8 +490,8 @@ export default function ReviewPage() {
               alignItems: "center",
             }}
           >
-            {documentConfigs && (
-              <FormControl>
+            <FormControl>
+              {documentConfigs && (
                 <Select
                   size="lg"
                   defaultValue={"Invoice / Debit Memo"} // TODO: Change to first document type
@@ -487,8 +516,8 @@ export default function ReviewPage() {
                     </Option>
                   ))}
                 </Select>
-              </FormControl>
-            )}
+              )}
+            </FormControl>
           </Sheet>
           <Divider
             sx={{
@@ -610,7 +639,7 @@ export default function ReviewPage() {
                           setActiveField(field.id);
                         }}
                         onBlur={() => {
-                          setSearchedField("ç");
+                          setSearchedField("");
                         }}
                         onKeyDown={(event) => {
                           if (event.key === "Enter" && searchable) {
