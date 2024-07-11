@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
-import { Box, Button, IconButton, Stack } from "@mui/joy";
+import { Box, Button, Divider, IconButton, Stack, Typography } from "@mui/joy";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import * as pdfjsLib from "pdfjs-dist/webpack.mjs";
@@ -32,7 +32,11 @@ const PdfViewer = ({ pdfPath }) => {
   const [rotation, setRotation] = useState(0);
   const [annotations] = useState(initialAnnotations);
   const [showAnnotations, setShowAnnotations] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [inputPage, setInputPage] = useState(1);
   const overlayCanvasRefs = useRef([]);
+  const scrollPositionRef = useRef(0);
+  const observerRef = useRef(null);
 
   useEffect(() => {
     const loadPdf = async () => {
@@ -59,8 +63,31 @@ const PdfViewer = ({ pdfPath }) => {
   const renderAllPages = async (pdf, scale, rotation) => {
     if (pdf) {
       const container = containerRef.current;
+      scrollPositionRef.current = container.scrollTop; // Save scroll position
       container.innerHTML = ""; // Clear existing content
       overlayCanvasRefs.current = []; // Clear overlay canvas refs
+
+      const observerOptions = {
+        root: container,
+        threshold: [0.5], // Trigger when 50% of the element is visible
+      };
+
+      if (observerRef.current) {
+        observerRef.current.disconnect(); // Disconnect previous observer if exists
+      }
+
+      observerRef.current = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const pageIndex = parseInt(
+              (entry.target as HTMLElement).dataset.pageIndex,
+              10
+            );
+            setCurrentPage(pageIndex);
+            setInputPage(pageIndex);
+          }
+        });
+      }, observerOptions);
 
       for (let num = 1; num <= pdf.numPages; num++) {
         const page = await pdf.getPage(num);
@@ -69,6 +96,7 @@ const PdfViewer = ({ pdfPath }) => {
         const pageContainer = document.createElement("div");
         pageContainer.style.position = "relative";
         pageContainer.style.marginBottom = "20px";
+        pageContainer.dataset.pageIndex = num.toString();
 
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
@@ -108,7 +136,11 @@ const PdfViewer = ({ pdfPath }) => {
             rotation
           );
         }
+
+        observerRef.current.observe(pageContainer); // Observe the page container
       }
+
+      container.scrollTop = scrollPositionRef.current; // Restore scroll position
     }
   };
 
@@ -220,6 +252,19 @@ const PdfViewer = ({ pdfPath }) => {
     }
   };
 
+  const handlePageChange = (event) => {
+    const newPage = parseInt(event.target.value, 10);
+    if (!isNaN(newPage) && newPage > 0 && newPage <= pdfDoc.numPages) {
+      setCurrentPage(newPage);
+      setInputPage(newPage);
+      const container = containerRef.current;
+      const pageHeight = container.children[0].offsetHeight + 20; // Including margin-bottom
+      container.scrollTop = (newPage - 1) * pageHeight;
+    } else {
+      setInputPage(currentPage); // Reset to current page if input is invalid
+    }
+  };
+
   return (
     <Box>
       <Stack
@@ -229,6 +274,13 @@ const PdfViewer = ({ pdfPath }) => {
         spacing={1}
         sx={{ padding: "10px", margin: "auto" }}
       >
+        <Input
+          value={inputPage}
+          onChange={handlePageChange}
+          sx={{ width: 60, margin: "0 10px" }}
+        />
+        <Typography>/ {pdfDoc?.numPages}</Typography>
+        <Divider orientation="vertical" />
         <IconButton onClick={handleZoomOut}>
           <RemoveIcon />
         </IconButton>
@@ -240,13 +292,13 @@ const PdfViewer = ({ pdfPath }) => {
         <IconButton onClick={handleZoomIn}>
           <AddIcon />
         </IconButton>
-
+        <Divider orientation="vertical" />
         <IconButton onClick={handleRotateRight}>
           <RotateRightIcon />
         </IconButton>
-        <Button onClick={toggleAnnotations}>
+        {/* <Button onClick={toggleAnnotations}>
           {showAnnotations ? "Hide" : "Show"} Annotations
-        </Button>
+        </Button> */}
       </Stack>
       <Box
         sx={{
