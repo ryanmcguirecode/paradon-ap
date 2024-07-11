@@ -1,7 +1,11 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist/webpack.mjs";
-import { Box, Button } from "@mui/material";
+import { Box, Button, IconButton, Toolbar } from "@mui/material";
+import ZoomInIcon from "@mui/icons-material/ZoomIn";
+import ZoomOutIcon from "@mui/icons-material/ZoomOut";
+import RotateLeftIcon from "@mui/icons-material/RotateLeft";
+import RotateRightIcon from "@mui/icons-material/RotateRight";
 
 const initialAnnotations = [
   {
@@ -25,6 +29,7 @@ const PdfViewer = ({ pdfPath }) => {
   const containerRef = useRef(null);
   const [pdfDoc, setPdfDoc] = useState(null);
   const [scale, setScale] = useState(1);
+  const [rotation, setRotation] = useState(0);
   const [annotations] = useState(initialAnnotations);
   const [showAnnotations, setShowAnnotations] = useState(true);
 
@@ -32,20 +37,26 @@ const PdfViewer = ({ pdfPath }) => {
     const loadPdf = async () => {
       const pdf = await pdfjsLib.getDocument(pdfPath).promise;
       setPdfDoc(pdf);
-      renderAllPages(pdf, scale);
+      renderAllPages(pdf, scale, rotation);
     };
 
     loadPdf();
   }, [pdfPath]);
 
-  const renderAllPages = async (pdf, scale) => {
+  useEffect(() => {
+    if (pdfDoc) {
+      renderAllPages(pdfDoc, scale, rotation);
+    }
+  }, [scale, rotation, showAnnotations]);
+
+  const renderAllPages = async (pdf, scale, rotation) => {
     if (pdf) {
       const container = containerRef.current;
       container.innerHTML = ""; // Clear existing content
 
       for (let num = 1; num <= pdf.numPages; num++) {
         const page = await pdf.getPage(num);
-        const viewport = page.getViewport({ scale });
+        const viewport = page.getViewport({ scale, rotation });
 
         const pageContainer = document.createElement("div");
         pageContainer.style.position = "relative";
@@ -82,80 +93,130 @@ const PdfViewer = ({ pdfPath }) => {
             overlayCanvas.getContext("2d"),
             annotations,
             viewport,
-            num
+            num,
+            scale,
+            rotation
           );
         }
       }
     }
   };
 
-  const drawAnnotations = (context, annotations, viewport, pageNum) => {
+  const drawAnnotations = (
+    context,
+    annotations,
+    viewport,
+    pageNum,
+    scale,
+    rotation
+  ) => {
     context.clearRect(0, 0, context.canvas.width, context.canvas.height);
     context.strokeStyle = "rgb(255, 0, 0)";
     context.fillStyle = "rgba(255, 0, 0, 0.5)";
 
+    context.save();
+
     annotations.forEach((annotation) => {
       if (annotation.page === pageNum) {
-        // const [x1, y1, x2, y2] = annotation.coordinates.map(
-        //   (coord) => coord * 72
-        // );
-
-        const x = annotation.coordinates[0];
-        const y = annotation.coordinates[2];
-        const width = annotation.coordinates[1] - x;
-        const height = annotation.coordinates[3] - y;
-
-        // const rect = viewport.convertToViewportRectangle([x1, y1, x2, y2]);
-        // console.log(rect);
-
-        const adjustedRect = [x * 72, y * 72, width * 72, height * 72];
-        console.log(adjustedRect);
-
-        context.fillRect(
-          adjustedRect[0],
-          adjustedRect[1],
-          adjustedRect[2],
-          adjustedRect[3]
+        let [x, y, width, height] = transformCoordinates(
+          annotation.coordinates,
+          viewport,
+          rotation,
+          scale
         );
+
+        context.fillRect(x, y, width, height);
       }
     });
+
+    context.restore();
+  };
+
+  const transformCoordinates = (coords, viewport, rotation, scale) => {
+    const [x1, x2, y1, y2] = coords.map((coord) => coord * 72 * scale); // Convert to points and apply scale
+    let x, y, width, height;
+
+    if (rotation < 0) {
+      rotation += 360;
+    }
+    switch (rotation) {
+      case 90:
+        x = viewport.width - y2;
+        y = x1;
+        width = y2 - y1;
+        height = x2 - x1;
+        break;
+      case 180:
+        x = viewport.width - x2;
+        y = viewport.height - y2;
+        width = x2 - x1;
+        height = y2 - y1;
+        break;
+      case 270:
+        x = y1;
+        y = viewport.height - x2;
+        width = y2 - y1;
+        height = x2 - x1;
+        break;
+      default: // 0 degrees
+        x = x1;
+        y = y1;
+        width = x2 - x1;
+        height = y2 - y1;
+        break;
+    }
+
+    return [x, y, width, height];
   };
 
   const toggleAnnotations = () => {
     setShowAnnotations(!showAnnotations);
-    const container = containerRef.current;
-    const overlayCanvases = container.querySelectorAll("canvas:nth-child(2)");
-    overlayCanvases.forEach((canvas) => {
-      const context = canvas.getContext("2d");
-      if (showAnnotations) {
-        context.clearRect(0, 0, context.canvas.width, context.canvas.height);
-      } else {
-        const pageNum =
-          Array.from(container.children).indexOf(canvas.parentNode) + 1;
-        const viewport = pdfDoc
-          .getPage(pageNum)
-          .then((page) => page.getViewport({ scale }));
-        viewport.then((vp) =>
-          drawAnnotations(context, annotations, vp, pageNum)
-        );
-      }
-    });
+  };
+
+  const handleZoomIn = () => {
+    setScale(scale + 0.1);
+  };
+
+  const handleZoomOut = () => {
+    setScale(scale - 0.1);
+  };
+
+  const handleRotateLeft = () => {
+    setRotation((rotation - 90) % 360);
+  };
+
+  const handleRotateRight = () => {
+    setRotation((rotation + 90) % 360);
   };
 
   return (
     <div>
-      <Button
-        variant="contained"
-        onClick={toggleAnnotations}
-        style={{ marginBottom: "20px" }}
-      >
-        {showAnnotations ? "Hide" : "Show"} Annotations
-      </Button>
+      <Toolbar>
+        <IconButton onClick={handleZoomIn}>
+          <ZoomInIcon />
+        </IconButton>
+        <IconButton onClick={handleZoomOut}>
+          <ZoomOutIcon />
+        </IconButton>
+        <IconButton onClick={handleRotateLeft}>
+          <RotateLeftIcon />
+        </IconButton>
+        <IconButton onClick={handleRotateRight}>
+          <RotateRightIcon />
+        </IconButton>
+        <Button
+          variant="contained"
+          onClick={toggleAnnotations}
+          style={{ marginLeft: "auto" }}
+        >
+          {showAnnotations ? "Hide" : "Show"} Annotations
+        </Button>
+      </Toolbar>
       <Box
         ref={containerRef}
         sx={{
           width: "100%",
-          height: "100vh",
+          height: "calc(100vh - 64px)", // Adjust height to leave space for toolbar
           overflowY: "scroll",
           overflowX: "hidden",
           position: "relative",
