@@ -6,33 +6,23 @@ import AutoFixNormalIcon from "@mui/icons-material/AutoFixNormal";
 import AutoFixOffIcon from "@mui/icons-material/AutoFixOff";
 import RemoveIcon from "@mui/icons-material/Remove";
 import * as pdfjsLib from "pdfjs-dist/webpack.mjs";
-import RotateRightIcon from "@mui/icons-material/RotateRight";
+import Rotate90DegreesCwOutlinedIcon from "@mui/icons-material/Rotate90DegreesCwOutlined";
 import { Input } from "@mui/joy";
+import Document from "@/types/Document";
+import { DocumentConfigField } from "@/types/DocumentConfig";
 
-const initialAnnotations = [
-  // {
-  //   coordinates: [0.9767, 1.9313, 1.9574, 2.1151],
-  //   page: 2,
-  //   value: "PO BOX 961001",
-  // },
-  // {
-  //   coordinates: [7.6596, 8.0463, 0.8355, 0.974],
-  //   page: 4,
-  //   value: 56683,
-  // },
-  // {
-  //   coordinates: [7.5402, 8.1562, 10.1979, 10.3411],
-  //   page: 3,
-  //   value: 1676.43,
-  // },
-];
+interface PdfViewerProps {
+  arrayBuffer: ArrayBuffer | null;
+  doc: Document;
+  fields: DocumentConfigField[];
+}
 
-const PdfViewer = ({ arrayBuffer }) => {
+const PdfViewer = ({ arrayBuffer, doc, fields }: PdfViewerProps) => {
   const containerRef = useRef(null);
   const [pdfDoc, setPdfDoc] = useState(null);
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
-  const [annotations] = useState(initialAnnotations);
+  const [annotations, setAnnotations] = useState([]);
   const [showAnnotations, setShowAnnotations] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [inputPage, setInputPage] = useState(1);
@@ -41,6 +31,9 @@ const PdfViewer = ({ arrayBuffer }) => {
   const observerRef = useRef(null);
 
   useEffect(() => {
+    if (!arrayBuffer) {
+      return;
+    }
     const loadPdf = async () => {
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       setPdfDoc(pdf);
@@ -57,8 +50,32 @@ const PdfViewer = ({ arrayBuffer }) => {
   }, [scale, rotation]);
 
   useEffect(() => {
-    if (overlayCanvasRefs.current.length) {
-      toggleAnnotationsOnOverlay();
+    if (!doc || !fields) {
+      return;
+    }
+    const rectangles = [];
+    for (const field of fields) {
+      if (!field.modelField || !doc.detectedFields[field.modelField]) continue;
+
+      const coordinates = doc.detectedFields[field.modelField].coordinates;
+      const page = doc.detectedFields[field.modelField].page;
+      const color = field.color;
+      if (!coordinates || !page || !color) {
+        continue;
+      }
+
+      rectangles.push({
+        coordinates,
+        page,
+        color,
+      });
+    }
+    setAnnotations(rectangles);
+  }, [doc, fields]);
+
+  useEffect(() => {
+    if (pdfDoc) {
+      renderAnnotations();
     }
   }, [showAnnotations]);
 
@@ -98,6 +115,7 @@ const PdfViewer = ({ arrayBuffer }) => {
         const pageContainer = document.createElement("div");
         pageContainer.style.position = "relative";
         pageContainer.style.marginBottom = "20px";
+        pageContainer.style.paddingTop = num === 1 ? "20px" : "0";
         pageContainer.dataset.pageIndex = num.toString();
 
         const canvas = document.createElement("canvas");
@@ -117,6 +135,7 @@ const PdfViewer = ({ arrayBuffer }) => {
         overlayCanvas.style.position = "absolute";
         overlayCanvas.style.top = "0";
         overlayCanvas.style.left = "0";
+        overlayCanvas.style.paddingTop = num === 1 ? "20px" : "0";
         overlayCanvas.style.pointerEvents = "none"; // Ensure the overlay does not interfere with user interactions
 
         pageContainer.appendChild(canvas);
@@ -150,14 +169,11 @@ const PdfViewer = ({ arrayBuffer }) => {
     context,
     annotations,
     viewport,
-    pageNum,
-    scale,
-    rotation
+    pageNum: number,
+    scale: number,
+    rotation: number
   ) => {
     context.clearRect(0, 0, context.canvas.width, context.canvas.height);
-    context.strokeStyle = "rgb(255, 0, 0)";
-    context.fillStyle = "rgba(255, 0, 0, 0.5)";
-
     context.save();
 
     annotations.forEach((annotation) => {
@@ -168,7 +184,7 @@ const PdfViewer = ({ arrayBuffer }) => {
           rotation,
           scale
         );
-
+        context.fillStyle = `rgba(${annotation.color.join(",")}, 0.35)`;
         context.fillRect(x, y, width, height);
       }
     });
@@ -217,17 +233,21 @@ const PdfViewer = ({ arrayBuffer }) => {
     setShowAnnotations((prev) => !prev);
   };
 
-  const toggleAnnotationsOnOverlay = () => {
+  const renderAnnotations = async () => {
     overlayCanvasRefs.current.forEach((overlayCanvas, index) => {
       const context = overlayCanvas.getContext("2d");
       const pageNum = index + 1;
-      const viewport = pdfDoc
-        .getPage(pageNum)
-        .then((page) => page.getViewport({ scale, rotation }));
-
-      viewport.then((vp) => {
+      pdfDoc.getPage(pageNum).then((page) => {
+        const viewport = page.getViewport({ scale, rotation });
         if (showAnnotations) {
-          drawAnnotations(context, annotations, vp, pageNum, scale, rotation);
+          drawAnnotations(
+            context,
+            annotations,
+            viewport,
+            pageNum,
+            scale,
+            rotation
+          );
         } else {
           context.clearRect(0, 0, context.canvas.width, context.canvas.height);
         }
@@ -273,6 +293,8 @@ const PdfViewer = ({ arrayBuffer }) => {
         display: "flex",
         flexDirection: "column",
         flexGrow: 1,
+        marginLeft: "40px",
+        marginRight: "40px",
       }}
     >
       <Stack
@@ -280,8 +302,11 @@ const PdfViewer = ({ arrayBuffer }) => {
         justifyContent="center"
         alignItems="center"
         spacing={1}
-        flexGrow={0}
-        sx={{ padding: "10px", margin: "auto" }}
+        sx={{
+          paddingTop: "15px",
+          paddingBottom: "18px",
+          margin: "auto",
+        }}
       >
         <Input
           value={inputPage}
@@ -294,16 +319,16 @@ const PdfViewer = ({ arrayBuffer }) => {
           <RemoveIcon />
         </IconButton>
         <Input
-          value={(scale * 100).toFixed(0)}
+          value={(scale * 100).toFixed(0) + "%"}
           onChange={handleScaleChange}
-          sx={{ width: 60, margin: "0 10px" }}
+          sx={{ width: 70, margin: "0 10px" }}
         />
         <IconButton onClick={handleZoomIn}>
           <AddIcon />
         </IconButton>
         <Divider orientation="vertical" />
         <IconButton onClick={handleRotateRight}>
-          <RotateRightIcon />
+          <Rotate90DegreesCwOutlinedIcon />
         </IconButton>
         <IconButton onClick={toggleAnnotations}>
           {showAnnotations ? <AutoFixOffIcon /> : <AutoFixNormalIcon />}
@@ -314,7 +339,7 @@ const PdfViewer = ({ arrayBuffer }) => {
           display: "flex",
           flexDirection: "column",
           flexGrow: 1,
-          backgroundColor: "lightgray",
+          backgroundColor: "rgb(224, 225, 227)",
           alignItems: "center",
           overflow: "hidden",
         }}
@@ -327,6 +352,9 @@ const PdfViewer = ({ arrayBuffer }) => {
             overflowY: "auto",
             overflowX: "auto",
             position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center", // Center the PDFs
           }}
         />
       </Box>

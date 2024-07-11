@@ -41,7 +41,6 @@ export default function ReviewPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [documentsFetched, setDocumentsFetched] = useState(false);
   const [documentIndex, setDocumentIndex] = useState<number>(0);
-  const [pdfUrl, setPdfUrl] = useState<string>("");
   const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
   const [pageNum, setPageNum] = useState<number>(1);
   const [numPages, setNumPages] = useState<number>(0);
@@ -225,6 +224,7 @@ export default function ReviewPage() {
 
         const arrayBuffer = await response.arrayBuffer();
         setPdfData(arrayBuffer);
+
         // const pdfDoc = await PDFDocument.load(arrayBuffer);
         // setNumPages(pdfDoc.getPages().length);
         // renderAnnotations(
@@ -373,7 +373,11 @@ export default function ReviewPage() {
                 display: "flex",
               }}
             >
-              <PdfViewer arrayBuffer={pdfData}></PdfViewer>
+              <PdfViewer
+                arrayBuffer={pdfData}
+                doc={documents[documentIndex]}
+                fields={documentConfigs[documentType].fields}
+              ></PdfViewer>
             </Box>
           )}
           <Box
@@ -487,7 +491,13 @@ export default function ReviewPage() {
             }}
           />
           {documentConfigs[documentType] && documentsFetched && organization ? (
-            <Sheet sx={{ padding: "5px", overflow: "scroll" }}>
+            <Sheet
+              sx={{
+                padding: "5px",
+                overflow: "scroll",
+                backgroundColor: "white",
+              }}
+            >
               {documentConfigs[documentType].fields.map((field, index) => {
                 const handleInputChange = (
                   fieldId: string,
