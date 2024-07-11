@@ -51,9 +51,9 @@ export default function ReviewPage() {
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [activeField, setActiveField] = useState<string>("");
   const [searchedField, setSearchedField] = useState<string>("");
+  const [numPages, setNumPages] = useState<number>(0);
 
   const [documentType, setDocumentType] = useState<string>();
-  const [numFields, setNumFields] = useState<number>(0);
   const [documentConfigs, setDocumentConfigs] = useState<{
     [key: string]: DocumentConfig;
   }>({});
@@ -230,6 +230,7 @@ export default function ReviewPage() {
 
         const arrayBuffer = await response.arrayBuffer();
         const pdfDoc = await PDFDocument.load(arrayBuffer);
+        setNumPages(pdfDoc.getPages().length);
         renderAnnotations(
           pdfDoc,
           documents[documentIndex],
@@ -510,6 +511,11 @@ export default function ReviewPage() {
                   });
                 };
 
+                const searchable =
+                  field.modelField &&
+                  documents[documentIndex].detectedFields?.[field.modelField]
+                    ?.value;
+
                 return (
                   <div key={index}>
                     {field.displayName && (
@@ -540,20 +546,33 @@ export default function ReviewPage() {
                         <Typography level="title-md">
                           {field.displayName}
                         </Typography>
-                        <IconButton
-                          tabIndex={-1}
-                          sx={{
-                            "--IconButton-size": "20px",
-                            transition: "background-color 0.3s ease",
-                            backgroundColor: `rgb(${field.color.join(",")})`,
-                            ":hover": {
-                              backgroundColor: "rgba(0, 0, 0, 0.1)", // adjust this value to change the hover color
-                            },
-                          }}
-                          onClick={() => jumpToField(field)}
-                        >
-                          <SearchIcon />
-                        </IconButton>
+                        {searchable ? (
+                          <IconButton
+                            tabIndex={-1}
+                            sx={{
+                              "--IconButton-size": "20px",
+                              transition: "background-color 0.3s ease",
+                              backgroundColor: `rgb(${field.color.join(",")})`,
+                              ":hover": {
+                                backgroundColor: `rgba(${field.color.join(
+                                  ","
+                                )}, 0.35)`,
+                              },
+                            }}
+                            onClick={() => jumpToField(field)}
+                          >
+                            <SearchIcon />
+                          </IconButton>
+                        ) : (
+                          <Box
+                            sx={{
+                              width: "31px",
+                              height: "24px",
+                              borderRadius: "22%",
+                              backgroundColor: `rgb(${field.color.join(",")})`,
+                            }}
+                          ></Box>
+                        )}
                       </Box>
                     )}
                     {field.kind === "currency" ? (
@@ -572,8 +591,7 @@ export default function ReviewPage() {
                           setSearchedField("");
                         }}
                         onKeyDown={(event) => {
-                          console.log("event.key: ", event.key);
-                          if (event.key === "Enter") {
+                          if (event.key === "Enter" && searchable) {
                             jumpToField(field);
                             setSearchedField(activeField);
                           }
@@ -595,7 +613,7 @@ export default function ReviewPage() {
                           setSearchedField("ç");
                         }}
                         onKeyDown={(event) => {
-                          if (event.key === "Enter") {
+                          if (event.key === "Enter" && searchable) {
                             jumpToField(field);
                             setSearchedField(activeField);
                           }
@@ -618,7 +636,7 @@ export default function ReviewPage() {
                           setSearchedField("");
                         }}
                         onKeyDown={(event) => {
-                          if (event.key === "Enter") {
+                          if (event.key === "Enter" && searchable) {
                             jumpToField(field);
                             setSearchedField(activeField);
                           }
@@ -640,7 +658,7 @@ export default function ReviewPage() {
                           setSearchedField("");
                         }}
                         onKeyDown={(event) => {
-                          if (event.key === "Enter") {
+                          if (event.key === "Enter" && searchable) {
                             jumpToField(field);
                             setSearchedField(activeField);
                           }
