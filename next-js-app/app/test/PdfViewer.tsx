@@ -1,11 +1,11 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
+import { Box, Button, IconButton, Stack } from "@mui/joy";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
 import * as pdfjsLib from "pdfjs-dist/webpack.mjs";
-import { Box, Button, IconButton, Toolbar } from "@mui/material";
-import ZoomInIcon from "@mui/icons-material/ZoomIn";
-import ZoomOutIcon from "@mui/icons-material/ZoomOut";
-import RotateLeftIcon from "@mui/icons-material/RotateLeft";
 import RotateRightIcon from "@mui/icons-material/RotateRight";
+import { Input } from "@mui/joy";
 
 const initialAnnotations = [
   {
@@ -32,6 +32,7 @@ const PdfViewer = ({ pdfPath }) => {
   const [rotation, setRotation] = useState(0);
   const [annotations] = useState(initialAnnotations);
   const [showAnnotations, setShowAnnotations] = useState(true);
+  const overlayCanvasRefs = useRef([]);
 
   useEffect(() => {
     const loadPdf = async () => {
@@ -47,12 +48,19 @@ const PdfViewer = ({ pdfPath }) => {
     if (pdfDoc) {
       renderAllPages(pdfDoc, scale, rotation);
     }
-  }, [scale, rotation, showAnnotations]);
+  }, [scale, rotation]);
+
+  useEffect(() => {
+    if (overlayCanvasRefs.current.length) {
+      toggleAnnotationsOnOverlay();
+    }
+  }, [showAnnotations]);
 
   const renderAllPages = async (pdf, scale, rotation) => {
     if (pdf) {
       const container = containerRef.current;
       container.innerHTML = ""; // Clear existing content
+      overlayCanvasRefs.current = []; // Clear overlay canvas refs
 
       for (let num = 1; num <= pdf.numPages; num++) {
         const page = await pdf.getPage(num);
@@ -87,6 +95,8 @@ const PdfViewer = ({ pdfPath }) => {
 
         const renderTask = page.render(renderContext);
         await renderTask.promise;
+
+        overlayCanvasRefs.current.push(overlayCanvas);
 
         if (showAnnotations) {
           drawAnnotations(
@@ -170,7 +180,25 @@ const PdfViewer = ({ pdfPath }) => {
   };
 
   const toggleAnnotations = () => {
-    setShowAnnotations(!showAnnotations);
+    setShowAnnotations((prev) => !prev);
+  };
+
+  const toggleAnnotationsOnOverlay = () => {
+    overlayCanvasRefs.current.forEach((overlayCanvas, index) => {
+      const context = overlayCanvas.getContext("2d");
+      const pageNum = index + 1;
+      const viewport = pdfDoc
+        .getPage(pageNum)
+        .then((page) => page.getViewport({ scale, rotation }));
+
+      viewport.then((vp) => {
+        if (showAnnotations) {
+          drawAnnotations(context, annotations, vp, pageNum, scale, rotation);
+        } else {
+          context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+        }
+      });
+    });
   };
 
   const handleZoomIn = () => {
@@ -181,48 +209,64 @@ const PdfViewer = ({ pdfPath }) => {
     setScale(scale - 0.1);
   };
 
-  const handleRotateLeft = () => {
-    setRotation((rotation - 90) % 360);
-  };
-
   const handleRotateRight = () => {
     setRotation((rotation + 90) % 360);
   };
 
+  const handleScaleChange = (event) => {
+    const newScale = parseFloat(event.target.value) / 100;
+    if (!isNaN(newScale) && newScale > 0) {
+      setScale(newScale);
+    }
+  };
+
   return (
-    <div>
-      <Toolbar>
-        <IconButton onClick={handleZoomIn}>
-          <ZoomInIcon />
-        </IconButton>
+    <Box>
+      <Stack
+        direction="row"
+        justifyContent="center"
+        alignItems="center"
+        spacing={1}
+        sx={{ padding: "10px", margin: "auto" }}
+      >
         <IconButton onClick={handleZoomOut}>
-          <ZoomOutIcon />
+          <RemoveIcon />
         </IconButton>
-        <IconButton onClick={handleRotateLeft}>
-          <RotateLeftIcon />
+        <Input
+          value={(scale * 100).toFixed(0)}
+          onChange={handleScaleChange}
+          sx={{ width: 60, margin: "0 10px" }}
+        />
+        <IconButton onClick={handleZoomIn}>
+          <AddIcon />
         </IconButton>
+
         <IconButton onClick={handleRotateRight}>
           <RotateRightIcon />
         </IconButton>
-        <Button
-          variant="contained"
-          onClick={toggleAnnotations}
-          style={{ marginLeft: "auto" }}
-        >
+        <Button onClick={toggleAnnotations}>
           {showAnnotations ? "Hide" : "Show"} Annotations
         </Button>
-      </Toolbar>
+      </Stack>
       <Box
-        ref={containerRef}
         sx={{
-          width: "100%",
-          height: "calc(100vh - 64px)", // Adjust height to leave space for toolbar
-          overflowY: "scroll",
-          overflowX: "hidden",
-          position: "relative",
+          backgroundColor: "lightgray",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
         }}
-      />
-    </div>
+      >
+        <Box
+          ref={containerRef}
+          sx={{
+            height: "calc(100vh - 64px)", // Adjust height to leave space for toolbar
+            overflowY: "scroll",
+            overflowX: "hidden",
+            position: "relative",
+          }}
+        />
+      </Box>
+    </Box>
   );
 };
 
