@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { PDFDocument } from "pdf-lib";
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
+import FocusTrap from "focus-trap-react";
 
 import {
   Box,
@@ -24,7 +25,7 @@ import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import { useAuth } from "@/components/AuthContext";
 import NavigationLayout from "@/components/NavigationLayout";
 import Document from "@/types/Document";
-import { DocumentConfig } from "@/types/DocumentConfig";
+import { DocumentConfig, DocumentConfigField } from "@/types/DocumentConfig";
 
 import CurrencyInput, { currencyToNumber } from "./CurrencyInput";
 import DateInput, { dateToIsoString } from "./DateInput";
@@ -44,16 +45,20 @@ export default function ReviewPage() {
   const [documentsFetched, setDocumentsFetched] = useState(false);
   const [documentIndex, setDocumentIndex] = useState<number>(0);
   const [pdfUrl, setPdfUrl] = useState<string>("");
-  const [pageNum, setPageNum] = useState<number>(1);
+
+  // Search state
+  const [YFocus, setYFocus] = useState<number>(1);
+  const [pageNumber, setPageNumber] = useState<number>(1);
+  const [activeField, setActiveField] = useState<string>("");
+  const [searchedField, setSearchedField] = useState<string>("");
 
   const [documentType, setDocumentType] = useState<string>();
+  const [numFields, setNumFields] = useState<number>(0);
   const [documentConfigs, setDocumentConfigs] = useState<{
     [key: string]: DocumentConfig;
   }>({});
 
   const [inputValues, setInputValues] = useState<{ [key: string]: any }>({});
-
-  const [activeField, setActiveField] = useState("");
 
   // Acquire batch and fetch documents
   useEffect(() => {
@@ -228,7 +233,8 @@ export default function ReviewPage() {
         renderAnnotations(
           pdfDoc,
           documents[documentIndex],
-          documentConfigs[documentType].fields
+          documentConfigs[documentType].fields,
+          null
         );
         const pdfBytes = await pdfDoc.save();
         const annotatedBlob = new Blob([pdfBytes], { type: "application/pdf" });
@@ -240,8 +246,19 @@ export default function ReviewPage() {
     };
 
     fetchPdf();
-    setPageNum(1);
+    setYFocus(0);
+    setPageNumber(1);
   }, [documentsFetched, documentIndex, documentConfigs]);
+
+  const jumpToField = (field: DocumentConfigField) => {
+    const targetField =
+      documents[documentIndex].detectedFields[field.modelField];
+    if (targetField && targetField.page) {
+      setPageNumber(targetField.page);
+      setYFocus(targetField.coordinates[3] * 72 - 40);
+      setSearchedField(field.id);
+    }
+  };
 
   // Jump to page to find specific field
   useEffect(() => {
@@ -249,7 +266,7 @@ export default function ReviewPage() {
       return;
     }
 
-    const jumpToPage = async () => {
+    const JumpToYCoord = async () => {
       try {
         const response = await fetch(
           `/api/get-pdf?filename=${documents[documentIndex].filename}`
@@ -263,18 +280,19 @@ export default function ReviewPage() {
         renderAnnotations(
           pdfDoc,
           documents[documentIndex],
-          documentConfigs[documentType].fields
+          documentConfigs[documentType].fields,
+          searchedField
         );
         const pdfBytes = await pdfDoc.save();
         const annotatedBlob = new Blob([pdfBytes], { type: "application/pdf" });
         const annotatedUrl = URL.createObjectURL(annotatedBlob);
-        setPdfUrl(annotatedUrl + "#page=" + pageNum);
+        setPdfUrl(annotatedUrl + `#page=${pageNumber}&view=FitH,${YFocus}`);
       } catch (error) {
         console.error("Error fetching PDF:", error);
       }
     };
-    jumpToPage();
-  }, [pageNum]);
+    JumpToYCoord();
+  }, [pageNumber, YFocus, searchedField]);
 
   // Reset input values when document or document type changes
   useEffect(() => {
@@ -359,6 +377,7 @@ export default function ReviewPage() {
         >
           <iframe
             src={pdfUrl}
+            tabIndex={-1}
             style={{
               flex: 1,
               marginLeft: "10px",
@@ -379,6 +398,7 @@ export default function ReviewPage() {
               color="neutral"
               onClick={() => setDocumentIndex(documentIndex - 1)}
               disabled={documentIndex === 0}
+              tabIndex={-1}
               sx={{ paddingLeft: "30px", paddingRight: "30px" }}
             >
               Back
@@ -393,6 +413,7 @@ export default function ReviewPage() {
                 onClick={() => {
                   setDocumentIndex(documentIndex + 1);
                 }}
+                tabIndex={-1}
                 disabled={documentIndex === documents.length - 1}
                 sx={{ paddingLeft: "30px", paddingRight: "30px" }}
               >
@@ -403,6 +424,7 @@ export default function ReviewPage() {
                   size="sm"
                   color="success"
                   onClick={() => saveDocumentValues(true)}
+                  tabIndex={-1}
                   sx={{ paddingLeft: "30px", paddingRight: "30px" }}
                 >
                   Submit
@@ -500,6 +522,7 @@ export default function ReviewPage() {
                           paddingRight: "10px",
                           height: "28px",
                           marginBottom: "5px",
+                          borderRadius: "5px",
                           background:
                             activeField == field.id
                               ? `linear-gradient(to left, rgb(${field.color.join(
@@ -527,15 +550,7 @@ export default function ReviewPage() {
                               backgroundColor: "rgba(0, 0, 0, 0.1)", // adjust this value to change the hover color
                             },
                           }}
-                          onClick={() => {
-                            const targetField =
-                              documents[documentIndex].detectedFields[
-                                field.modelField
-                              ];
-                            if (targetField && targetField.page) {
-                              setPageNum(targetField.page);
-                            }
-                          }}
+                          onClick={() => jumpToField(field)}
                         >
                           <SearchIcon />
                         </IconButton>
@@ -553,6 +568,16 @@ export default function ReviewPage() {
                         onFocus={() => {
                           setActiveField(field.id);
                         }}
+                        onBlur={() => {
+                          setSearchedField("");
+                        }}
+                        onKeyDown={(event) => {
+                          console.log("event.key: ", event.key);
+                          if (event.key === "Enter") {
+                            jumpToField(field);
+                            setSearchedField(activeField);
+                          }
+                        }}
                       />
                     ) : field.kind === "date" ? (
                       <DateInput
@@ -565,6 +590,15 @@ export default function ReviewPage() {
                         }}
                         onFocus={() => {
                           setActiveField(field.id);
+                        }}
+                        onBlur={() => {
+                          setSearchedField("ç");
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            jumpToField(field);
+                            setSearchedField(activeField);
+                          }
                         }}
                       />
                     ) : field.kind === "number" ? (
@@ -580,6 +614,15 @@ export default function ReviewPage() {
                         onFocus={() => {
                           setActiveField(field.id);
                         }}
+                        onBlur={() => {
+                          setSearchedField("");
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            jumpToField(field);
+                            setSearchedField(activeField);
+                          }
+                        }}
                       />
                     ) : (
                       <Input
@@ -592,6 +635,15 @@ export default function ReviewPage() {
                         }}
                         onFocus={() => {
                           setActiveField(field.id);
+                        }}
+                        onBlur={() => {
+                          setSearchedField("");
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            jumpToField(field);
+                            setSearchedField(activeField);
+                          }
                         }}
                       />
                     )}

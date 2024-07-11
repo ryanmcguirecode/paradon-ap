@@ -24,6 +24,7 @@
     "firebase": "^10.12.2",
     "firebase-admin": "^12.1.1",
     "firebaseui": "^6.1.0",
+    "focus-trap-react": "^10.2.3",
     "ioredis": "^5.4.1",
     "next": "14.2.3",
     "pdf-lib": "^1.17.1",

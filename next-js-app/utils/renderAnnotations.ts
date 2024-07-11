@@ -25,7 +25,8 @@ function addPadding(coordinates: number[]) {
 export default function renderAnnotations(
   pdf: PDFDocument,
   document: Document,
-  fields: DocumentConfigField[]
+  fields: DocumentConfigField[],
+  activeField?: string
 ) {
   if (!pdf || !document || !fields) {
     return;
@@ -51,6 +52,10 @@ export default function renderAnnotations(
     const y = coordinates[2];
     const width = coordinates[1] - x;
     const height = coordinates[3] - y;
+    var opacity = 0.5;
+    if (activeField) {
+      opacity = field.id === activeField ? 0.6 : 0.1;
+    }
 
     pages[page].drawRectangle({
       x: x,
@@ -62,7 +67,7 @@ export default function renderAnnotations(
         field.color[1] / 255,
         field.color[2] / 255
       ),
-      opacity: 0.45,
+      opacity: opacity,
     });
   }
 }

@@ -158,6 +158,7 @@ export default function Navigation({ disabled }) {
                 aria-label="open drawer"
                 onClick={handleDrawerOpen}
                 edge="start"
+                tabIndex={-1}
                 sx={{
                   marginRight: 0,
                   ...(open && { display: "none" }),
@@ -179,7 +180,7 @@ export default function Navigation({ disabled }) {
               <Logo />
               <JoyThemeProvider>
                 <Box>
-                  <Button onClick={() => signOut(auth)}> Sign Out </Button>
+                  <Button tabIndex={-1} onClick={() => signOut(auth)}> Sign Out </Button>
                 </Box>
               </JoyThemeProvider>
             </Box>
@@ -187,7 +188,7 @@ export default function Navigation({ disabled }) {
         </AppBar>
         <Drawer variant="permanent" open={open}>
           <DrawerHeader>
-            <IconButton onClick={handleDrawerClose}>
+            <IconButton onClick={handleDrawerClose} tabIndex={-1}>
               {theme.direction === "rtl" ? (
                 <ChevronRightIcon />
               ) : (
