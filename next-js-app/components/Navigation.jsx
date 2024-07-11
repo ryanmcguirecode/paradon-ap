@@ -26,6 +26,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import FolderCopyOutlinedIcon from "@mui/icons-material/FolderCopyOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 
@@ -179,7 +180,14 @@ export default function Navigation({ disabled }) {
               <Logo />
               <JoyThemeProvider>
                 <Box>
-                  <Button onClick={() => signOut(auth)}> Sign Out </Button>
+                  <Button
+                    color="neutral"
+                    variant="outlined"
+                    onClick={() => signOut(auth)}
+                    endDecorator={<LogoutIcon />}
+                  >
+                    Log Out
+                  </Button>
                 </Box>
               </JoyThemeProvider>
             </Box>
