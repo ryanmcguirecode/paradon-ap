@@ -305,7 +305,7 @@ export default function ReviewPage() {
         documents[documentIndex].detectedFields[field.modelField]?.value ||
         "";
 
-      if (field.kind === "currency") {
+      if (field.kind === "currency" && typeof detectedField !== "string") {
         defaultValue = currencyToNumber(detectedField);
       } else if (field.kind === "date") {
         defaultValue = dateToIsoString(detectedField);
@@ -361,7 +361,6 @@ export default function ReviewPage() {
     });
 
     response = await response.json();
-    console.log("glug", response);
     if (response.acquired === false) {
       alert(response.error);
       router.push("/batches");

@@ -33,39 +33,30 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await firestore.runTransaction(async (transaction) => {
+    return await firestore.runTransaction(async (transaction) => {
       const batchRef = firestore.collection("batches").doc(batchId);
       const batchDoc = await transaction.get(batchRef);
 
       if (!batchDoc.exists) {
-        throw new Error(
-          JSON.stringify({
-            status: 404,
-            response: { acquired: false, error: "Batch not found" },
-          })
+        return NextResponse.json(
+          { acquired: false, error: "Batch not found" },
+          { status: 404 }
         );
       }
 
       const batchData = batchDoc.data();
       if (batchData?.isCheckedOut) {
-        throw new Error(
-          JSON.stringify({
-            status: 409,
-            response: {
-              acquired: false,
-              error: `Batch already acquired by ${batchData?.owner}`,
-            },
-          })
+        return NextResponse.json(
+          {
+            acquired: false,
+            error: `Batch already acquired by ${batchData?.owner}`,
+          },
+          { status: 409 }
         );
       } else if (batchData?.organization !== organization) {
-        throw new Error(
-          JSON.stringify({
-            status: 403,
-            response: {
-              acquired: false,
-              error: "Batch not owned by organization",
-            },
-          })
+        return NextResponse.json(
+          { acquired: false, error: "Batch not owned by organization" },
+          { status: 403 }
         );
       }
 
@@ -73,21 +64,12 @@ export async function POST(req: NextRequest) {
         isCheckedOut: true,
         owner: callerId,
       });
+      return NextResponse.json({ acquired: true }, { status: 200 });
     });
-
-    return NextResponse.json({ acquired: true }, { status: 200 });
   } catch (error) {
-    let errorResponse;
-    try {
-      errorResponse = JSON.parse(error.message);
-    } catch (parseError) {
-      return NextResponse.json(
-        { acquired: false, error: error.message },
-        { status: 500 }
-      );
-    }
-    return NextResponse.json(errorResponse.response, {
-      status: errorResponse.status,
-    });
+    return NextResponse.json(
+      { acquired: false, error: error.message },
+      { status: 500 }
+    );
   }
 }
