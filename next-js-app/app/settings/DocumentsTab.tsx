@@ -530,6 +530,7 @@ export default function DocumentsTab() {
                             kind: null,
                             color: [0, 0, 0],
                             modelField: null,
+                            required: false,
                           },
                         ],
                       },

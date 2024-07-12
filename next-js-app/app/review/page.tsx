@@ -5,7 +5,6 @@ import { PDFDocument } from "pdf-lib";
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
-import FocusTrap from "focus-trap-react";
 
 import {
   Box,
@@ -32,8 +31,6 @@ import CurrencyInput, { currencyToNumber } from "./CurrencyInput";
 import DateInput, { dateToIsoString } from "./DateInput";
 import InputStyle from "./InputStyle";
 import renderAnnotations from "@/utils/renderAnnotations";
-
-// import styles from "./animations.module.css";
 
 export default function ReviewPage() {
   const router = useRouter();

@@ -13,13 +13,11 @@ async function releaseDeadBatches(req, res) {
   // functions.http('releaseDeadBatches', async (req, res) => {
   try {
     const now = Timestamp.now();
-    const twentyMinutesAgo = new Timestamp(now.seconds - 1200, now.nanoseconds);
 
     const batchesSnapshot = await firestore
       .collection("batches")
       .where("isCheckedOut", "==", true)
       .where("isFinished", "==", false)
-      .where("heartbeat", "<", twentyMinutesAgo)
       .get();
 
     const batchDocs = batchesSnapshot.docs;
@@ -30,6 +28,10 @@ async function releaseDeadBatches(req, res) {
       const diff = now.seconds - heartbeat;
 
       console.log(`Batch ${batchDoc.id} has been inactive for ${diff} seconds`);
+
+      if (diff < 1200) {
+        continue;
+      }
 
       await batchDoc.ref.update({
         isCheckedOut: false,
