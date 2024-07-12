@@ -15,8 +15,6 @@ import {
   Typography,
 } from "@mui/joy";
 
-import KeyboardArrowLeftIcon from "@mui/icons-material/ArrowDownward";
-import KeyboardArrowRightIcon from "@mui/icons-material/ArrowUpward";
 import FolderCopyOutlinedIcon from "@mui/icons-material/FolderCopyOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 
@@ -128,11 +126,6 @@ export default function BatchesPage() {
     isCheckedOut: null,
   });
 
-  const canClear =
-    currentFilters.createdFromDate ||
-    currentFilters.createdToDate ||
-    currentFilters.isFull ||
-    currentFilters.isCheckedOut;
 
   const getFilteredBatches = (
     offset: number,

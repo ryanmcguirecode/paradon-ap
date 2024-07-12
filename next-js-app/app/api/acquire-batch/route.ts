@@ -38,25 +38,34 @@ export async function POST(req: NextRequest) {
       const batchDoc = await transaction.get(batchRef);
 
       if (!batchDoc.exists) {
-        return NextResponse.json(
-          { acquired: false, error: "Batch not found" },
-          { status: 404 }
+        throw new Error(
+          JSON.stringify({
+            status: 404,
+            response: { acquired: false, error: "Batch not found" },
+          })
         );
       }
 
       const batchData = batchDoc.data();
       if (batchData?.isCheckedOut) {
-        return NextResponse.json(
-          {
-            acquired: false,
-            error: `Batch already acquired by ${batchData?.owner}`,
-          },
-          { status: 409 }
+        throw new Error(
+          JSON.stringify({
+            status: 409,
+            response: {
+              acquired: false,
+              error: `Batch already acquired by ${batchData?.owner}`,
+            },
+          })
         );
       } else if (batchData?.organization !== organization) {
-        return NextResponse.json(
-          { acquired: false, error: "Batch not owned by organization" },
-          { status: 403 }
+        throw new Error(
+          JSON.stringify({
+            status: 403,
+            response: {
+              acquired: false,
+              error: "Batch not owned by organization",
+            },
+          })
         );
       }
 
@@ -68,9 +77,17 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ acquired: true }, { status: 200 });
   } catch (error) {
-    return NextResponse.json(
-      { acquired: false, error: error.message },
-      { status: 500 }
-    );
+    let errorResponse;
+    try {
+      errorResponse = JSON.parse(error.message);
+    } catch (parseError) {
+      return NextResponse.json(
+        { acquired: false, error: error.message },
+        { status: 500 }
+      );
+    }
+    return NextResponse.json(errorResponse.response, {
+      status: errorResponse.status,
+    });
   }
 }

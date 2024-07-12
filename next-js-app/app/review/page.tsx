@@ -77,6 +77,7 @@ export default function ReviewPage() {
       });
       const responseJson = await response.json();
       const acquired = responseJson.acquired;
+      console.log(acquired)
       if (!acquired) {
         console.error("Failed to acquire batch:", responseJson.error);
         router.push("/batches");
