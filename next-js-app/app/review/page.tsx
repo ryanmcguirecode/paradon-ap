@@ -29,7 +29,6 @@ import { DocumentConfig } from "@/types/DocumentConfig";
 import CurrencyInput, { currencyToNumber } from "./CurrencyInput";
 import DateInput, { dateToIsoString } from "./DateInput";
 import InputStyle from "./InputStyle";
-import renderAnnotations from "@/utils/renderAnnotations";
 
 export default function ReviewPage() {
   const router = useRouter();
@@ -377,6 +376,7 @@ export default function ReviewPage() {
                 arrayBuffer={pdfData}
                 doc={documents[documentIndex]}
                 fields={documentConfigs[documentType].fields}
+                activeField={activeField}
               ></PdfViewer>
             </Box>
           )}

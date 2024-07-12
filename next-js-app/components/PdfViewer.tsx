@@ -1,23 +1,37 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
-import { Box, Button, Divider, IconButton, Stack, Typography } from "@mui/joy";
+import {
+  Box,
+  Button,
+  Divider,
+  IconButton,
+  Stack,
+  Typography,
+  Input,
+} from "@mui/joy";
 import AddIcon from "@mui/icons-material/Add";
 import AutoFixNormalIcon from "@mui/icons-material/AutoFixNormal";
 import AutoFixOffIcon from "@mui/icons-material/AutoFixOff";
 import RemoveIcon from "@mui/icons-material/Remove";
 import * as pdfjsLib from "pdfjs-dist/webpack.mjs";
 import Rotate90DegreesCwOutlinedIcon from "@mui/icons-material/Rotate90DegreesCwOutlined";
-import { Input } from "@mui/joy";
 import Document from "@/types/Document";
 import { DocumentConfigField } from "@/types/DocumentConfig";
+import { start } from "repl";
 
 interface PdfViewerProps {
   arrayBuffer: ArrayBuffer | null;
   doc: Document;
   fields: DocumentConfigField[];
+  activeField: string | null;
 }
 
-const PdfViewer = ({ arrayBuffer, doc, fields }: PdfViewerProps) => {
+const PdfViewer = ({
+  arrayBuffer,
+  doc,
+  fields,
+  activeField,
+}: PdfViewerProps) => {
   const containerRef = useRef(null);
   const [pdfDoc, setPdfDoc] = useState(null);
   const [scale, setScale] = useState(1);
@@ -30,6 +44,7 @@ const PdfViewer = ({ arrayBuffer, doc, fields }: PdfViewerProps) => {
   const overlayCanvasRefs = useRef([]);
   const scrollPositionRef = useRef(0);
   const observerRef = useRef(null);
+  const animationRef = useRef(null);
 
   useEffect(() => {}, [doc, fields]);
 
@@ -57,14 +72,16 @@ const PdfViewer = ({ arrayBuffer, doc, fields }: PdfViewerProps) => {
         continue;
       }
 
+      const opacity = !activeField || activeField === field.id ? 0.37 : 0.1;
+
       rectangles.push({
         coordinates,
         page,
-        color,
+        color: `rgba(${color.join(",")}, ${opacity})`,
       });
     }
     setAnnotations(rectangles);
-  }, [doc, fields]);
+  }, [doc, fields, activeField]);
 
   useEffect(() => {
     if (pdfDoc) {
@@ -132,10 +149,22 @@ const PdfViewer = ({ arrayBuffer, doc, fields }: PdfViewerProps) => {
         overlayCanvas.style.top = "0";
         overlayCanvas.style.left = "0";
         overlayCanvas.style.paddingTop = num === 1 ? "5px" : "0";
-        overlayCanvas.style.pointerEvents = "none"; // Ensure the overlay does not interfere with user interactions
+        overlayCanvas.style.pointerEvents = "none";
+
+        const animationCanvas = document.createElement("canvas");
+        animationCanvas.height = viewport.height;
+        animationCanvas.width = viewport.width;
+        animationCanvas.style.position = "absolute";
+        animationCanvas.style.top = "0";
+        animationCanvas.style.left = "0";
+        animationCanvas.style.paddingTop = num === 1 ? "5px" : "0";
+        animationCanvas.style.pointerEvents = "none";
+
+        const animationContext = animationCanvas.getContext("2d");
 
         pageContainer.appendChild(canvas);
         pageContainer.appendChild(overlayCanvas);
+        pageContainer.appendChild(animationCanvas);
         container.appendChild(pageContainer);
 
         const renderTask = page.render(renderContext);
@@ -154,12 +183,22 @@ const PdfViewer = ({ arrayBuffer, doc, fields }: PdfViewerProps) => {
           );
         }
 
+        if (activeField) {
+          startAnimation(animationContext, viewport);
+        }
+
         observerRef.current.observe(pageContainer); // Observe the page container
       }
 
       container.scrollTop = scrollPositionRef.current; // Restore scroll position}
     };
     renderAllPages();
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
   }, [pdfDoc, scale, rotation, annotations]);
 
   const drawAnnotations = (
@@ -181,7 +220,7 @@ const PdfViewer = ({ arrayBuffer, doc, fields }: PdfViewerProps) => {
           rotation,
           scale
         );
-        context.fillStyle = `rgba(${annotation.color.join(",")}, 0.35)`;
+        context.fillStyle = annotation.color;
         context.fillRect(x, y, width, height);
       }
     });
@@ -223,7 +262,7 @@ const PdfViewer = ({ arrayBuffer, doc, fields }: PdfViewerProps) => {
         break;
     }
 
-    return [x, y, width, height];
+    return [x - 3, y - 3, width + 6, height + 6];
   };
 
   const toggleAnnotations = () => {
@@ -314,6 +353,64 @@ const PdfViewer = ({ arrayBuffer, doc, fields }: PdfViewerProps) => {
     } else {
       setInputPage(currentPage); // Reset to current page if input is invalid
     }
+  };
+
+  const startAnimation = (animationContext, viewport) => {
+    if (!activeField || !fields) {
+      return;
+    }
+
+    const field = fields.find((field) => field.id === activeField);
+    const coords = transformCoordinates(
+      doc.detectedFields[field.modelField].coordinates,
+      viewport,
+      rotation,
+      scale
+    );
+    const rect = {
+      x: coords[0],
+      y: coords[1],
+      width: coords[2],
+      height: coords[3],
+    };
+
+    let offset = 0;
+
+    const drawAnimatedBorder = () => {
+      animationContext.clearRect(
+        0,
+        0,
+        animationContext.canvas.width,
+        animationContext.canvas.height
+      );
+
+      const perimeter = 2 * (rect.width + rect.height);
+      const dashLength = 0.25 * perimeter; // Each dash is 25% of the perimeter
+      const gapLength = 0.25 * perimeter; // Each gap is also 25% of the perimeter
+
+      animationContext.strokeStyle = `rgba(${field.color.join(",")}, 1)`;
+      animationContext.lineWidth = 1;
+      animationContext.setLineDash([
+        dashLength,
+        gapLength,
+        dashLength,
+        gapLength,
+      ]); // Set dash pattern with 5px dash and 5px gap
+      animationContext.lineDashOffset = -offset; // Set dash offset for animation
+
+      animationContext.beginPath();
+      animationContext.rect(rect.x, rect.y, rect.width, rect.height);
+      animationContext.stroke();
+
+      offset += 0.2; // Adjust speed of animation here
+      if (offset > perimeter) {
+        offset = 0;
+      }
+
+      animationRef.current = requestAnimationFrame(drawAnimatedBorder);
+    };
+
+    drawAnimatedBorder();
   };
 
   return (
