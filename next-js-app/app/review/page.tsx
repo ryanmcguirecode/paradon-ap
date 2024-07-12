@@ -77,7 +77,6 @@ export default function ReviewPage() {
       });
       const responseJson = await response.json();
       const acquired = responseJson.acquired;
-      console.log(acquired)
       if (!acquired) {
         console.error("Failed to acquire batch:", responseJson.error);
         router.push("/batches");
@@ -333,7 +332,7 @@ export default function ReviewPage() {
     return true;
   }
 
-  async function saveDocumentValues(submit: boolean, requiredFields: string[]) {
+  async function saveDocumentValues(submit: boolean) {
     const newDocument = {
       ...documents[documentIndex],
       fields: { ...inputValues },
@@ -348,7 +347,7 @@ export default function ReviewPage() {
 
     setDocuments(newDocuments);
     setDocumentIndex(newDocumentIndex);
-    await fetch("/api/save-batch-progress", {
+    var response: any = await fetch("/api/save-batch-progress", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -360,6 +359,13 @@ export default function ReviewPage() {
         organization: organization,
       }),
     });
+
+    response = await response.json();
+    console.log("glug", response);
+    if (response.acquired === false) {
+      alert(response.error);
+      router.push("/batches");
+    }
 
     if (submit) {
       await fetch("/api/submit-batch", {
@@ -436,14 +442,7 @@ export default function ReviewPage() {
                 <Button
                   size="sm"
                   color="success"
-                  onClick={() =>
-                    saveDocumentValues(
-                      true,
-                      documentConfigs[documentType].fields
-                        .filter((field) => field.required)
-                        .map((field) => field.id)
-                    )
-                  }
+                  onClick={() => saveDocumentValues(true)}
                   tabIndex={-1}
                   sx={{ paddingLeft: "30px", paddingRight: "30px" }}
                 >
@@ -452,14 +451,7 @@ export default function ReviewPage() {
               ) : (
                 <Button
                   size="sm"
-                  onClick={() =>
-                    saveDocumentValues(
-                      false,
-                      documentConfigs[documentType].fields
-                        .filter((field) => field.required)
-                        .map((field) => field.id)
-                    )
-                  }
+                  onClick={() => saveDocumentValues(false)}
                   sx={{ paddingLeft: "30px", paddingRight: "30px" }}
                   disabled={!requiredFieldsFilledOut()} // Remove the arrow function
                 >

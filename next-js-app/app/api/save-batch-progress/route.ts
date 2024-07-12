@@ -38,7 +38,6 @@ export async function POST(req: NextRequest) {
         private_key: credentials.private_key.replace(/\\n/gm, "\n"),
       },
     });
-
     const batchRef = firestore.collection("batches").doc(batch);
     const batchDoc = await batchRef.get();
     if (!batchDoc.exists) {
@@ -48,10 +47,19 @@ export async function POST(req: NextRequest) {
       );
     }
     const batchData = batchDoc.data();
+    console.log("firestore", batchData.isCheckedOut);
     if (!batchData || batchData.organization !== organization) {
       return NextResponse.json(
         { acquired: false, error: "Unauthorized batch access" },
         { status: 401 }
+      );
+    } else if (!batchData.isCheckedOut) {
+      return NextResponse.json(
+        {
+          acquired: false,
+          error: `Lost batch access or connection, please reacquire the batch`,
+        },
+        { status: 409 }
       );
     }
 
