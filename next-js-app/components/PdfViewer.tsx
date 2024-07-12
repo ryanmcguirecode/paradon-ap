@@ -26,6 +26,7 @@ const PdfViewer = ({ arrayBuffer, doc, fields }: PdfViewerProps) => {
   const [showAnnotations, setShowAnnotations] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [inputPage, setInputPage] = useState(1);
+  const [fitMode, setFitMode] = useState("height");
   const overlayCanvasRefs = useRef([]);
   const scrollPositionRef = useRef(0);
   const observerRef = useRef(null);
@@ -110,7 +111,7 @@ const PdfViewer = ({ arrayBuffer, doc, fields }: PdfViewerProps) => {
         const pageContainer = document.createElement("div");
         pageContainer.style.position = "relative";
         pageContainer.style.marginBottom = "20px";
-        pageContainer.style.paddingTop = num === 1 ? "20px" : "0";
+        pageContainer.style.paddingTop = num === 1 ? "5px" : "0";
         pageContainer.dataset.pageIndex = num.toString();
 
         const canvas = document.createElement("canvas");
@@ -130,7 +131,7 @@ const PdfViewer = ({ arrayBuffer, doc, fields }: PdfViewerProps) => {
         overlayCanvas.style.position = "absolute";
         overlayCanvas.style.top = "0";
         overlayCanvas.style.left = "0";
-        overlayCanvas.style.paddingTop = num === 1 ? "20px" : "0";
+        overlayCanvas.style.paddingTop = num === 1 ? "5px" : "0";
         overlayCanvas.style.pointerEvents = "none"; // Ensure the overlay does not interfere with user interactions
 
         pageContainer.appendChild(canvas);
@@ -161,95 +162,8 @@ const PdfViewer = ({ arrayBuffer, doc, fields }: PdfViewerProps) => {
     renderAllPages();
   }, [pdfDoc, scale, rotation, annotations]);
 
-  // const renderAllPages = async (pdf, scale, rotation, rectangles = null) => {
-  //   // rectangles for first render, since state hasn't updated yet
-  //   if (pdf) {
-  //     const container = containerRef.current;
-  //     scrollPositionRef.current = container.scrollTop; // Save scroll position
-  //     container.innerHTML = ""; // Clear existing content
-  //     overlayCanvasRefs.current = []; // Clear overlay canvas refs
-
-  //     const observerOptions = {
-  //       root: container,
-  //       threshold: [0.5], // Trigger when 50% of the element is visible
-  //     };
-
-  //     if (observerRef.current) {
-  //       observerRef.current.disconnect(); // Disconnect previous observer if exists
-  //     }
-
-  //     observerRef.current = new IntersectionObserver((entries) => {
-  //       entries.forEach((entry) => {
-  //         if (entry.isIntersecting) {
-  //           const pageIndex = parseInt(
-  //             (entry.target as HTMLElement).dataset.pageIndex,
-  //             10
-  //           );
-  //           setCurrentPage(pageIndex);
-  //           setInputPage(pageIndex);
-  //         }
-  //       });
-  //     }, observerOptions);
-
-  //     for (let num = 1; num <= pdf.numPages; num++) {
-  //       const page = await pdf.getPage(num);
-  //       const viewport = page.getViewport({ scale, rotation });
-
-  //       const pageContainer = document.createElement("div");
-  //       pageContainer.style.position = "relative";
-  //       pageContainer.style.marginBottom = "20px";
-  //       pageContainer.style.paddingTop = num === 1 ? "20px" : "0";
-  //       pageContainer.dataset.pageIndex = num.toString();
-
-  //       const canvas = document.createElement("canvas");
-  //       const context = canvas.getContext("2d");
-  //       canvas.height = viewport.height;
-  //       canvas.width = viewport.width;
-  //       canvas.style.display = "block"; // Ensure each canvas is a block element
-
-  //       const renderContext = {
-  //         canvasContext: context,
-  //         viewport: viewport,
-  //       };
-
-  //       const overlayCanvas = document.createElement("canvas");
-  //       overlayCanvas.height = viewport.height;
-  //       overlayCanvas.width = viewport.width;
-  //       overlayCanvas.style.position = "absolute";
-  //       overlayCanvas.style.top = "0";
-  //       overlayCanvas.style.left = "0";
-  //       overlayCanvas.style.paddingTop = num === 1 ? "20px" : "0";
-  //       overlayCanvas.style.pointerEvents = "none"; // Ensure the overlay does not interfere with user interactions
-
-  //       pageContainer.appendChild(canvas);
-  //       pageContainer.appendChild(overlayCanvas);
-  //       container.appendChild(pageContainer);
-
-  //       const renderTask = page.render(renderContext);
-  //       await renderTask.promise;
-
-  //       overlayCanvasRefs.current.push(overlayCanvas);
-
-  //       if (showAnnotations) {
-  //         drawAnnotations(
-  //           overlayCanvas.getContext("2d"),
-  //           rectangles || annotations,
-  //           viewport,
-  //           num,
-  //           scale,
-  //           rotation
-  //         );
-  //       }
-
-  //       observerRef.current.observe(pageContainer); // Observe the page container
-  //     }
-
-  //     container.scrollTop = scrollPositionRef.current; // Restore scroll position
-  //   }
-  // };
-
   const drawAnnotations = (
-    context,
+    context: CanvasRenderingContext2D,
     annotations,
     viewport,
     pageNum: number,
@@ -357,6 +271,38 @@ const PdfViewer = ({ arrayBuffer, doc, fields }: PdfViewerProps) => {
     }
   };
 
+  const fitToWidth = () => {
+    const container = containerRef.current;
+    if (pdfDoc && container) {
+      pdfDoc.getPage(1).then((page) => {
+        const viewport = page.getViewport({ scale: 1, rotation });
+        const newScale = container.clientWidth / viewport.width;
+        setScale(newScale - 0.02);
+      });
+    }
+  };
+
+  const fitToHeight = () => {
+    const container = containerRef.current;
+    if (pdfDoc && container) {
+      pdfDoc.getPage(1).then((page) => {
+        const viewport = page.getViewport({ scale: 1, rotation });
+        const newScale = container.clientHeight / viewport.height;
+        setScale(newScale);
+      });
+    }
+  };
+
+  const toggleFitMode = () => {
+    if (fitMode === "width") {
+      fitToHeight();
+      setFitMode("height");
+    } else {
+      fitToWidth();
+      setFitMode("width");
+    }
+  };
+
   const handlePageChange = (event) => {
     const newPage = parseInt(event.target.value, 10);
     if (!isNaN(newPage) && newPage > 0 && newPage <= pdfDoc.numPages) {
@@ -412,6 +358,13 @@ const PdfViewer = ({ arrayBuffer, doc, fields }: PdfViewerProps) => {
         <Divider orientation="vertical" />
         <IconButton onClick={handleRotateRight}>
           <Rotate90DegreesCwOutlinedIcon />
+        </IconButton>
+        <IconButton onClick={toggleFitMode}>
+          {fitMode === "width" ? (
+            <img src="/fit-width-icon.svg" alt="Fit to Width" />
+          ) : (
+            <img src="/fit-height-icon.svg" alt="Fit to Height" />
+          )}
         </IconButton>
         <IconButton onClick={toggleAnnotations}>
           {showAnnotations ? <AutoFixOffIcon /> : <AutoFixNormalIcon />}
