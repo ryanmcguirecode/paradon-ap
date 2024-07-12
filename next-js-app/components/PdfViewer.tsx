@@ -30,29 +30,21 @@ const PdfViewer = ({ arrayBuffer, doc, fields }: PdfViewerProps) => {
   const scrollPositionRef = useRef(0);
   const observerRef = useRef(null);
 
+  useEffect(() => {}, [doc, fields]);
+
   useEffect(() => {
-    if (!arrayBuffer) {
+    if (!doc || !fields || !arrayBuffer) {
       return;
     }
     const loadPdf = async () => {
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       setPdfDoc(pdf);
-      renderAllPages(pdf, scale, rotation);
     };
 
     loadPdf();
   }, [arrayBuffer]);
 
   useEffect(() => {
-    if (pdfDoc) {
-      renderAllPages(pdfDoc, scale, rotation);
-    }
-  }, [scale, rotation]);
-
-  useEffect(() => {
-    if (!doc || !fields) {
-      return;
-    }
     const rectangles = [];
     for (const field of fields) {
       if (!field.modelField || !doc.detectedFields[field.modelField]) continue;
@@ -79,8 +71,11 @@ const PdfViewer = ({ arrayBuffer, doc, fields }: PdfViewerProps) => {
     }
   }, [showAnnotations]);
 
-  const renderAllPages = async (pdf, scale, rotation) => {
-    if (pdf) {
+  useEffect(() => {
+    if (!pdfDoc) {
+      return;
+    }
+    const renderAllPages = async () => {
       const container = containerRef.current;
       scrollPositionRef.current = container.scrollTop; // Save scroll position
       container.innerHTML = ""; // Clear existing content
@@ -108,8 +103,8 @@ const PdfViewer = ({ arrayBuffer, doc, fields }: PdfViewerProps) => {
         });
       }, observerOptions);
 
-      for (let num = 1; num <= pdf.numPages; num++) {
-        const page = await pdf.getPage(num);
+      for (let num = 1; num <= pdfDoc.numPages; num++) {
+        const page = await pdfDoc.getPage(num);
         const viewport = page.getViewport({ scale, rotation });
 
         const pageContainer = document.createElement("div");
@@ -161,9 +156,97 @@ const PdfViewer = ({ arrayBuffer, doc, fields }: PdfViewerProps) => {
         observerRef.current.observe(pageContainer); // Observe the page container
       }
 
-      container.scrollTop = scrollPositionRef.current; // Restore scroll position
-    }
-  };
+      container.scrollTop = scrollPositionRef.current; // Restore scroll position}
+    };
+    renderAllPages();
+  }, [pdfDoc, scale, rotation, annotations]);
+
+  // const renderAllPages = async (pdf, scale, rotation, rectangles = null) => {
+  //   // rectangles for first render, since state hasn't updated yet
+  //   if (pdf) {
+  //     const container = containerRef.current;
+  //     scrollPositionRef.current = container.scrollTop; // Save scroll position
+  //     container.innerHTML = ""; // Clear existing content
+  //     overlayCanvasRefs.current = []; // Clear overlay canvas refs
+
+  //     const observerOptions = {
+  //       root: container,
+  //       threshold: [0.5], // Trigger when 50% of the element is visible
+  //     };
+
+  //     if (observerRef.current) {
+  //       observerRef.current.disconnect(); // Disconnect previous observer if exists
+  //     }
+
+  //     observerRef.current = new IntersectionObserver((entries) => {
+  //       entries.forEach((entry) => {
+  //         if (entry.isIntersecting) {
+  //           const pageIndex = parseInt(
+  //             (entry.target as HTMLElement).dataset.pageIndex,
+  //             10
+  //           );
+  //           setCurrentPage(pageIndex);
+  //           setInputPage(pageIndex);
+  //         }
+  //       });
+  //     }, observerOptions);
+
+  //     for (let num = 1; num <= pdf.numPages; num++) {
+  //       const page = await pdf.getPage(num);
+  //       const viewport = page.getViewport({ scale, rotation });
+
+  //       const pageContainer = document.createElement("div");
+  //       pageContainer.style.position = "relative";
+  //       pageContainer.style.marginBottom = "20px";
+  //       pageContainer.style.paddingTop = num === 1 ? "20px" : "0";
+  //       pageContainer.dataset.pageIndex = num.toString();
+
+  //       const canvas = document.createElement("canvas");
+  //       const context = canvas.getContext("2d");
+  //       canvas.height = viewport.height;
+  //       canvas.width = viewport.width;
+  //       canvas.style.display = "block"; // Ensure each canvas is a block element
+
+  //       const renderContext = {
+  //         canvasContext: context,
+  //         viewport: viewport,
+  //       };
+
+  //       const overlayCanvas = document.createElement("canvas");
+  //       overlayCanvas.height = viewport.height;
+  //       overlayCanvas.width = viewport.width;
+  //       overlayCanvas.style.position = "absolute";
+  //       overlayCanvas.style.top = "0";
+  //       overlayCanvas.style.left = "0";
+  //       overlayCanvas.style.paddingTop = num === 1 ? "20px" : "0";
+  //       overlayCanvas.style.pointerEvents = "none"; // Ensure the overlay does not interfere with user interactions
+
+  //       pageContainer.appendChild(canvas);
+  //       pageContainer.appendChild(overlayCanvas);
+  //       container.appendChild(pageContainer);
+
+  //       const renderTask = page.render(renderContext);
+  //       await renderTask.promise;
+
+  //       overlayCanvasRefs.current.push(overlayCanvas);
+
+  //       if (showAnnotations) {
+  //         drawAnnotations(
+  //           overlayCanvas.getContext("2d"),
+  //           rectangles || annotations,
+  //           viewport,
+  //           num,
+  //           scale,
+  //           rotation
+  //         );
+  //       }
+
+  //       observerRef.current.observe(pageContainer); // Observe the page container
+  //     }
+
+  //     container.scrollTop = scrollPositionRef.current; // Restore scroll position
+  //   }
+  // };
 
   const drawAnnotations = (
     context,
