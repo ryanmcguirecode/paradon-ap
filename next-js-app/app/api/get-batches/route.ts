@@ -27,6 +27,10 @@ export async function GET(req: NextRequest) {
       req.nextUrl.searchParams,
       "organization"
     );
+    const descending = getUrlSearchParameter(
+      req.nextUrl.searchParams,
+      "descending"
+    );
 
     if (!organization) {
       return NextResponse.json(
@@ -81,6 +85,9 @@ export async function GET(req: NextRequest) {
     }
     if (offset) {
       query = query.offset(Number(offset));
+    }
+    if (descending != null) {
+      query = query.orderBy("timeCreated", descending == "true" ? "desc" : "asc");
     }
 
     const snapshot = await query.get();

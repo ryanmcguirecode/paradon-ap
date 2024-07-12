@@ -8,17 +8,23 @@ import {
   Button,
   CircularProgress,
   FormLabel,
+  IconButton,
   Input,
   Option,
   Select,
   Typography,
 } from "@mui/joy";
+
+import KeyboardArrowLeftIcon from "@mui/icons-material/ArrowDownward";
+import KeyboardArrowRightIcon from "@mui/icons-material/ArrowUpward";
 import FolderCopyOutlinedIcon from "@mui/icons-material/FolderCopyOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 
 import { Batch } from "@/types/Batch";
 import NavigationLayout from "@/components/NavigationLayout";
 import { useAuth } from "@/components/AuthContext";
+import ArrowDownward from "@mui/icons-material/ArrowDownward";
+import ArrowUpward from "@mui/icons-material/ArrowUpward";
 
 function getPreviewImage(isCheckedOut: boolean | null) {
   return (
@@ -114,27 +120,25 @@ export default function BatchesPage() {
   const [documentsLoading, setDocumentsLoading] = useState<boolean>(false);
 
   const [batches, setBatches] = useState<Batch[]>([]);
+  const [descending, setDescending] = useState<boolean>(false);
   const [currentFilters, setCurrentFilters] = useState<any>({
     createdFromDate: null,
     createdToDate: null,
     isFull: null,
     isCheckedOut: null,
   });
-  const [createdFromDate, setCreatedFromDate] = useState<string | null>(null);
-  const [createdToDate, setCreatedToDate] = useState<string | null>(null);
-  const [isFull, setIsFull] = useState<boolean | null>(null);
-  const [isCheckedOut, setIsCheckedOut] = useState<boolean | null>(null);
 
-  const canFilter =
-    currentFilters.createdFromDate !== createdFromDate ||
-    currentFilters.createdToDate !== createdToDate ||
-    currentFilters.isFull !== isFull ||
-    currentFilters.isCheckedOut !== isCheckedOut;
+  const canClear =
+    currentFilters.createdFromDate ||
+    currentFilters.createdToDate ||
+    currentFilters.isFull ||
+    currentFilters.isCheckedOut;
 
   const getFilteredBatches = (
     offset: number,
     filters: any = currentFilters,
-    append: boolean = false
+    append: boolean = false,
+    desc: boolean = false
   ) => {
     const url = new URL("/api/get-batches", window.location.origin);
     url.searchParams.append("createdFromDate", filters.createdFromDate);
@@ -144,6 +148,7 @@ export default function BatchesPage() {
     url.searchParams.append("isFull", filters.isFull);
     url.searchParams.append("organization", organization);
     url.searchParams.append("offset", offset.toString());
+    url.searchParams.append("descending", desc.toString());
 
     setDocumentsLoading(true);
 
@@ -236,7 +241,15 @@ export default function BatchesPage() {
             <FormLabel sx={{ paddingBottom: "5px" }}>Full</FormLabel>
             <Select
               defaultValue={null}
-              onChange={(e, value: boolean | null) => setIsFull(value)}
+              value={currentFilters.isFull}
+              onChange={(e, value: boolean | null) => {
+                const newFilters = {
+                  ...currentFilters,
+                  isFull: value,
+                };
+                getFilteredBatches(0, newFilters, false, descending);
+                setCurrentFilters(newFilters);
+              }}
             >
               <Option key="all" value={null}>
                 Any
@@ -253,7 +266,15 @@ export default function BatchesPage() {
             <FormLabel sx={{ paddingBottom: "5px" }}>Checked Out</FormLabel>
             <Select
               defaultValue={null}
-              onChange={(e, value: boolean | null) => setIsCheckedOut(value)}
+              value={currentFilters.isCheckedOut}
+              onChange={(e, value: boolean | null) => {
+                const newFilters = {
+                  ...currentFilters,
+                  isCheckedOut: value,
+                };
+                getFilteredBatches(0, newFilters, false, descending);
+                setCurrentFilters(newFilters);
+              }}
             >
               <Option key="all" value={null}>
                 Any
@@ -270,36 +291,84 @@ export default function BatchesPage() {
             <FormLabel sx={{ paddingBottom: "5px" }}>Created From</FormLabel>
             <Input
               type="date"
+              value={currentFilters.createdFromDate}
               onChange={(e) => {
-                setCreatedFromDate(e.target.value);
+                const newFilters = {
+                  ...currentFilters,
+                  createdFromDate: e.target.value,
+                };
+                getFilteredBatches(0, newFilters, false, descending);
+                setCurrentFilters(newFilters);
               }}
             ></Input>
           </Box>
           <Box>
-            <FormLabel sx={{ paddingBottom: "5px" }}>Created To</FormLabel>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: "auto",
+              }}
+            >
+              <FormLabel sx={{ paddingBottom: "5px" }}>Created To</FormLabel>
+              <IconButton
+                size="sm"
+                sx={{
+                  pb: "5px",
+                  ":hover": {
+                    backgroundColor: "transparent",
+                  },
+                }}
+              >
+                {descending ? (
+                  <ArrowDownward
+                    fontSize="small"
+                    onClick={() => {
+                      setDescending(false);
+                      getFilteredBatches(0, currentFilters, false, !descending);
+                    }}
+                  />
+                ) : (
+                  <ArrowUpward
+                    fontSize="small"
+                    onClick={() => {
+                      setDescending(true);
+                      getFilteredBatches(0, currentFilters, false, !descending);
+                    }}
+                  />
+                )}
+              </IconButton>
+            </Box>
             <Input
               type="date"
+              value={currentFilters.createdToDate}
               onChange={(e) => {
-                setCreatedToDate(e.target.value);
+                const newFilters = {
+                  ...currentFilters,
+                  createdToDate: e.target.value,
+                };
+                getFilteredBatches(0, newFilters);
+                setCurrentFilters(newFilters);
               }}
             ></Input>
           </Box>
-          <Button
-            disabled={!canFilter}
+          {/* broken */}{" "}
+          {/* <Button
+            disabled={!canClear}
             onClick={() => {
               const newFilters = {
-                createdFromDate: createdFromDate,
-                createdToDate: createdToDate,
-                isCheckedOut: isCheckedOut,
+                createdFromDate: null,
+                createdToDate: null,
+                isCheckedOut: null,
                 // isFinished: isFinished,
-                isFull: isFull,
+                isFull: null,
               };
               setCurrentFilters(newFilters);
               getFilteredBatches(0, newFilters);
             }}
           >
-            Filter
-          </Button>
+            Clear
+          </Button> */}
         </Box>
         <Box
           sx={{
