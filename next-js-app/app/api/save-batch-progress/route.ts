@@ -3,7 +3,6 @@ import { Firestore } from "@google-cloud/firestore";
 
 export async function POST(req: NextRequest) {
   const { batch, document, documentIndex, organization } = await req.json();
-  console.log({ batch, document, documentIndex, organization });
 
   if (!batch) {
     return NextResponse.json(
@@ -47,7 +46,6 @@ export async function POST(req: NextRequest) {
       );
     }
     const batchData = batchDoc.data();
-    console.log("firestore", batchData.isCheckedOut);
     if (!batchData || batchData.organization !== organization) {
       return NextResponse.json(
         { acquired: false, error: "Unauthorized batch access" },
@@ -66,7 +64,6 @@ export async function POST(req: NextRequest) {
     await batchRef.update({ documentIndex: documentIndex });
 
     const documentRef = firestore.collection("documents").doc(document.id);
-    console.log(document);
     await documentRef.update({
       fields: document.fields,
       updated: new Date().toISOString(),
