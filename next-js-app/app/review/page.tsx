@@ -43,6 +43,7 @@ export default function ReviewPage() {
   const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
   const [pageNum, setPageNum] = useState<number>(1);
   const [numPages, setNumPages] = useState<number>(0);
+  const [scrollTo, setScrollTo] = useState<any>(null);
 
   const [documentType, setDocumentType] = useState<string>();
   const [documentConfigs, setDocumentConfigs] = useState<{
@@ -279,12 +280,12 @@ export default function ReviewPage() {
 
   // Reset input values when document or document type changes
   useEffect(() => {
-    if (!documentsFetched || !documentConfigs) {
+    if (!documentsFetched || !documentConfigs || !documentType) {
       return;
     }
 
     const newInputValues = {};
-    documentConfigs[documentType].fields.forEach((field) => {
+    documentConfigs[documentType]?.fields.forEach((field) => {
       let defaultValue: any;
       const detectedField =
         documents[documentIndex].fields?.[field.id] ||
@@ -376,10 +377,17 @@ export default function ReviewPage() {
                 arrayBuffer={pdfData}
                 doc={documents[documentIndex]}
                 fields={documentConfigs[documentType].fields}
-                activeField={activeField}
-              ></PdfViewer>
+                activeDetectedField={
+                  documents[documentIndex].detectedFields[activeField]
+                }
+                activeField={documentConfigs[documentType].fields.find(
+                  (field) => field.id === activeField
+                )}
+                scrollTo={scrollTo}
+              />
             </Box>
           )}
+
           <Box
             sx={{
               display: "flex",
@@ -509,10 +517,10 @@ export default function ReviewPage() {
                   });
                 };
 
-                const searchable =
-                  field.modelField &&
-                  documents[documentIndex].detectedFields?.[field.modelField] &&
-                  numPages > 1;
+                // const searchable =
+                //   field.modelField &&
+                //   documents[documentIndex].detectedFields?.[field.modelField] &&
+                //   numPages > 1;
 
                 return (
                   <div key={index}>
@@ -543,7 +551,7 @@ export default function ReviewPage() {
                         <Typography level="title-md">
                           {field.displayName}
                         </Typography>
-                        {searchable ? (
+                        {true ? (
                           <IconButton
                             tabIndex={-1}
                             sx={{
@@ -590,7 +598,21 @@ export default function ReviewPage() {
                           handleInputChange(field.id, event.target.value);
                         }}
                         onFocus={() => {
+                          const detectedField =
+                            documents[documentIndex]?.detectedFields[
+                              field.modelField
+                            ];
                           setActiveField(field.id);
+                          if (detectedField) {
+                            console.log("Setting scrollTo: ", {
+                              page: detectedField.page,
+                              coordiantes: detectedField.coordinates,
+                            });
+                            setScrollTo({
+                              page: detectedField.page,
+                              coordiantes: detectedField.coordinates,
+                            });
+                          }
                         }}
                       />
                     ) : field.kind === "date" ? (
@@ -603,7 +625,21 @@ export default function ReviewPage() {
                           handleInputChange(field.id, event.target.value);
                         }}
                         onFocus={() => {
+                          const detectedField =
+                            documents[documentIndex]?.detectedFields[
+                              field.modelField
+                            ];
                           setActiveField(field.id);
+                          if (detectedField) {
+                            console.log("Setting scrollTo: ", {
+                              page: detectedField.page,
+                              coordiantes: detectedField.coordinates,
+                            });
+                            setScrollTo({
+                              page: detectedField.page,
+                              coordiantes: detectedField.coordinates,
+                            });
+                          }
                         }}
                       />
                     ) : field.kind === "number" ? (
@@ -617,7 +653,21 @@ export default function ReviewPage() {
                           handleInputChange(field.id, event.target.value);
                         }}
                         onFocus={() => {
+                          const detectedField =
+                            documents[documentIndex]?.detectedFields[
+                              field.modelField
+                            ];
                           setActiveField(field.id);
+                          if (detectedField) {
+                            console.log("Setting scrollTo: ", {
+                              page: detectedField.page,
+                              coordiantes: detectedField.coordinates,
+                            });
+                            setScrollTo({
+                              page: detectedField.page,
+                              coordiantes: detectedField.coordinates,
+                            });
+                          }
                         }}
                       />
                     ) : (
@@ -630,7 +680,21 @@ export default function ReviewPage() {
                           handleInputChange(field.id, event.target.value);
                         }}
                         onFocus={() => {
+                          const detectedField =
+                            documents[documentIndex]?.detectedFields[
+                              field.modelField
+                            ];
                           setActiveField(field.id);
+                          if (detectedField) {
+                            console.log("Setting scrollTo: ", {
+                              page: detectedField.page,
+                              coordinates: detectedField.coordinates,
+                            });
+                            setScrollTo({
+                              page: detectedField.page,
+                              coordinates: detectedField.coordinates,
+                            });
+                          }
                         }}
                       />
                     )}

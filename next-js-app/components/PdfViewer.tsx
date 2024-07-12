@@ -15,15 +15,16 @@ import AutoFixOffIcon from "@mui/icons-material/AutoFixOff";
 import RemoveIcon from "@mui/icons-material/Remove";
 import * as pdfjsLib from "pdfjs-dist/webpack.mjs";
 import Rotate90DegreesCwOutlinedIcon from "@mui/icons-material/Rotate90DegreesCwOutlined";
-import Document from "@/types/Document";
+import Document, { DetectedField } from "@/types/Document";
 import { DocumentConfigField } from "@/types/DocumentConfig";
-import { start } from "repl";
 
 interface PdfViewerProps {
   arrayBuffer: ArrayBuffer | null;
   doc: Document;
   fields: DocumentConfigField[];
-  activeField: string | null;
+  activeField: DocumentConfigField | null;
+  activeDetectedField: DetectedField | null;
+  scrollTo?: any;
 }
 
 const PdfViewer = ({
@@ -31,10 +32,13 @@ const PdfViewer = ({
   doc,
   fields,
   activeField,
+  activeDetectedField,
+  scrollTo = null,
 }: PdfViewerProps) => {
   const containerRef = useRef(null);
   const [pdfDoc, setPdfDoc] = useState(null);
   const [scale, setScale] = useState(1);
+  const [viewportSize, setViewportSize] = useState([null, null]);
   const [rotation, setRotation] = useState(0);
   const [annotations, setAnnotations] = useState([]);
   const [showAnnotations, setShowAnnotations] = useState(true);
@@ -55,6 +59,13 @@ const PdfViewer = ({
     const loadPdf = async () => {
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       setPdfDoc(pdf);
+
+      const container = containerRef.current;
+      const firstPage = await pdf.getPage(1);
+      const viewport = firstPage.getViewport({ scale: 1 });
+      const initialScale = (container.clientWidth * 0.9) / viewport.width;
+      setScale(initialScale);
+      setViewportSize([viewport.width, viewport.height]);
     };
 
     loadPdf();
@@ -72,7 +83,8 @@ const PdfViewer = ({
         continue;
       }
 
-      const opacity = !activeField || activeField === field.id ? 0.37 : 0.1;
+      // const field = fields.find((f) => f.modelField === activeField.id);
+      const opacity = !activeField || activeField.id === field.id ? 0.37 : 0.1;
 
       rectangles.push({
         coordinates,
@@ -172,7 +184,7 @@ const PdfViewer = ({
 
         overlayCanvasRefs.current.push(overlayCanvas);
 
-        if (showAnnotations) {
+        if (showAnnotations && viewportSize[0] && viewportSize[1]) {
           drawAnnotations(
             overlayCanvas.getContext("2d"),
             annotations,
@@ -183,7 +195,7 @@ const PdfViewer = ({
           );
         }
 
-        if (activeField) {
+        if (activeDetectedField && num === activeDetectedField.page) {
           startAnimation(animationContext, viewport);
         }
 
@@ -201,6 +213,68 @@ const PdfViewer = ({
     };
   }, [pdfDoc, scale, rotation, annotations]);
 
+  useEffect(() => {
+    if (
+      !scrollTo ||
+      !scrollTo.coordinates ||
+      !scrollTo.page ||
+      !containerRef.current
+    ) {
+      return;
+    }
+
+    const container = containerRef.current;
+
+    const coordinates = transformCoordinates(
+      scrollTo.coordinates,
+      rotation,
+      scale
+    );
+    console.log("Scrolling to ", coordinates);
+
+    // Calculate the total height of all pages up to the target page
+    let totalHeight = 0;
+    for (let i = 0; i < scrollTo.page - 1; i++) {
+      totalHeight += container.children[i].offsetHeight + 20; // Including margin-bottom
+    }
+    console.log("totalHeight:", totalHeight);
+
+    // Add the offset within the target page
+    const offsetInPage = coordinates[1];
+    let targetScrollTop = totalHeight + offsetInPage;
+
+    // Center the target coordinates in the middle of the view
+    const containerHeight = container.clientHeight;
+    targetScrollTop =
+      targetScrollTop - containerHeight / 2 + coordinates[3] / 2;
+
+    // Custom smooth scrolling function
+    const smoothScroll = (target, duration) => {
+      console.log("smooth scrolling to ", target);
+      const start = container.scrollTop;
+      const change = target - start;
+      const startTime = performance.now();
+
+      const easeInOutQuad = (t) => {
+        return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+      };
+
+      const animateScroll = (currentTime) => {
+        const timeElapsed = currentTime - startTime;
+        const progress = Math.min(timeElapsed / duration, 1);
+        container.scrollTop = start + change * easeInOutQuad(progress);
+
+        if (progress < 1) {
+          requestAnimationFrame(animateScroll);
+        }
+      };
+
+      requestAnimationFrame(animateScroll);
+    };
+
+    smoothScroll(targetScrollTop, 600);
+  }, [scrollTo]);
+
   const drawAnnotations = (
     context: CanvasRenderingContext2D,
     annotations,
@@ -216,7 +290,7 @@ const PdfViewer = ({
       if (annotation.page === pageNum) {
         let [x, y, width, height] = transformCoordinates(
           annotation.coordinates,
-          viewport,
+          // viewport,
           rotation,
           scale
         );
@@ -228,29 +302,37 @@ const PdfViewer = ({
     context.restore();
   };
 
-  const transformCoordinates = (coords, viewport, rotation, scale) => {
+  const transformCoordinates = (coords, rotation, scale) => {
     const [x1, x2, y1, y2] = coords.map((coord) => coord * 72 * scale); // Convert to points and apply scale
     let x, y, width, height;
+
+    const viewportWidth = viewportSize[0];
+    const viewportHeight = viewportSize[1];
+    console.log(viewportWidth, viewportHeight);
+    if (viewportHeight === null || viewportWidth === null) {
+      console.error("Viewport size is null");
+      return [0, 0, 0, 0];
+    }
 
     if (rotation < 0) {
       rotation += 360;
     }
     switch (rotation) {
       case 90:
-        x = viewport.width - y2;
+        x = viewportWidth - y2;
         y = x1;
         width = y2 - y1;
         height = x2 - x1;
         break;
       case 180:
-        x = viewport.width - x2;
-        y = viewport.height - y2;
+        x = viewportWidth - x2;
+        y = viewportHeight - y2;
         width = x2 - x1;
         height = y2 - y1;
         break;
       case 270:
         x = y1;
-        y = viewport.height - x2;
+        y = viewportHeight - x2;
         width = y2 - y1;
         height = x2 - x1;
         break;
@@ -360,10 +442,9 @@ const PdfViewer = ({
       return;
     }
 
-    const field = fields.find((field) => field.id === activeField);
     const coords = transformCoordinates(
-      doc.detectedFields[field.modelField].coordinates,
-      viewport,
+      activeDetectedField.coordinates,
+      // viewport,
       rotation,
       scale
     );
@@ -388,7 +469,7 @@ const PdfViewer = ({
       const dashLength = 0.25 * perimeter; // Each dash is 25% of the perimeter
       const gapLength = 0.25 * perimeter; // Each gap is also 25% of the perimeter
 
-      animationContext.strokeStyle = `rgba(${field.color.join(",")}, 1)`;
+      animationContext.strokeStyle = `rgba(${activeField.color.join(",")}, 1)`;
       animationContext.lineWidth = 1;
       animationContext.setLineDash([
         dashLength,
@@ -402,7 +483,7 @@ const PdfViewer = ({
       animationContext.rect(rect.x, rect.y, rect.width, rect.height);
       animationContext.stroke();
 
-      offset += 0.2; // Adjust speed of animation here
+      offset += 0.4; // Adjust speed of animation here
       if (offset > perimeter) {
         offset = 0;
       }
