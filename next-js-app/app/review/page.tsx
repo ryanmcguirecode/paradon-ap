@@ -378,7 +378,12 @@ export default function ReviewPage() {
                 doc={documents[documentIndex]}
                 fields={documentConfigs[documentType].fields}
                 activeDetectedField={
-                  documents[documentIndex].detectedFields[activeField]
+                  documents[documentIndex].detectedFields[
+                    activeField &&
+                      documentConfigs[documentType].fields.find(
+                        (field) => field.id === activeField
+                      ).modelField
+                  ]
                 }
                 activeField={documentConfigs[documentType].fields.find(
                   (field) => field.id === activeField
@@ -604,13 +609,9 @@ export default function ReviewPage() {
                             ];
                           setActiveField(field.id);
                           if (detectedField) {
-                            console.log("Setting scrollTo: ", {
-                              page: detectedField.page,
-                              coordiantes: detectedField.coordinates,
-                            });
                             setScrollTo({
                               page: detectedField.page,
-                              coordiantes: detectedField.coordinates,
+                              coordinates: detectedField.coordinates,
                             });
                           }
                         }}
@@ -631,13 +632,9 @@ export default function ReviewPage() {
                             ];
                           setActiveField(field.id);
                           if (detectedField) {
-                            console.log("Setting scrollTo: ", {
-                              page: detectedField.page,
-                              coordiantes: detectedField.coordinates,
-                            });
                             setScrollTo({
                               page: detectedField.page,
-                              coordiantes: detectedField.coordinates,
+                              coordinates: detectedField.coordinates,
                             });
                           }
                         }}
@@ -659,13 +656,9 @@ export default function ReviewPage() {
                             ];
                           setActiveField(field.id);
                           if (detectedField) {
-                            console.log("Setting scrollTo: ", {
-                              page: detectedField.page,
-                              coordiantes: detectedField.coordinates,
-                            });
                             setScrollTo({
                               page: detectedField.page,
-                              coordiantes: detectedField.coordinates,
+                              coordinates: detectedField.coordinates,
                             });
                           }
                         }}
@@ -686,10 +679,6 @@ export default function ReviewPage() {
                             ];
                           setActiveField(field.id);
                           if (detectedField) {
-                            console.log("Setting scrollTo: ", {
-                              page: detectedField.page,
-                              coordinates: detectedField.coordinates,
-                            });
                             setScrollTo({
                               page: detectedField.page,
                               coordinates: detectedField.coordinates,

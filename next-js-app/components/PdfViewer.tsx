@@ -194,7 +194,6 @@ const PdfViewer = ({
             rotation
           );
         }
-
         if (activeDetectedField && num === activeDetectedField.page) {
           startAnimation(animationContext, viewport);
         }
@@ -230,14 +229,12 @@ const PdfViewer = ({
       rotation,
       scale
     );
-    console.log("Scrolling to ", coordinates);
 
     // Calculate the total height of all pages up to the target page
     let totalHeight = 0;
     for (let i = 0; i < scrollTo.page - 1; i++) {
       totalHeight += container.children[i].offsetHeight + 20; // Including margin-bottom
     }
-    console.log("totalHeight:", totalHeight);
 
     // Add the offset within the target page
     const offsetInPage = coordinates[1];
@@ -250,7 +247,6 @@ const PdfViewer = ({
 
     // Custom smooth scrolling function
     const smoothScroll = (target, duration) => {
-      console.log("smooth scrolling to ", target);
       const start = container.scrollTop;
       const change = target - start;
       const startTime = performance.now();
@@ -308,7 +304,6 @@ const PdfViewer = ({
 
     const viewportWidth = viewportSize[0];
     const viewportHeight = viewportSize[1];
-    console.log(viewportWidth, viewportHeight);
     if (viewportHeight === null || viewportWidth === null) {
       console.error("Viewport size is null");
       return [0, 0, 0, 0];
@@ -476,8 +471,8 @@ const PdfViewer = ({
         gapLength,
         dashLength,
         gapLength,
-      ]); // Set dash pattern with 5px dash and 5px gap
-      animationContext.lineDashOffset = -offset; // Set dash offset for animation
+      ]);
+      animationContext.lineDashOffset = -offset;
 
       animationContext.beginPath();
       animationContext.rect(rect.x, rect.y, rect.width, rect.height);
