@@ -55,7 +55,7 @@ export default function ReviewPage() {
     [key: string]: DocumentConfig;
   }>({});
 
-  const [inputValues, setInputValues] = useState<{ [key: string]: any }>({});
+  const [inputValues, setInputValues] = useState<{ [key: string]: any }>();
 
   // Acquire batch and fetch documents
   useEffect(() => {
@@ -264,6 +264,9 @@ export default function ReviewPage() {
     }
 
     const JumpToYCoord = async () => {
+      if (!documentsFetched || !documentConfigs) {
+        return;
+      }
       try {
         const response = await fetch(
           `/api/get-pdf?filename=${documents[documentIndex].filename}`
@@ -596,7 +599,7 @@ export default function ReviewPage() {
                     {field.kind === "currency" ? (
                       <CurrencyInput
                         {...InputStyle}
-                        value={inputValues[field.id]}
+                        value={inputValues ? inputValues[field.id] : 0}
                         onChange={(
                           event: React.ChangeEvent<HTMLInputElement>
                         ) => {
@@ -618,7 +621,7 @@ export default function ReviewPage() {
                     ) : field.kind === "date" ? (
                       <DateInput
                         {...InputStyle}
-                        value={inputValues[field.id]}
+                        value={inputValues ? inputValues[field.id] : ""}
                         onChange={(
                           event: React.ChangeEvent<HTMLInputElement>
                         ) => {
@@ -640,7 +643,7 @@ export default function ReviewPage() {
                     ) : field.kind === "number" ? (
                       <Input
                         {...InputStyle}
-                        value={inputValues[field.id]}
+                        value={inputValues ? inputValues[field.id] : ""}
                         type="number"
                         onChange={(
                           event: React.ChangeEvent<HTMLInputElement>
@@ -663,7 +666,7 @@ export default function ReviewPage() {
                     ) : (
                       <Input
                         {...InputStyle}
-                        value={inputValues[field.id]}
+                        value={inputValues ? inputValues[field.id] : ""}
                         onChange={(
                           event: React.ChangeEvent<HTMLInputElement>
                         ) => {
