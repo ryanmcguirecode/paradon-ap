@@ -1,6 +1,6 @@
 import { AzureField } from "./AzureField";
 
-interface DetectedField {
+export interface DetectedField {
   confidence: number;
   content: string;
   coordinates: number[];

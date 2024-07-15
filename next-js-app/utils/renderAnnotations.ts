@@ -52,9 +52,9 @@ export default function renderAnnotations(
     const y = coordinates[2];
     const width = coordinates[1] - x;
     const height = coordinates[3] - y;
-    var opacity = 0.5;
+    var opacity = 0.6;
     if (activeField) {
-      opacity = field.id === activeField ? 0.6 : 0.1;
+      opacity = field.id === activeField ? 0.7 : 0.1;
     }
 
     pages[page].drawRectangle({

@@ -27,7 +27,8 @@ const NavigationLayout = ({
         <div
           style={{
             flex: 1,
-            paddingTop: "64px",
+            marginTop: "64px",
+            height: "calc(100vh - 64px)",
           }}
         >
           {children}

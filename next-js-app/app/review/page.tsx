@@ -1,7 +1,7 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
-import { PDFDocument } from "pdf-lib";
+import { useEffect, useState } from "react";
+import PdfViewer from "@/components/PdfViewer";
 
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -17,7 +17,6 @@ import {
   IconButton,
   FormControl,
   Divider,
-  Alert,
 } from "@mui/joy";
 import SearchIcon from "@mui/icons-material/Search";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
@@ -30,7 +29,6 @@ import { DocumentConfig, DocumentConfigField } from "@/types/DocumentConfig";
 import CurrencyInput, { currencyToNumber } from "./CurrencyInput";
 import DateInput, { dateToIsoString } from "./DateInput";
 import InputStyle from "./InputStyle";
-import renderAnnotations from "@/utils/renderAnnotations";
 
 export default function ReviewPage() {
   const router = useRouter();
@@ -42,11 +40,8 @@ export default function ReviewPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [documentsFetched, setDocumentsFetched] = useState(false);
   const [documentIndex, setDocumentIndex] = useState<number>(0);
-  const [pdfUrl, setPdfUrl] = useState<string>("");
-
-  // Search state
-  const [YFocus, setYFocus] = useState<number>(1);
-  const [pageNumber, setPageNumber] = useState<number>(1);
+  const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
+  const [scrollTo, setScrollTo] = useState<any>(null);
   const [activeField, setActiveField] = useState<string>("");
   const [searchedField, setSearchedField] = useState<string>("");
 
@@ -226,82 +221,80 @@ export default function ReviewPage() {
         }
 
         const arrayBuffer = await response.arrayBuffer();
-        const pdfDoc = await PDFDocument.load(arrayBuffer);
-        renderAnnotations(
-          pdfDoc,
-          documents[documentIndex],
-          documentConfigs[documentType].fields,
-          null
-        );
-        const pdfBytes = await pdfDoc.save();
-        const annotatedBlob = new Blob([pdfBytes], { type: "application/pdf" });
-        const annotatedUrl = URL.createObjectURL(annotatedBlob);
-        setPdfUrl(annotatedUrl);
+        setPdfData(arrayBuffer);
+
+        // const pdfDoc = await PDFDocument.load(arrayBuffer);
+        // setNumPages(pdfDoc.getPages().length);
+        // renderAnnotations(
+        //   pdfDoc,
+        //   documents[documentIndex],
+        //   documentConfigs[documentType].fields
+        // );
+        // const pdfBytes = await pdfDoc.save();
+        // const annotatedBlob = new Blob([pdfBytes], { type: "application/pdf" });
+        // const annotatedUrl = URL.createObjectURL(annotatedBlob);
+        // setPdfUrl(annotatedUrl);
       } catch (error) {
         console.error("Error fetching PDF:", error);
       }
     };
 
     fetchPdf();
-    setYFocus(0);
-    setPageNumber(1);
   }, [documentsFetched, documentIndex, documentConfigs]);
 
   const jumpToField = (field: DocumentConfigField) => {
-    const targetField =
+    const detectedField =
       documents[documentIndex].detectedFields[field.modelField];
-    if (targetField && targetField.page) {
-      setPageNumber(targetField.page);
-      setYFocus(targetField.coordinates[3] * 72 - 40);
+    if (detectedField && detectedField.page) {
+      setScrollTo({
+        page: detectedField.page,
+        coordinates: detectedField.coordinates,
+      });
       setSearchedField(field.id);
     }
   };
 
   // Jump to page to find specific field
-  useEffect(() => {
-    if (loading) {
-      return;
-    }
+  // useEffect(() => {
+  //   if (loading) {
+  //     return;
+  //   }
 
-    const JumpToYCoord = async () => {
-      if (!documentsFetched || !documentConfigs) {
-        return;
-      }
-      try {
-        const response = await fetch(
-          `/api/get-pdf?filename=${documents[documentIndex].filename}`
-        );
-        if (!response.ok) {
-          throw new Error("Failed to fetch PDF");
-        }
+  //   // const jumpToPage = async () => {
+  //   //   try {
+  //   //     const response = await fetch(
+  //   //       `/api/get-pdf?filename=${documents[documentIndex].filename}`
+  //   //     );
+  //   //     if (!response.ok) {
+  //   //       throw new Error("Failed to fetch PDF");
+  //   //     }
 
-        const arrayBuffer = await response.arrayBuffer();
-        const pdfDoc = await PDFDocument.load(arrayBuffer);
-        renderAnnotations(
-          pdfDoc,
-          documents[documentIndex],
-          documentConfigs[documentType].fields,
-          searchedField
-        );
-        const pdfBytes = await pdfDoc.save();
-        const annotatedBlob = new Blob([pdfBytes], { type: "application/pdf" });
-        const annotatedUrl = URL.createObjectURL(annotatedBlob);
-        setPdfUrl(annotatedUrl + `#page=${pageNumber}&view=FitH,${YFocus}`);
-      } catch (error) {
-        console.error("Error fetching PDF:", error);
-      }
-    };
-    JumpToYCoord();
-  }, [pageNumber, YFocus, searchedField]);
+  //   //     const arrayBuffer = await response.arrayBuffer();
+  //   //     const pdfDoc = await PDFDocument.load(arrayBuffer);
+  //   //     renderAnnotations(
+  //   //       pdfDoc,
+  //   //       documents[documentIndex],
+  //   //       documentConfigs[documentType].fields
+  //   //     );
+  //   //     const pdfBytes = await pdfDoc.save();
+  //   //     const annotatedBlob = new Blob([pdfBytes], { type: "application/pdf" });
+  //   //     const annotatedUrl = URL.createObjectURL(annotatedBlob);
+  //   //     setPdfUrl(annotatedUrl + "#page=" + pageNum);
+  //   //   } catch (error) {
+  //   //     console.error("Error fetching PDF:", error);
+  //   //   }
+  //   };
+  //   // jumpToPage();
+  // }, [pageNum]);
 
   // Reset input values when document or document type changes
   useEffect(() => {
-    if (!documentsFetched || !documentConfigs) {
+    if (!documentsFetched || !documentConfigs || !documentType) {
       return;
     }
 
     const newInputValues = {};
-    documentConfigs[documentType].fields.forEach((field) => {
+    documentConfigs[documentType]?.fields.forEach((field) => {
       let defaultValue: any;
       const detectedField =
         documents[documentIndex].fields?.[field.id] ||
@@ -387,31 +380,56 @@ export default function ReviewPage() {
 
   return (
     <NavigationLayout disabled={true}>
-      <Box sx={{ width: "100%", height: "100%", display: "flex" }}>
+      <Box
+        sx={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+        }}
+      >
         <Box
           sx={{
             flex: 3,
-            height: "100%",
             display: "flex",
             flexDirection: "column",
+            height: "100%",
           }}
         >
-          <iframe
-            src={pdfUrl}
-            tabIndex={-1}
-            style={{
-              flex: 1,
-              marginLeft: "10px",
-              marginRight: "10px",
-              marginTop: "10px",
-            }}
-          ></iframe>
+          {pdfData && (
+            <Box
+              sx={{
+                height: "0px",
+                flexGrow: 1,
+                display: "flex",
+              }}
+            >
+              <PdfViewer
+                arrayBuffer={pdfData}
+                doc={documents[documentIndex]}
+                fields={documentConfigs[documentType].fields}
+                activeDetectedField={
+                  documents[documentIndex].detectedFields[
+                    activeField &&
+                      documentConfigs[documentType].fields.find(
+                        (field) => field.id === searchedField
+                      )?.modelField
+                  ]
+                }
+                activeField={documentConfigs[documentType].fields.find(
+                  (field) => field.id === searchedField
+                )}
+                scrollTo={scrollTo}
+              />
+            </Box>
+          )}
+
           <Box
             sx={{
               display: "flex",
               padding: "10px",
               justifyContent: "space-between",
               alignItems: "center",
+              flex: 0,
             }}
           >
             <Button
@@ -445,7 +463,6 @@ export default function ReviewPage() {
                   size="sm"
                   color="success"
                   onClick={() => saveDocumentValues(true)}
-                  tabIndex={-1}
                   sx={{ paddingLeft: "30px", paddingRight: "30px" }}
                 >
                   Submit
@@ -520,7 +537,13 @@ export default function ReviewPage() {
             }}
           />
           {documentConfigs[documentType] && documentsFetched && organization ? (
-            <Sheet sx={{ padding: "5px", overflow: "scroll" }}>
+            <Sheet
+              sx={{
+                padding: "5px",
+                overflow: "scroll",
+                backgroundColor: "white",
+              }}
+            >
               {documentConfigs[documentType].fields.map((field, index) => {
                 const handleInputChange = (
                   fieldId: string,
@@ -567,7 +590,7 @@ export default function ReviewPage() {
                         <Typography level="title-md">
                           {field.displayName}
                         </Typography>
-                        {searchable ? (
+                        {true ? (
                           <IconButton
                             tabIndex={-1}
                             sx={{
@@ -606,11 +629,22 @@ export default function ReviewPage() {
                           handleInputChange(field.id, event.target.value);
                         }}
                         onFocus={() => {
+                          const detectedField =
+                            documents[documentIndex]?.detectedFields[
+                              field.modelField
+                            ];
                           setActiveField(field.id);
+                          // setSearchedField(field.id);
+                          if (detectedField) {
+                            setScrollTo({
+                              page: detectedField.page,
+                              coordinates: detectedField.coordinates,
+                            });
+                          }
                         }}
-                        onBlur={() => {
-                          setSearchedField("");
-                        }}
+                        // onBlur={() => {
+                        //   setSearchedField("");
+                        // }}
                         onKeyDown={(event) => {
                           if (event.key === "Enter" && searchable) {
                             jumpToField(field);
@@ -621,6 +655,12 @@ export default function ReviewPage() {
                     ) : field.kind === "date" ? (
                       <DateInput
                         {...InputStyle}
+                        endDecorator={null}
+                        slotProps={{
+                          endDecorator: {}, // no end decorator
+                          input: { tabIndex: 0 },
+                          startDecorator: { tabIndex: 0 },
+                        }}
                         value={inputValues ? inputValues[field.id] : ""}
                         onChange={(
                           event: React.ChangeEvent<HTMLInputElement>
@@ -628,11 +668,22 @@ export default function ReviewPage() {
                           handleInputChange(field.id, event.target.value);
                         }}
                         onFocus={() => {
+                          const detectedField =
+                            documents[documentIndex]?.detectedFields[
+                              field.modelField
+                            ];
                           setActiveField(field.id);
+                          // setSearchedField(field.id);
+                          if (detectedField) {
+                            setScrollTo({
+                              page: detectedField.page,
+                              coordinates: detectedField.coordinates,
+                            });
+                          }
                         }}
-                        onBlur={() => {
-                          setSearchedField("");
-                        }}
+                        // onBlur={() => {
+                        //   setSearchedField("");
+                        // }}
                         onKeyDown={(event) => {
                           if (event.key === "Enter" && searchable) {
                             jumpToField(field);
@@ -651,11 +702,22 @@ export default function ReviewPage() {
                           handleInputChange(field.id, event.target.value);
                         }}
                         onFocus={() => {
+                          const detectedField =
+                            documents[documentIndex]?.detectedFields[
+                              field.modelField
+                            ];
                           setActiveField(field.id);
+                          // setSearchedField(field.id);
+                          if (detectedField) {
+                            setScrollTo({
+                              page: detectedField.page,
+                              coordinates: detectedField.coordinates,
+                            });
+                          }
                         }}
-                        onBlur={() => {
-                          setSearchedField("");
-                        }}
+                        // onBlur={() => {
+                        //   setSearchedField("");
+                        // }}
                         onKeyDown={(event) => {
                           if (event.key === "Enter" && searchable) {
                             jumpToField(field);
@@ -673,11 +735,22 @@ export default function ReviewPage() {
                           handleInputChange(field.id, event.target.value);
                         }}
                         onFocus={() => {
+                          const detectedField =
+                            documents[documentIndex]?.detectedFields[
+                              field.modelField
+                            ];
                           setActiveField(field.id);
+                          // setSearchedField(field.id);
+                          if (detectedField) {
+                            setScrollTo({
+                              page: detectedField.page,
+                              coordinates: detectedField.coordinates,
+                            });
+                          }
                         }}
-                        onBlur={() => {
-                          setSearchedField("");
-                        }}
+                        // onBlur={() => {
+                        //   setSearchedField("");
+                        // }}
                         onKeyDown={(event) => {
                           if (event.key === "Enter" && searchable) {
                             jumpToField(field);
