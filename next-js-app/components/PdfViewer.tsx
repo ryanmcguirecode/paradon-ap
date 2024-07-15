@@ -45,6 +45,7 @@ const PdfViewer = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [inputPage, setInputPage] = useState(1);
   const [fitMode, setFitMode] = useState("height");
+  const [pdfOverflow, setPdfOverflow] = useState(false);
   const overlayCanvasRefs = useRef([]);
   const scrollPositionRef = useRef(0);
   const observerRef = useRef(null);
@@ -245,8 +246,11 @@ const PdfViewer = ({
     targetScrollTop =
       targetScrollTop - containerHeight / 2 + coordinates[3] / 2;
 
+    const targetScrollLeft =
+      coordinates[0] - container.clientWidth / 2 + coordinates[2] / 2;
+
     // Custom smooth scrolling function
-    const smoothScroll = (target, duration) => {
+    const smoothScrollTop = (target, duration) => {
       const start = container.scrollTop;
       const change = target - start;
       const startTime = performance.now();
@@ -268,7 +272,30 @@ const PdfViewer = ({
       requestAnimationFrame(animateScroll);
     };
 
-    smoothScroll(targetScrollTop, 600);
+    const smoothScrollLeft = (target, duration) => {
+      const start = container.scrollLeft;
+      const change = target - start;
+      const startTime = performance.now();
+
+      const easeInOutQuad = (t) => {
+        return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+      };
+
+      const animateScroll = (currentTime) => {
+        const timeElapsed = currentTime - startTime;
+        const progress = Math.min(timeElapsed / duration, 1);
+        container.scrollLeft = start + change * easeInOutQuad(progress);
+
+        if (progress < 1) {
+          requestAnimationFrame(animateScroll);
+        }
+      };
+
+      requestAnimationFrame(animateScroll);
+    };
+
+    smoothScrollTop(targetScrollTop, 600);
+    smoothScrollLeft(targetScrollLeft, 800);
   }, [scrollTo]);
 
   const drawAnnotations = (
@@ -370,10 +397,24 @@ const PdfViewer = ({
 
   const handleZoomIn = () => {
     setScale(scale + 0.1);
+    if (pdfDoc && containerRef.current) {
+      pdfDoc.getPage(1).then((page) => {
+        const viewport = page.getViewport({ scale: scale, rotation });
+        const newScale = containerRef.current.clientWidth / viewport.width;
+        setPdfOverflow(newScale < 1);
+      });
+    }
   };
 
   const handleZoomOut = () => {
     setScale(scale - 0.1);
+    if (pdfDoc && containerRef.current) {
+      pdfDoc.getPage(1).then((page) => {
+        const viewport = page.getViewport({ scale: scale, rotation });
+        const newScale = containerRef.current.clientWidth / viewport.width;
+        setPdfOverflow(newScale < 1);
+      });
+    }
   };
 
   const handleRotateRight = () => {
@@ -497,6 +538,7 @@ const PdfViewer = ({
         flexGrow: 1,
         marginLeft: "40px",
         marginRight: "40px",
+        width: "calc(100% - 80px)",
       }}
     >
       <Stack
@@ -565,7 +607,7 @@ const PdfViewer = ({
             position: "relative",
             display: "flex",
             flexDirection: "column",
-            alignItems: "center", // Center the PDFs
+            alignItems: !pdfOverflow ? "center" : "", // Center the PDFs
           }}
         />
       </Box>

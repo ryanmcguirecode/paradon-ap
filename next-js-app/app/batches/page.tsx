@@ -126,7 +126,6 @@ export default function BatchesPage() {
     isCheckedOut: null,
   });
 
-
   const getFilteredBatches = (
     offset: number,
     filters: any = currentFilters,

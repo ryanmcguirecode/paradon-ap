@@ -251,6 +251,7 @@ export default function ReviewPage() {
         coordinates: detectedField.coordinates,
       });
       setSearchedField(field.id);
+      setActiveField(field.id);
     }
   };
 
@@ -393,6 +394,7 @@ export default function ReviewPage() {
             display: "flex",
             flexDirection: "column",
             height: "100%",
+            width: "0px",
           }}
         >
           {pdfData && (
@@ -635,12 +637,12 @@ export default function ReviewPage() {
                             ];
                           setActiveField(field.id);
                           // setSearchedField(field.id);
-                          if (detectedField) {
-                            setScrollTo({
-                              page: detectedField.page,
-                              coordinates: detectedField.coordinates,
-                            });
-                          }
+                          // if (detectedField) {
+                          //   setScrollTo({
+                          //     page: detectedField.page,
+                          //     coordinates: detectedField.coordinates,
+                          //   });
+                          // }
                         }}
                         // onBlur={() => {
                         //   setSearchedField("");
@@ -674,12 +676,12 @@ export default function ReviewPage() {
                             ];
                           setActiveField(field.id);
                           // setSearchedField(field.id);
-                          if (detectedField) {
-                            setScrollTo({
-                              page: detectedField.page,
-                              coordinates: detectedField.coordinates,
-                            });
-                          }
+                          // if (detectedField) {
+                          //   setScrollTo({
+                          //     page: detectedField.page,
+                          //     coordinates: detectedField.coordinates,
+                          //   });
+                          // }
                         }}
                         // onBlur={() => {
                         //   setSearchedField("");
@@ -708,12 +710,12 @@ export default function ReviewPage() {
                             ];
                           setActiveField(field.id);
                           // setSearchedField(field.id);
-                          if (detectedField) {
-                            setScrollTo({
-                              page: detectedField.page,
-                              coordinates: detectedField.coordinates,
-                            });
-                          }
+                          // if (detectedField) {
+                          //   setScrollTo({
+                          //     page: detectedField.page,
+                          //     coordinates: detectedField.coordinates,
+                          //   });
+                          // }
                         }}
                         // onBlur={() => {
                         //   setSearchedField("");
@@ -741,12 +743,12 @@ export default function ReviewPage() {
                             ];
                           setActiveField(field.id);
                           // setSearchedField(field.id);
-                          if (detectedField) {
-                            setScrollTo({
-                              page: detectedField.page,
-                              coordinates: detectedField.coordinates,
-                            });
-                          }
+                          // if (detectedField) {
+                          //   setScrollTo({
+                          //     page: detectedField.page,
+                          //     coordinates: detectedField.coordinates,
+                          //   });
+                          // }
                         }}
                         // onBlur={() => {
                         //   setSearchedField("");
