@@ -47,7 +47,7 @@ const PdfViewer = ({
   const [annotations, setAnnotations] = useState([]);
   const [showAnnotations, setShowAnnotations] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [inputPage, setInputPage] = useState(1);
+  const [inputPage, setInputPage] = useState("1");
   const [fitMode, setFitMode] = useState("height");
   const [pdfOverflow, setPdfOverflow] = useState(false);
   const overlayCanvasRefs = useRef([]);
@@ -475,17 +475,25 @@ const PdfViewer = ({
     }
   };
 
-  const handlePageChange = (event) => {
-    const newPage = parseInt(event.target.value, 10);
-    if (!isNaN(newPage) && newPage > 0 && newPage <= pdfDoc.numPages) {
-      setCurrentPage(newPage);
-      setInputPage(newPage);
-      const container = containerRef.current;
-      const pageHeight = container.children[0].offsetHeight + 20; // Including margin-bottom
-      container.scrollTop = (newPage - 1) * pageHeight;
-    } else {
-      setInputPage(currentPage); // Reset to current page if input is invalid
+  const handleInputPageChange = (event) => {
+    const newPage = event.target.value;
+    const numberOnly = newPage.replace(/[^0-9]/g, "");
+    setInputPage(numberOnly);
+  };
+
+  const handlePageChange = () => {
+    var newPage = parseInt(inputPage);
+    if (newPage < 1 || !newPage) {
+      newPage = 1;
+    } else if (newPage > pdfDoc.numPages) {
+      newPage = pdfDoc.numPages;
     }
+
+    setInputPage(newPage.toString());
+    setCurrentPage(newPage);
+    const container = containerRef.current;
+    const pageHeight = container.children[0].offsetHeight + 20; // Including margin-bottom
+    container.scrollTop = (newPage - 1) * pageHeight;
   };
 
   const startAnimation = (animationContext, viewport) => {
@@ -569,7 +577,13 @@ const PdfViewer = ({
       >
         <Input
           value={inputPage}
-          onChange={handlePageChange}
+          onChange={handleInputPageChange}
+          onBlur={() => handlePageChange()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handlePageChange();
+            }
+          }}
           slotProps={{ input: { tabIndex: -1 } }}
           sx={{ width: 60, margin: "0 10px" }}
         />
