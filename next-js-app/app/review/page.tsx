@@ -44,6 +44,7 @@ export default function ReviewPage() {
   const [scrollTo, setScrollTo] = useState<any>(null);
   const [activeField, setActiveField] = useState<string>("");
   const [searchedField, setSearchedField] = useState<string>("");
+  const [activatedFields, setActivatedFields] = useState<string[]>([]);
 
   const [documentType, setDocumentType] = useState<string>();
   const [documentConfigs, setDocumentConfigs] = useState<{
@@ -222,23 +223,11 @@ export default function ReviewPage() {
 
         const arrayBuffer = await response.arrayBuffer();
         setPdfData(arrayBuffer);
-
-        // const pdfDoc = await PDFDocument.load(arrayBuffer);
-        // setNumPages(pdfDoc.getPages().length);
-        // renderAnnotations(
-        //   pdfDoc,
-        //   documents[documentIndex],
-        //   documentConfigs[documentType].fields
-        // );
-        // const pdfBytes = await pdfDoc.save();
-        // const annotatedBlob = new Blob([pdfBytes], { type: "application/pdf" });
-        // const annotatedUrl = URL.createObjectURL(annotatedBlob);
-        // setPdfUrl(annotatedUrl);
       } catch (error) {
         console.error("Error fetching PDF:", error);
       }
     };
-
+    setActivatedFields([]);
     fetchPdf();
   }, [documentsFetched, documentIndex, documentConfigs]);
 
@@ -254,39 +243,6 @@ export default function ReviewPage() {
       setActiveField(field.id);
     }
   };
-
-  // Jump to page to find specific field
-  // useEffect(() => {
-  //   if (loading) {
-  //     return;
-  //   }
-
-  //   // const jumpToPage = async () => {
-  //   //   try {
-  //   //     const response = await fetch(
-  //   //       `/api/get-pdf?filename=${documents[documentIndex].filename}`
-  //   //     );
-  //   //     if (!response.ok) {
-  //   //       throw new Error("Failed to fetch PDF");
-  //   //     }
-
-  //   //     const arrayBuffer = await response.arrayBuffer();
-  //   //     const pdfDoc = await PDFDocument.load(arrayBuffer);
-  //   //     renderAnnotations(
-  //   //       pdfDoc,
-  //   //       documents[documentIndex],
-  //   //       documentConfigs[documentType].fields
-  //   //     );
-  //   //     const pdfBytes = await pdfDoc.save();
-  //   //     const annotatedBlob = new Blob([pdfBytes], { type: "application/pdf" });
-  //   //     const annotatedUrl = URL.createObjectURL(annotatedBlob);
-  //   //     setPdfUrl(annotatedUrl + "#page=" + pageNum);
-  //   //   } catch (error) {
-  //   //     console.error("Error fetching PDF:", error);
-  //   //   }
-  //   };
-  //   // jumpToPage();
-  // }, [pageNum]);
 
   // Reset input values when document or document type changes
   useEffect(() => {
@@ -592,7 +548,7 @@ export default function ReviewPage() {
                         <Typography level="title-md">
                           {field.displayName}
                         </Typography>
-                        {true ? (
+                        {searchable ? (
                           <IconButton
                             tabIndex={-1}
                             sx={{
@@ -636,13 +592,17 @@ export default function ReviewPage() {
                               field.modelField
                             ];
                           setActiveField(field.id);
-                          // setSearchedField(field.id);
-                          // if (detectedField) {
-                          //   setScrollTo({
-                          //     page: detectedField.page,
-                          //     coordinates: detectedField.coordinates,
-                          //   });
-                          // }
+                          setSearchedField(field.id);
+                          if (
+                            detectedField &&
+                            !activatedFields.includes(field.id)
+                          ) {
+                            setScrollTo({
+                              page: detectedField.page,
+                              coordinates: detectedField.coordinates,
+                            });
+                            setActivatedFields([...activatedFields, field.id]);
+                          }
                         }}
                         // onBlur={() => {
                         //   setSearchedField("");
@@ -675,13 +635,17 @@ export default function ReviewPage() {
                               field.modelField
                             ];
                           setActiveField(field.id);
-                          // setSearchedField(field.id);
-                          // if (detectedField) {
-                          //   setScrollTo({
-                          //     page: detectedField.page,
-                          //     coordinates: detectedField.coordinates,
-                          //   });
-                          // }
+                          setSearchedField(field.id);
+                          if (
+                            detectedField &&
+                            !activatedFields.includes(field.id)
+                          ) {
+                            setScrollTo({
+                              page: detectedField.page,
+                              coordinates: detectedField.coordinates,
+                            });
+                            setActivatedFields([...activatedFields, field.id]);
+                          }
                         }}
                         // onBlur={() => {
                         //   setSearchedField("");
@@ -709,13 +673,17 @@ export default function ReviewPage() {
                               field.modelField
                             ];
                           setActiveField(field.id);
-                          // setSearchedField(field.id);
-                          // if (detectedField) {
-                          //   setScrollTo({
-                          //     page: detectedField.page,
-                          //     coordinates: detectedField.coordinates,
-                          //   });
-                          // }
+                          setSearchedField(field.id);
+                          if (
+                            detectedField &&
+                            !activatedFields.includes(field.id)
+                          ) {
+                            setScrollTo({
+                              page: detectedField.page,
+                              coordinates: detectedField.coordinates,
+                            });
+                            setActivatedFields([...activatedFields, field.id]);
+                          }
                         }}
                         // onBlur={() => {
                         //   setSearchedField("");
@@ -742,13 +710,17 @@ export default function ReviewPage() {
                               field.modelField
                             ];
                           setActiveField(field.id);
-                          // setSearchedField(field.id);
-                          // if (detectedField) {
-                          //   setScrollTo({
-                          //     page: detectedField.page,
-                          //     coordinates: detectedField.coordinates,
-                          //   });
-                          // }
+                          setSearchedField(field.id);
+                          if (
+                            detectedField &&
+                            !activatedFields.includes(field.id)
+                          ) {
+                            setScrollTo({
+                              page: detectedField.page,
+                              coordinates: detectedField.coordinates,
+                            });
+                            setActivatedFields([...activatedFields, field.id]);
+                          }
                         }}
                         // onBlur={() => {
                         //   setSearchedField("");

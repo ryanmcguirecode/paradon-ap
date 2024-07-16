@@ -18,6 +18,10 @@ import Rotate90DegreesCwOutlinedIcon from "@mui/icons-material/Rotate90DegreesCw
 import Document, { DetectedField } from "@/types/Document";
 import { DocumentConfigField } from "@/types/DocumentConfig";
 
+const ZOOM_CHANGE = 0.1;
+const MAX_ZOOM = 5;
+const MIN_ZOOM = 0.25;
+
 interface PdfViewerProps {
   arrayBuffer: ArrayBuffer | null;
   doc: Document;
@@ -38,6 +42,7 @@ const PdfViewer = ({
   const containerRef = useRef(null);
   const [pdfDoc, setPdfDoc] = useState(null);
   const [scale, setScale] = useState(1);
+  const [inputZoom, setInputZoom] = useState<string>("100");
   const [rotation, setRotation] = useState(0);
   const [annotations, setAnnotations] = useState([]);
   const [showAnnotations, setShowAnnotations] = useState(true);
@@ -65,6 +70,7 @@ const PdfViewer = ({
       const viewport = firstPage.getViewport({ scale: 1 });
       const initialScale = (container.clientWidth * 0.9) / viewport.width;
       setScale(initialScale);
+      setInputZoom(Math.floor(initialScale * 100).toString());
     };
 
     loadPdf();
@@ -195,6 +201,16 @@ const PdfViewer = ({
         }
 
         observerRef.current.observe(pageContainer); // Observe the page container
+      }
+
+      // Check if the PDF overflows the container
+      if (pdfDoc && containerRef.current) {
+        pdfDoc.getPage(1).then((page) => {
+          const viewport = page.getViewport({ scale: scale, rotation });
+          const overflow = containerRef.current.clientWidth / viewport.width;
+          console.log(overflow);
+          setPdfOverflow(overflow < 1);
+        });
       }
 
       container.scrollTop = scrollPositionRef.current; // Restore scroll position}
@@ -399,35 +415,31 @@ const PdfViewer = ({
   };
 
   const handleZoomIn = () => {
-    setScale(scale + 0.1);
-    if (pdfDoc && containerRef.current) {
-      pdfDoc.getPage(1).then((page) => {
-        const viewport = page.getViewport({ scale: scale, rotation });
-        const newScale = containerRef.current.clientWidth / viewport.width;
-        setPdfOverflow(newScale < 1);
-      });
-    }
+    handleScaleChange(scale + ZOOM_CHANGE);
   };
 
   const handleZoomOut = () => {
-    setScale(scale - 0.1);
-    if (pdfDoc && containerRef.current) {
-      pdfDoc.getPage(1).then((page) => {
-        const viewport = page.getViewport({ scale: scale, rotation });
-        const newScale = containerRef.current.clientWidth / viewport.width;
-        setPdfOverflow(newScale < 1);
-      });
-    }
+    handleScaleChange(scale - ZOOM_CHANGE);
   };
 
   const handleRotateRight = () => {
     setRotation((rotation + 90) % 360);
   };
 
-  const handleScaleChange = (event) => {
-    const newScale = parseFloat(event.target.value) / 100;
-    if (!isNaN(newScale) && newScale > 0) {
+  const handleInputZoomChange = (event) => {
+    const newInputZoom = event.target.value.slice(0, -1);
+    const numberOnly = newInputZoom.replace(/[^0-9]/g, "");
+    setInputZoom(numberOnly);
+  };
+
+  const handleScaleChange = (newScale) => {
+    if (newScale < 0.25) {
+      newScale = MIN_ZOOM;
+    } else if (newScale > 5) {
+      newScale = MAX_ZOOM;
+    } else if (newScale) {
       setScale(newScale);
+      setInputZoom(Math.floor(newScale * 100).toString());
     }
   };
 
@@ -437,7 +449,7 @@ const PdfViewer = ({
       pdfDoc.getPage(1).then((page) => {
         const viewport = page.getViewport({ scale: 1, rotation });
         const newScale = container.clientWidth / viewport.width;
-        setScale(newScale - 0.02);
+        handleScaleChange(newScale - 0.02);
       });
     }
   };
@@ -448,7 +460,7 @@ const PdfViewer = ({
       pdfDoc.getPage(1).then((page) => {
         const viewport = page.getViewport({ scale: 1, rotation });
         const newScale = container.clientHeight / viewport.height;
-        setScale(newScale);
+        handleScaleChange(newScale);
       });
     }
   };
@@ -567,8 +579,14 @@ const PdfViewer = ({
           <RemoveIcon />
         </IconButton>
         <Input
-          value={(scale * 100).toFixed(0) + "%"}
-          onChange={handleScaleChange}
+          value={inputZoom + "%"}
+          onChange={handleInputZoomChange}
+          onBlur={() => handleScaleChange(parseFloat(inputZoom) / 100)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleScaleChange(parseFloat(inputZoom) / 100);
+            }
+          }}
           slotProps={{ input: { tabIndex: -1 } }}
           sx={{ width: 70, margin: "0 10px" }}
         />
