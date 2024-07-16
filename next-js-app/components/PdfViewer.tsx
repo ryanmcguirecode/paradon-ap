@@ -38,7 +38,6 @@ const PdfViewer = ({
   const containerRef = useRef(null);
   const [pdfDoc, setPdfDoc] = useState(null);
   const [scale, setScale] = useState(1);
-  const [viewportSize, setViewportSize] = useState([null, null]);
   const [rotation, setRotation] = useState(0);
   const [annotations, setAnnotations] = useState([]);
   const [showAnnotations, setShowAnnotations] = useState(true);
@@ -66,7 +65,6 @@ const PdfViewer = ({
       const viewport = firstPage.getViewport({ scale: 1 });
       const initialScale = (container.clientWidth * 0.9) / viewport.width;
       setScale(initialScale);
-      setViewportSize([viewport.width, viewport.height]);
     };
 
     loadPdf();
@@ -84,7 +82,6 @@ const PdfViewer = ({
         continue;
       }
 
-      // const field = fields.find((f) => f.modelField === activeField.id);
       const opacity = !activeField || activeField.id === field.id ? 0.4 : 0.05;
 
       rectangles.push({
@@ -185,17 +182,15 @@ const PdfViewer = ({
 
         overlayCanvasRefs.current.push(overlayCanvas);
 
-        if (showAnnotations && viewportSize[0] && viewportSize[1]) {
-          drawAnnotations(
-            overlayCanvas.getContext("2d"),
-            annotations,
-            viewport,
-            num,
-            scale,
-            rotation
-          );
-        }
-        if (activeDetectedField && num === activeDetectedField.page) {
+        drawAnnotations(
+          overlayCanvas.getContext("2d"),
+          annotations,
+          viewport,
+          num,
+          scale,
+          rotation
+        );
+        if (num === activeDetectedField?.page) {
           startAnimation(animationContext, viewport);
         }
 
@@ -224,9 +219,11 @@ const PdfViewer = ({
     }
 
     const container = containerRef.current;
+    const viewport = container.getBoundingClientRect();
 
     const coordinates = transformCoordinates(
       scrollTo.coordinates,
+      viewport,
       rotation,
       scale
     );
@@ -313,7 +310,7 @@ const PdfViewer = ({
       if (annotation.page === pageNum) {
         let [x, y, width, height] = transformCoordinates(
           annotation.coordinates,
-          // viewport,
+          viewport,
           rotation,
           scale
         );
@@ -325,36 +322,42 @@ const PdfViewer = ({
     context.restore();
   };
 
-  const transformCoordinates = (coords, rotation, scale) => {
+  const transformCoordinates = (coords, viewport, rotation, scale) => {
     const [x1, x2, y1, y2] = coords.map((coord) => coord * 72 * scale); // Convert to points and apply scale
     let x, y, width, height;
-
-    const viewportWidth = viewportSize[0];
-    const viewportHeight = viewportSize[1];
-    if (viewportHeight === null || viewportWidth === null) {
-      console.error("Viewport size is null");
-      return [0, 0, 0, 0];
-    }
 
     if (rotation < 0) {
       rotation += 360;
     }
+
+    // let viewportWidth, viewportHeight;
+    // if (rotation % 180 !== 0) {
+    //   [viewportHeight, viewportWidth] = viewportSize;
+    // } else {
+    //   [viewportWidth, viewportHeight] = viewportSize;
+    // }
+
+    // if (viewport.height === null || viewport.width === null) {
+    //   console.error("Viewport size is null");
+    //   return [0, 0, 0, 0];
+    // }
+
     switch (rotation) {
       case 90:
-        x = viewportWidth - y2;
+        x = viewport.width - y2;
         y = x1;
         width = y2 - y1;
         height = x2 - x1;
         break;
       case 180:
-        x = viewportWidth - x2;
-        y = viewportHeight - y2;
+        x = viewport.width - x2;
+        y = viewport.height - y2;
         width = x2 - x1;
         height = y2 - y1;
         break;
       case 270:
         x = y1;
-        y = viewportHeight - x2;
+        y = viewport.height - x2;
         width = y2 - y1;
         height = x2 - x1;
         break;
@@ -480,7 +483,7 @@ const PdfViewer = ({
 
     const coords = transformCoordinates(
       activeDetectedField.coordinates,
-      // viewport,
+      viewport,
       rotation,
       scale
     );
