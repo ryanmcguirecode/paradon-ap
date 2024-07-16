@@ -132,7 +132,7 @@ const PdfViewer = ({
               10
             );
             setCurrentPage(pageIndex);
-            setInputPage(pageIndex);
+            setInputPage(pageIndex.toString());
           }
         });
       }, observerOptions);
