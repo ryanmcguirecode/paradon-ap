@@ -14,6 +14,7 @@ import {
   Select,
   Typography,
 } from "@mui/joy";
+import LockOpen from "@mui/icons-material/LockOpen";
 
 import FolderCopyOutlinedIcon from "@mui/icons-material/FolderCopyOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
@@ -23,6 +24,7 @@ import NavigationLayout from "@/components/NavigationLayout";
 import { useAuth } from "@/components/AuthContext";
 import ArrowDownward from "@mui/icons-material/ArrowDownward";
 import ArrowUpward from "@mui/icons-material/ArrowUpward";
+import { auth } from "firebase-admin";
 
 function getPreviewImage(isCheckedOut: boolean | null) {
   return (
@@ -51,64 +53,179 @@ interface BatchComponentProps {
   batch: Batch;
   onClick?: () => void;
   disabled?: boolean;
+  auth: AuthContext;
+  refreshPage: () => void;
 }
 
-function BatchComponent({ batch, onClick }: BatchComponentProps) {
-  return (
-    <Button
-      color="neutral"
-      variant="plain"
-      disabled={batch.isCheckedOut}
-      onClick={onClick}
-      sx={{
-        marginLeft: "60px",
-        marginBottom: "20px",
-        borderRadius: "15px",
-        padding: "10px",
-        width: "140px",
-        opacity: batch.isCheckedOut ? 0.6 : 1,
-      }}
-    >
-      <Box sx={{ maxWidth: "100%" }}>
-        {getPreviewImage(batch.isCheckedOut)}
-        <Typography
-          level="title-md"
-          textAlign="center"
-          sx={{
-            marginTop: "5px",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {batch.batchName}
-        </Typography>
+function BatchComponent({
+  batch,
+  onClick,
+  auth,
+  refreshPage,
+}: BatchComponentProps) {
+  const [isHovered, setIsHovered] = useState(false);
 
-        <Typography
-          level="body-sm"
-          textAlign="center"
+  const onUnlock = () => {
+    const url = new URL("/api/release-batch", window.location.origin);
+    url.searchParams.append("batchId", batch.batchId);
+
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        batchId: batch.batchId,
+        callerId: auth.user.email,
+        organization: auth.organization,
+      }),
+    }).then(() => {
+      refreshPage();
+    });
+  };
+
+  if (auth.level === "admin" && batch.isCheckedOut && isHovered) {
+    return (
+      <Box
+        sx={{
+          display: "inline-flex",
+          marginLeft: "60px",
+          marginBottom: "20px",
+          position: "relative",
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <Button
+          color="neutral"
+          variant="plain"
+          onClick={onUnlock}
           sx={{
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
+            borderRadius: "15px",
+            padding: "10px",
+            width: "140px",
+            opacity: 1,
           }}
         >
-          {batch.documentCount + " documents"}
-        </Typography>
-        <Typography
-          level="body-sm"
-          textAlign="center"
-          sx={{
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {formatDateString(batch.timeCreated)}
-        </Typography>
+          <Box sx={{ maxWidth: "100%" }}>
+            <AspectRatio
+              variant="plain"
+              minHeight="55px"
+              maxHeight="55px"
+              sx={{ backgroundColor: "transparent" }}
+            >
+              <LockOpen />
+            </AspectRatio>
+            <Typography
+              level="title-md"
+              textAlign="center"
+              sx={{
+                marginTop: "5px",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {batch.batchName}
+            </Typography>
+            <Typography
+              level="body-sm"
+              textAlign="center"
+              sx={{
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {batch.documentCount + " documents"}
+            </Typography>
+            <Typography
+              level="body-sm"
+              textAlign="center"
+              sx={{
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {formatDateString(batch.timeCreated)}
+            </Typography>
+          </Box>
+        </Button>
       </Box>
-    </Button>
-  );
+    );
+  } else {
+    return (
+      <Box
+        sx={{
+          display: "inline-flex",
+          marginLeft: "60px",
+          marginBottom: "20px",
+          position: "relative",
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <Button
+          color="neutral"
+          variant="plain"
+          disabled={batch.isCheckedOut}
+          onClick={onClick}
+          sx={{
+            borderRadius: "15px",
+            padding: "10px",
+            width: "140px",
+            opacity: batch.isCheckedOut ? 0.6 : 1,
+          }}
+        >
+          <Box sx={{ maxWidth: "100%" }}>
+            {getPreviewImage(batch.isCheckedOut)}
+            <Typography
+              level="title-md"
+              textAlign="center"
+              sx={{
+                marginTop: "5px",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {batch.batchName}
+            </Typography>
+            <Typography
+              level="body-sm"
+              textAlign="center"
+              sx={{
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {batch.documentCount + " documents"}
+            </Typography>
+            <Typography
+              level="body-sm"
+              textAlign="center"
+              sx={{
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {formatDateString(batch.timeCreated)}
+            </Typography>
+          </Box>
+        </Button>
+      </Box>
+    );
+  }
+}
+
+interface AuthContext {
+  user: any;
+  loading: boolean;
+  level: string;
+  organization: string;
 }
 
 export default function BatchesPage() {
@@ -207,6 +324,10 @@ export default function BatchesPage() {
             key={index}
             batch={batch}
             onClick={() => router.push(`/review?batchId=${batch.batchId}`)}
+            auth={{ user, loading, level, organization }}
+            refreshPage={() =>
+              getFilteredBatches(0, currentFilters, false, descending)
+            }
           />
         ))}
       </Box>
