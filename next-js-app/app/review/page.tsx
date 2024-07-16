@@ -17,6 +17,7 @@ import {
   IconButton,
   FormControl,
   Divider,
+  CircularProgress,
 } from "@mui/joy";
 import SearchIcon from "@mui/icons-material/Search";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
@@ -353,6 +354,20 @@ export default function ReviewPage() {
             width: "0px",
           }}
         >
+          {!pdfData && (
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                width: "100%",
+                backgroundColor: "white",
+              }}
+            >
+              <CircularProgress />
+            </Box>
+          )}
           {pdfData && (
             <Box
               sx={{
