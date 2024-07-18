@@ -172,33 +172,34 @@ export default function UsersTab() {
           </tr>
         </thead>
         <tbody>
-          {users.map((user, index) => (
-            <tr key={user.email}>
-              <td>
-                <Typography textAlign="center">{user.name}</Typography>
-              </td>
-              <td>
-                <Typography textAlign="center">{user.email}</Typography>
-              </td>
-              <td>
-                <Typography style={{ textAlign: "center" }}>
-                  ********
-                </Typography>
-              </td>
-              <td>
-                <Typography textAlign="center">{user.level}</Typography>
-              </td>
-              <td>
-                <IconButton
-                  variant="soft"
-                  color="danger"
-                  onClick={deleteUser(user.email)}
-                >
-                  <DeleteOutlineOutlinedIcon />
-                </IconButton>
-              </td>
-            </tr>
-          ))}
+          {users.length > 0 &&
+            users.map((user, index) => (
+              <tr key={user.email}>
+                <td>
+                  <Typography textAlign="center">{user.name}</Typography>
+                </td>
+                <td>
+                  <Typography textAlign="center">{user.email}</Typography>
+                </td>
+                <td>
+                  <Typography style={{ textAlign: "center" }}>
+                    ********
+                  </Typography>
+                </td>
+                <td>
+                  <Typography textAlign="center">{user.level}</Typography>
+                </td>
+                <td>
+                  <IconButton
+                    variant="soft"
+                    color="danger"
+                    onClick={deleteUser(user.email)}
+                  >
+                    <DeleteOutlineOutlinedIcon />
+                  </IconButton>
+                </td>
+              </tr>
+            ))}
         </tbody>
         <tfoot>
           <tr>

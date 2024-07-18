@@ -1,4 +1,5 @@
 import { AzureField } from "./AzureField";
+import { Transformation } from "./Transformation";
 
 export interface DocumentConfigField {
   id: string;
@@ -7,6 +8,10 @@ export interface DocumentConfigField {
   color: [number, number, number];
   required: boolean;
   modelField?: AzureField | null;
+  transformation?: {
+    id: string;
+    inputField: string;
+  };
 }
 
 export interface DocumentConfig {

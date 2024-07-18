@@ -11,11 +11,13 @@ import {
 } from "@mui/joy";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import DocumentScannerOutlinedIcon from "@mui/icons-material/DocumentScannerOutlined";
+import FunctionsIcon from "@mui/icons-material/Functions";
 
 import NavigationLayout from "@/components/NavigationLayout";
 
 import UsersTab from "./UsersTab";
 import DocumentsTab from "./DocumentsTab";
+import TransformationsTab from "./TransformationsTab";
 
 export default function AdminPage() {
   return (
@@ -62,6 +64,12 @@ export default function AdminPage() {
               </ListItemDecorator>
               Documents
             </Tab>
+            <Tab>
+              <ListItemDecorator>
+                <FunctionsIcon />
+              </ListItemDecorator>
+              Transformations
+            </Tab>
           </TabList>
           <TabPanel
             value={0}
@@ -78,6 +86,14 @@ export default function AdminPage() {
             }}
           >
             <DocumentsTab />
+          </TabPanel>
+          <TabPanel
+            value={2}
+            sx={{
+              height: "calc(100% - 100px)", // Overflowing otherwise idk why
+            }}
+          >
+            <TransformationsTab />
           </TabPanel>
         </Tabs>
       </Box>

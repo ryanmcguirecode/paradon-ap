@@ -27,6 +27,7 @@
     "focus-trap-react": "^10.2.3",
     "ioredis": "^5.4.1",
     "next": "14.2.3",
+    "papaparse": "^5.4.1",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^4.4.168",
     "react": "^18",

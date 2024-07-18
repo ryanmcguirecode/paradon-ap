@@ -208,7 +208,6 @@ const PdfViewer = ({
         pdfDoc.getPage(1).then((page) => {
           const viewport = page.getViewport({ scale: scale, rotation });
           const overflow = containerRef.current.clientWidth / viewport.width;
-          console.log(overflow);
           setPdfOverflow(overflow < 1);
         });
       }

@@ -7,10 +7,14 @@ import {
   AccordionDetails,
   AccordionGroup,
   AccordionSummary,
+  Autocomplete,
   Box,
   Button,
   Checkbox,
   CircularProgress,
+  FormControl,
+  FormLabel,
+  Input,
   Tab,
   tabClasses,
   TabList,
@@ -28,6 +32,7 @@ import {
   DocumentConfig as Document,
   DocumentConfigField as DocumentField,
 } from "@/types/DocumentConfig";
+import { Transformation } from "@/types/Transformation";
 import { azureInvoiceFields } from "@/types/AzureField";
 
 import {
@@ -45,8 +50,10 @@ import {
   SelectProperty,
   TrueFalseProperty,
 } from "./SettingsInputs";
+import { on } from "events";
 
 interface FieldPropertyProps {
+  fields: DocumentField[];
   field: DocumentField;
   isNew?: boolean;
   onChange?: (field: DocumentField) => void;
@@ -55,9 +62,11 @@ interface FieldPropertyProps {
   usedFieldIds: string[];
   indentation?: number;
   isNewField?: boolean;
+  transformations: Transformation[];
 }
 
 function FieldProperty({
+  fields,
   field,
   isNew = false,
   onChange = (field) => {},
@@ -66,6 +75,7 @@ function FieldProperty({
   usedFieldIds = [],
   indentation = 0,
   isNewField = false,
+  transformations,
 }: FieldPropertyProps) {
   let id: string,
     displayName: string,
@@ -73,6 +83,13 @@ function FieldProperty({
     color: [number, number, number],
     modelField: string | null,
     required: boolean;
+
+  const [inputField, setinputField] = useState(
+    field?.transformation?.inputField || ""
+  );
+  const [transformation, setTransformation] = useState(
+    field?.transformation?.id || ""
+  );
 
   if (!field) {
     id = "";
@@ -205,6 +222,73 @@ function FieldProperty({
             options={[null, ...Object.keys(azureInvoiceFields)]}
             indentation={indentation + 1}
           />
+          {/* <Autocomplete></Autocomplete> */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "row",
+              gap: "20px",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <FormControl
+              sx={{
+                mx: "5px",
+                my: "5px",
+              }}
+            >
+              <FormControl>
+                <FormLabel>Transformation</FormLabel>
+                <Autocomplete
+                  options={transformations.map(
+                    (transformation) => transformation.name
+                  )}
+                  onInputChange={(event, newValue) => {
+                    onChange({
+                      ...field,
+                      transformation: {
+                        id: newValue,
+                        inputField: field?.transformation?.inputField || "",
+                      },
+                    });
+                  }}
+                  inputValue={field?.transformation?.id || ""}
+                  value={[field?.transformation?.id || ""]}
+                  disabled={!isNew}
+                  placeholder="Select Transform"
+                  sx={{ width: 200 }}
+                ></Autocomplete>
+              </FormControl>
+              <FormLabel>Input Field</FormLabel>
+              <Autocomplete
+                options={[...fields.map((field) => field.id), id]}
+                value={[field?.transformation?.inputField || ""]}
+                inputValue={field?.transformation?.inputField || ""}
+                disabled={!isNew}
+                onInputChange={(event, newValue) => {
+                  onChange({
+                    ...field,
+                    transformation: {
+                      id: field?.transformation?.id || "",
+                      inputField: newValue,
+                    },
+                  });
+                }}
+                placeholder="Select Field"
+                sx={{ width: 200 }}
+              />
+            </FormControl>
+            <FormControl
+              sx={{
+                mx: "20px",
+                my: "5px",
+              }}
+            >
+              <FormLabel>Output Field</FormLabel>
+              <Input value={field?.id} disabled={true} sx={{ width: 200 }} />
+            </FormControl>
+          </Box>
           {!isNewField && (
             <Button
               size="md"
@@ -216,7 +300,6 @@ function FieldProperty({
               Delete Field
             </Button>
           )}
-
           {isNewField && (
             <Button
               size="md"
@@ -240,7 +323,8 @@ function DocumentConfig(
   onChange: (document: Document) => void,
   usedDocumentIds: string[],
   usedFieldIds: string[],
-  onDelete = () => {}
+  onDelete = () => {},
+  transformations: Transformation[]
 ) {
   const documentIsEmpty = isEmptyDocument(document);
 
@@ -295,6 +379,7 @@ function DocumentConfig(
             <FieldProperty
               key={index}
               field={field}
+              fields={document.fields.slice(0, document.fields.length - 1)}
               isNew={index === document.fields.length - 1}
               onChange={(field) => {
                 onChange({
@@ -321,6 +406,7 @@ function DocumentConfig(
               usedFieldIds={usedFieldIds}
               indentation={1}
               isNewField={index === document.fields.length - 1}
+              transformations={transformations}
             />
           ))}
         </AccordionGroup>
@@ -345,6 +431,7 @@ export default function DocumentsTab() {
   const [documentsLoading, setDocumentsLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState(0);
   const [rerenderTrigger, setRerenderTrigger] = useState(false);
+  const [transformations, setTransformations] = useState<Transformation[]>([]);
   const { user, loading, level, organization } = useAuth();
 
   const usedDocumentIds = documentTypes
@@ -433,9 +520,26 @@ export default function DocumentsTab() {
     }
   }
 
+  async function fetchTransformations() {
+    // Fetch transformations
+    const response = await fetch(
+      `/api/transformations?organization=${organization}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    response.json().then((data) => {
+      setTransformations(data);
+    });
+  }
+
   useEffect(() => {
     if (organization) {
       getOrganizationDocuments();
+      fetchTransformations();
     }
   }, [organization]);
 
@@ -539,7 +643,8 @@ export default function DocumentsTab() {
                   return newDocumentTypes.filter((document, i) => i !== index);
                 });
                 setRerenderTrigger(!rerenderTrigger);
-              }
+              },
+              transformations
             )}
           </TabPanel>
         ))}

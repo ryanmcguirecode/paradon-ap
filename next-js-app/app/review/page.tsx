@@ -26,10 +26,13 @@ import { useAuth } from "@/components/AuthContext";
 import NavigationLayout from "@/components/NavigationLayout";
 import Document from "@/types/Document";
 import { DocumentConfig, DocumentConfigField } from "@/types/DocumentConfig";
+import { Transformation } from "@/types/Transformation";
 
 import CurrencyInput, { currencyToNumber } from "./CurrencyInput";
 import DateInput, { dateToIsoString } from "./DateInput";
 import InputStyle from "./InputStyle";
+
+import { regexReplace } from "@/utils/regexReplace";
 
 export default function ReviewPage() {
   const router = useRouter();
@@ -53,6 +56,7 @@ export default function ReviewPage() {
   }>({});
 
   const [inputValues, setInputValues] = useState<{ [key: string]: any }>();
+  const [transformations, setTransformations] = useState<Transformation[]>();
 
   // Acquire batch and fetch documents
   useEffect(() => {
@@ -95,7 +99,24 @@ export default function ReviewPage() {
       setDocumentsFetched(true);
     };
 
+    async function fetchTransformations() {
+      // Fetch transformations
+      const response = await fetch(
+        `/api/transformations?organization=${organization}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      response.json().then((data) => {
+        setTransformations(data);
+      });
+    }
+
     acquireBatch(batchId || "").then(() => fetchDocuments());
+    fetchTransformations();
   }, [loading]);
 
   // Heartbeat to database that the user is still using the batch every 30s
@@ -258,8 +279,21 @@ export default function ReviewPage() {
         documents[documentIndex].fields?.[field.id] ||
         documents[documentIndex].detectedFields[field.modelField]?.value ||
         "";
-
-      if (field.kind === "currency" && typeof detectedField !== "string") {
+      if (field.kind === "string" && field.transformation) {
+        const fieldTransformation = transformations.find(
+          (t) => t.name === field.transformation.id
+        );
+        if (fieldTransformation?.type === "replace") {
+          defaultValue = regexReplace(
+            detectedField,
+            fieldTransformation.body.regexPattern,
+            fieldTransformation.body.replacementValue
+          );
+        }
+      } else if (
+        field.kind === "currency" &&
+        typeof detectedField !== "string"
+      ) {
         defaultValue = currencyToNumber(detectedField);
       } else if (field.kind === "date") {
         defaultValue = dateToIsoString(detectedField);
@@ -267,6 +301,7 @@ export default function ReviewPage() {
         defaultValue = detectedField;
       }
       newInputValues[field.id] = defaultValue;
+      console.log(newInputValues, defaultValue, field.id);
     });
     setInputValues(newInputValues);
   }, [documentsFetched, documentConfigs, documentIndex, documentType]);
