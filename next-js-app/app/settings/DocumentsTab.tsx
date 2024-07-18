@@ -84,13 +84,6 @@ function FieldProperty({
     modelField: string | null,
     required: boolean;
 
-  const [inputField, setinputField] = useState(
-    field?.transformation?.inputField || ""
-  );
-  const [transformation, setTransformation] = useState(
-    field?.transformation?.id || ""
-  );
-
   if (!field) {
     id = "";
     displayName = "";
@@ -255,7 +248,6 @@ function FieldProperty({
                   }}
                   inputValue={field?.transformation?.id || ""}
                   value={[field?.transformation?.id || ""]}
-                  disabled={!isNew}
                   placeholder="Select Transform"
                   sx={{ width: 200 }}
                 ></Autocomplete>
@@ -265,7 +257,6 @@ function FieldProperty({
                 options={[...fields.map((field) => field.id), id]}
                 value={[field?.transformation?.inputField || ""]}
                 inputValue={field?.transformation?.inputField || ""}
-                disabled={!isNew}
                 onInputChange={(event, newValue) => {
                   onChange({
                     ...field,
