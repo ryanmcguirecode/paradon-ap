@@ -266,19 +266,17 @@ export default function ReviewPage() {
     }
   };
 
-  // Reset input values when document or document type changes
-  useEffect(() => {
-    if (!documentsFetched || !documentConfigs || !documentType) {
-      return;
-    }
-
+  async function applyFieldFunctions() {
     const newInputValues = {};
-    documentConfigs[documentType]?.fields.forEach((field) => {
-      let defaultValue: any;
+    const fields = documentConfigs[documentType]?.fields || [];
+
+    for (const field of fields) {
+      let defaultValue;
       const detectedField =
         documents[documentIndex].fields?.[field.id] ||
         documents[documentIndex].detectedFields[field.modelField]?.value ||
         "";
+
       if (field.kind === "string" && field.transformation) {
         const fieldTransformation = transformations.find(
           (t) => t.name === field.transformation.id
@@ -289,6 +287,27 @@ export default function ReviewPage() {
             fieldTransformation.body.regexPattern,
             fieldTransformation.body.replacementValue
           );
+        } else if (fieldTransformation?.type === "lookup") {
+          try {
+            const response = await fetch(
+              `/api/mappings?key=${detectedField}&transformation=${field.transformation.id}`,
+              {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+            const data = await response.json();
+            if (data.length > 0) {
+              defaultValue = data[0].value;
+            } else {
+              defaultValue = detectedField;
+            }
+          } catch (error) {
+            console.error("Error fetching mapping:", error);
+            defaultValue = detectedField;
+          }
         }
       } else if (
         field.kind === "currency" &&
@@ -301,9 +320,16 @@ export default function ReviewPage() {
         defaultValue = detectedField;
       }
       newInputValues[field.id] = defaultValue;
-      console.log(newInputValues, defaultValue, field.id);
-    });
+    }
     setInputValues(newInputValues);
+  }
+
+  // Reset input values when document or document type changes
+  useEffect(() => {
+    if (!documentsFetched || !documentConfigs || !documentType) {
+      return;
+    }
+    applyFieldFunctions();
   }, [documentsFetched, documentConfigs, documentIndex, documentType]);
 
   function requiredFieldsFilledOut() {

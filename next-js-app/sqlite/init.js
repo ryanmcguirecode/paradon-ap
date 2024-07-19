@@ -5,10 +5,11 @@ const db = new sqlite3.Database("../database.sqlite");
 db.serialize(() => {
   db.run(`
     CREATE TABLE mappings (
-      key TEXT PRIMARY KEY,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key TEXT,
       value TEXT,
-      field TEXT,
-      created_by TEXT
+      created_by TEXT,
+      transformation TEXT
     );
   `);
 });

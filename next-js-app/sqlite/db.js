@@ -3,7 +3,8 @@ import { open } from "sqlite";
 
 export async function openDB() {
   return open({
-    filename: "./database.sqlite",
+    filename:
+      "/Users/dylanmcguire/Desktop/projects/paradon-ap/next-js-app/database.sqlite",
     driver: sqlite3.Database,
   });
 }

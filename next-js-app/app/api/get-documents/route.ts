@@ -76,7 +76,6 @@ export async function GET(req: NextRequest) {
         Timestamp.fromDate(new Date(createdToDate))
       );
     }
-    console.log("filename:", filename);
     if (filename) {
       query = query.where("filename", "==", filename);
     }

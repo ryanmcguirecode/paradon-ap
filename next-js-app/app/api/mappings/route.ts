@@ -5,11 +5,29 @@ import getUrlSearchParameter from "@/utils/getUrlSearchParameter";
 export async function GET(req) {
   try {
     const key = getUrlSearchParameter(req.nextUrl.searchParams, "key");
+    const transformation = getUrlSearchParameter(
+      req.nextUrl.searchParams,
+      "transformation"
+    );
     const db = await openDB();
-    const mappings = key
-      ? await db.all("SELECT * FROM mappings WHERE key = ?", key)
-      : await db.all("SELECT * FROM mappings");
-    return NextResponse.json(mappings);
+    if (transformation && key) {
+      return NextResponse.json(
+        await db.all(
+          "SELECT * FROM mappings WHERE key = ? AND transformation = ?",
+          key,
+          transformation
+        )
+      );
+    } else if (transformation) {
+      return NextResponse.json(
+        await db.all(
+          "SELECT * FROM mappings WHERE transformation = ?",
+          transformation
+        )
+      );
+    } else {
+      return NextResponse.json(await db.all("SELECT * FROM mappings"));
+    }
   } catch (error) {
     console.error("Error executing query:", error);
     return NextResponse.json(
@@ -21,12 +39,24 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-    const { key, value, field, email } = await req.json();
+    const { data }: { data: any[] } = await req.json();
     const db = await openDB();
-    await db.run(
-      "INSERT OR REPLACE INTO mappings (key, value, field, created_by) VALUES (?, ?, ?, ?)",
-      [key, value, field, email]
-    );
+
+    // Construct the query with placeholders
+    let query =
+      "INSERT INTO mappings (key, value, created_by, transformation) VALUES ";
+    const values = [];
+
+    // Add placeholders and corresponding values
+    data.forEach((item, index) => {
+      if (index !== 0) query += ", ";
+      query += "(?, ?, ?, ?)";
+      values.push(item.key, item.value, item.createdBy, item.transformation);
+    });
+
+    await db.run(query, values);
+
+    return NextResponse.json({ message: "Mapping created successfully" });
   } catch (error) {
     console.error("Error creating mapping:", error);
     return NextResponse.json(

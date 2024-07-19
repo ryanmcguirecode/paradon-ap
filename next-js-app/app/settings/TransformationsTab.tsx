@@ -29,16 +29,17 @@ import { useAuth } from "@/components/AuthContext";
 import { Transform } from "stream";
 import CsvUpload from "./CsvUpload";
 import test from "node:test";
+import { auth } from "firebase-admin";
 
 interface TransformationProps {
-  organization: string;
+  auth: AuthContext;
   refresh?: any;
   isNew?: boolean;
   transformation?: Transformation;
 }
 
 export function TransformationComponent({
-  organization,
+  auth,
   refresh,
   isNew,
   transformation,
@@ -65,6 +66,7 @@ export function TransformationComponent({
   const [lookupMethod, setLookupMethod] = useState(
     transformation?.body?.lookupMethod || "exact"
   );
+  const [csvData, setCsvData] = useState([]);
 
   const isValid =
     transformationName &&
@@ -79,7 +81,7 @@ export function TransformationComponent({
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        organization: organization,
+        organization: auth.organization,
         transformation: {
           name: transformationName,
           type: transformationType,
@@ -90,6 +92,19 @@ export function TransformationComponent({
         },
       }),
     });
+    if (transformationType === "lookup") {
+      try {
+        fetch("/api/mappings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ data: csvData }),
+        });
+      } catch (error) {
+        console.error("Error creating mapping:", error);
+      }
+    }
     response.json().then((data) => {
       refresh();
     });
@@ -108,7 +123,7 @@ export function TransformationComponent({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          organization: organization,
+          organization: auth.organization,
         }),
       });
       response.json().then((data) => {
@@ -130,13 +145,32 @@ export function TransformationComponent({
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        organization: organization,
+        organization: auth.organization,
         transformation: transformation,
       }),
     });
     response.json().then((data) => {
       refresh();
     });
+  };
+
+  const uploadCsvData = (data) => {
+    var body = [];
+    data.forEach((row) => {
+      var rowArray = Object.values(row);
+      const key = rowArray[0]?.toString().replace(/\s/g, "");
+      const value = rowArray[1]?.toString().replace(/\s/g, "");
+      if (!key || !value) {
+        return;
+      }
+      body.push({
+        key: rowArray[0],
+        value: rowArray[1],
+        createdBy: auth.user.email,
+        transformation: transformationName,
+      });
+    });
+    setCsvData(body);
   };
 
   return (
@@ -305,7 +339,10 @@ export function TransformationComponent({
                 >
                   <FormLabel>Lookup Table</FormLabel>
                   <Box>
-                    <CsvUpload onDataParsed={(data) => console.log(data)} />
+                    <CsvUpload
+                      disabled={csvData == null || transformationName == ""}
+                      onDataParsed={(data) => uploadCsvData(data)}
+                    />
                   </Box>
                 </FormControl>
               </Box>
@@ -391,7 +428,7 @@ export default function TransformationsTab() {
         transformations.map((transformation, index) => {
           return (
             <TransformationComponent
-              organization={organization}
+              auth={{ user, loading, level, organization }}
               transformation={transformation}
               refresh={fetchTransformations}
               isNew={false}
@@ -399,7 +436,7 @@ export default function TransformationsTab() {
           );
         })}
       <TransformationComponent
-        organization={organization}
+        auth={{ user, loading, level, organization }}
         refresh={fetchTransformations}
         isNew
       ></TransformationComponent>

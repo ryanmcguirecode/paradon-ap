@@ -18,7 +18,13 @@ const VisuallyHiddenInput = styled("input")`
   width: 1px;
 `;
 
-export default function CsvUpload({ onDataParsed }: { onDataParsed: any }) {
+export default function CsvUpload({
+  onDataParsed,
+  disabled,
+}: {
+  onDataParsed: any;
+  disabled: boolean;
+}) {
   const [file, setFile] = useState(null);
   const [error, setError] = useState(null);
 
@@ -53,12 +59,14 @@ export default function CsvUpload({ onDataParsed }: { onDataParsed: any }) {
         variant="outlined"
         color="neutral"
         startDecorator={<DriveFolderUploadIcon />}
+        disabled={disabled}
       >
         Upload a file
         <VisuallyHiddenInput
           type="file"
           accept=".csv"
           onChange={handleFileChange}
+          disabled={disabled}
         />
       </Button>
     </Box>
