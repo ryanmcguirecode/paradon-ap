@@ -71,7 +71,8 @@ const AutocompleteComponent = ({
           ) {
             opts = (data as any[]).map((item) => item.key);
           }
-          setOptions(opts);
+          const uniqueOpts = [...new Set(opts)];
+          setOptions(uniqueOpts);
         });
     } catch (error) {
       console.error("Error fetching mapping:", error);
@@ -81,10 +82,6 @@ const AutocompleteComponent = ({
   useEffect(() => {
     fetchOptions();
   }, []);
-
-  useEffect(() => {
-    console.log(options);
-  }, [options]);
 
   useEffect(() => {
     if (inputChanged) {
