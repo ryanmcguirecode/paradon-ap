@@ -35,7 +35,7 @@ import InputStyle from "./InputStyle";
 
 import { regexReplace } from "@/utils/regexReplace";
 import AutocompleteComponent from "./Autocomplete";
-import { app } from "firebase-admin";
+import Fuse from "fuse.js";
 
 export default function ReviewPage() {
   const router = useRouter();
@@ -327,6 +327,7 @@ export default function ReviewPage() {
 
       if (field.kind === "string" && field.transformation?.id) {
         outField = field.transformation.outputField;
+        console.log(field.transformation?.transformation?.body?.lookupMethod);
 
         if (field?.transformation?.transformation?.type === "replace") {
           defaultValue = regexReplace(
@@ -338,27 +339,74 @@ export default function ReviewPage() {
           field.kind === "string" &&
           field?.transformation?.transformation?.type === "lookup"
         ) {
-          try {
-            if (!defaultValue) {
-              continue;
-            }
-            const response = await fetch(
-              `/api/mappings?key=${defaultValue}&transformation=${field.transformation.id}`,
-              {
-                method: "GET",
-                headers: {
-                  "Content-Type": "application/json",
-                },
+          if (
+            field.transformation?.transformation?.body?.lookupMethod ===
+              "exact" ||
+            !field.transformation?.transformation?.body?.lookupMethod
+          ) {
+            try {
+              if (!defaultValue) {
+                continue;
               }
-            );
-            const data = await response.json();
-            if (data.length > 0) {
-              defaultValue = data[0].value;
-            } else {
-              continue;
+              const response = await fetch(
+                `/api/mappings?key=${defaultValue}&transformation=${field.transformation.id}`,
+                {
+                  method: "GET",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                }
+              );
+              const data = await response.json();
+              if (data.length > 0) {
+                defaultValue = data[0].value;
+              } else {
+                continue;
+              }
+            } catch (error) {
+              console.error("Error fetching mapping:", error);
             }
-          } catch (error) {
-            console.error("Error fetching mapping:", error);
+          } else if (
+            field.transformation?.transformation?.body?.lookupMethod === "fuzzy"
+          ) {
+            try {
+              if (!defaultValue) {
+                continue;
+              }
+              const response = await fetch(
+                `/api/mappings?&transformation=${field.transformation.id}`,
+                {
+                  method: "GET",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                }
+              );
+              const data = await response.json();
+              if (data.length > 0) {
+                // set default value to the closest fuzzy match
+                const options = {
+                  keys: ["value"],
+                  includeScore: true,
+                };
+
+                const fuse = new Fuse(data, options);
+                const searchTerm = defaultValue;
+                const result = fuse.search(searchTerm);
+
+                if (result.length > 0) {
+                  // Sort results by score in ascending order (best match first)
+                  result.sort((a, b) => a.score - b.score);
+                  // Get the best match (first item after sorting)
+                  console.log("default", defaultValue, result);
+                  defaultValue = result[0].item.value;
+                }
+              } else {
+                continue;
+              }
+            } catch (error) {
+              console.error("Error fetching mapping:", error);
+            }
           }
         }
       }

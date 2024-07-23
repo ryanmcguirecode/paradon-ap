@@ -85,6 +85,7 @@ export function TransformationComponent({
           body: {
             regexPattern: regexPattern,
             replacementValue: replacementValue,
+            lookupMethod: lookupMethod,
           },
         },
       }),
