@@ -243,6 +243,12 @@ function FieldProperty({
                       transformation: {
                         id: newValue,
                         inputField: field?.transformation?.inputField || "",
+                        outputField: field?.transformation?.outputField || "",
+                        transformation: {
+                          ...transformations.find(
+                            (transformation) => transformation.name === newValue
+                          ),
+                        },
                       },
                     });
                   }}
@@ -263,6 +269,10 @@ function FieldProperty({
                     transformation: {
                       id: field?.transformation?.id || "",
                       inputField: newValue,
+                      outputField: field?.transformation?.outputField || "",
+                      transformation: {
+                        ...field?.transformation?.transformation,
+                      },
                     },
                   });
                 }}
@@ -277,7 +287,26 @@ function FieldProperty({
               }}
             >
               <FormLabel>Output Field</FormLabel>
-              <Input value={field?.id} disabled={true} sx={{ width: 200 }} />
+              <Autocomplete
+                options={[...fields.map((field) => field.id), id]}
+                value={[field?.transformation?.outputField || ""]}
+                inputValue={field?.transformation?.outputField || ""}
+                onInputChange={(event, newValue) => {
+                  onChange({
+                    ...field,
+                    transformation: {
+                      id: field?.transformation?.id || "",
+                      inputField: field?.transformation?.inputField || "",
+                      outputField: newValue,
+                      transformation: {
+                        ...field?.transformation?.transformation,
+                      },
+                    },
+                  });
+                }}
+                placeholder="Select Field"
+                sx={{ width: 200 }}
+              />
             </FormControl>
           </Box>
           {!isNewField && (

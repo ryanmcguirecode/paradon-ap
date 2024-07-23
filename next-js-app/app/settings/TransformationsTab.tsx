@@ -158,8 +158,8 @@ export function TransformationComponent({
     var body = [];
     data.forEach((row) => {
       var rowArray = Object.values(row);
-      const key = rowArray[0]?.toString().replace(/\s/g, "");
-      const value = rowArray[1]?.toString().replace(/\s/g, "");
+      const key = rowArray[0]?.toString().trim();
+      const value = rowArray[1]?.toString().trim();
       if (!key || !value) {
         return;
       }

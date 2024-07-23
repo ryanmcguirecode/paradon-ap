@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import PdfViewer from "@/components/PdfViewer";
 
 import { useRouter } from "next/navigation";
@@ -18,6 +18,7 @@ import {
   FormControl,
   Divider,
   CircularProgress,
+  Autocomplete,
 } from "@mui/joy";
 import SearchIcon from "@mui/icons-material/Search";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
@@ -33,6 +34,8 @@ import DateInput, { dateToIsoString } from "./DateInput";
 import InputStyle from "./InputStyle";
 
 import { regexReplace } from "@/utils/regexReplace";
+import AutocompleteComponent from "./Autocomplete";
+import { app } from "firebase-admin";
 
 export default function ReviewPage() {
   const router = useRouter();
@@ -49,6 +52,7 @@ export default function ReviewPage() {
   const [activeField, setActiveField] = useState<string>("");
   const [searchedField, setSearchedField] = useState<string>("");
   const [activatedFields, setActivatedFields] = useState<string[]>([]);
+  const [fieldsApplied, setFieldsApplied] = useState(false);
 
   const [documentType, setDocumentType] = useState<string>();
   const [documentConfigs, setDocumentConfigs] = useState<{
@@ -277,20 +281,70 @@ export default function ReviewPage() {
         documents[documentIndex].detectedFields[field.modelField]?.value ||
         "";
 
-      if (field.kind === "string" && field.transformation) {
-        const fieldTransformation = transformations.find(
-          (t) => t.name === field.transformation.id
-        );
-        if (fieldTransformation?.type === "replace") {
+      if (field.kind === "currency" && typeof detectedField !== "string") {
+        defaultValue = currencyToNumber(detectedField);
+      } else if (field.kind === "date") {
+        defaultValue = dateToIsoString(detectedField);
+      } else {
+        defaultValue = detectedField;
+      }
+      newInputValues[field.id] = defaultValue;
+    }
+    setInputValues(newInputValues);
+    setFieldsApplied(true); // Set the state to indicate fields have been applied
+  }
+
+  // Reset input values when document or document type changes
+  useEffect(() => {
+    if (!documentsFetched || !documentConfigs || !documentType) {
+      return;
+    }
+    applyFieldFunctions();
+  }, [documentsFetched, documentConfigs, documentIndex, documentType]);
+
+  useEffect(() => {
+    if (fieldsApplied) {
+      applyTransformation();
+      setFieldsApplied(false); // Reset the state to indicate fields have not been applied
+    }
+  }, [fieldsApplied]);
+
+  const applyTransformation = async () => {
+    console.log("Applying transformation");
+    if (
+      !documentsFetched ||
+      !documentConfigs ||
+      !documentType ||
+      !inputValues
+    ) {
+      return;
+    }
+    const newInputValues = inputValues;
+    const fields = documentConfigs[documentType]?.fields || [];
+
+    for (const field of fields) {
+      let defaultValue = inputValues[field.id];
+      var outField = field.id;
+
+      if (field.kind === "string" && field.transformation?.id) {
+        outField = field.transformation.outputField;
+
+        if (field?.transformation?.transformation?.type === "replace") {
           defaultValue = regexReplace(
-            detectedField,
-            fieldTransformation.body.regexPattern,
-            fieldTransformation.body.replacementValue
+            defaultValue,
+            field.transformation.transformation.body.regexPattern,
+            field.transformation.transformation.body.replacementValue
           );
-        } else if (fieldTransformation?.type === "lookup") {
+        } else if (
+          field.kind === "string" &&
+          field?.transformation?.transformation?.type === "lookup"
+        ) {
           try {
+            if (!defaultValue) {
+              continue;
+            }
             const response = await fetch(
-              `/api/mappings?key=${detectedField}&transformation=${field.transformation.id}`,
+              `/api/mappings?key=${defaultValue}&transformation=${field.transformation.id}`,
               {
                 method: "GET",
                 headers: {
@@ -302,35 +356,17 @@ export default function ReviewPage() {
             if (data.length > 0) {
               defaultValue = data[0].value;
             } else {
-              defaultValue = detectedField;
+              continue;
             }
           } catch (error) {
             console.error("Error fetching mapping:", error);
-            defaultValue = detectedField;
           }
         }
-      } else if (
-        field.kind === "currency" &&
-        typeof detectedField !== "string"
-      ) {
-        defaultValue = currencyToNumber(detectedField);
-      } else if (field.kind === "date") {
-        defaultValue = dateToIsoString(detectedField);
-      } else {
-        defaultValue = detectedField;
       }
-      newInputValues[field.id] = defaultValue;
+      newInputValues[outField] = defaultValue;
     }
     setInputValues(newInputValues);
-  }
-
-  // Reset input values when document or document type changes
-  useEffect(() => {
-    if (!documentsFetched || !documentConfigs || !documentType) {
-      return;
-    }
-    applyFieldFunctions();
-  }, [documentsFetched, documentConfigs, documentIndex, documentType]);
+  };
 
   function requiredFieldsFilledOut() {
     if (!documentConfigs || !documentConfigs[documentType] || !inputValues) {
@@ -681,7 +717,7 @@ export default function ReviewPage() {
                           }
                         }}
                         // onBlur={() => {
-                        //   setSearchedField("");
+                        //   applyTransformation();
                         // }}
                         onKeyDown={(event) => {
                           if (event.key === "Enter" && searchable) {
@@ -724,7 +760,7 @@ export default function ReviewPage() {
                           }
                         }}
                         // onBlur={() => {
-                        //   setSearchedField("");
+                        //   applyTransformation();
                         // }}
                         onKeyDown={(event) => {
                           if (event.key === "Enter" && searchable) {
@@ -762,7 +798,7 @@ export default function ReviewPage() {
                           }
                         }}
                         // onBlur={() => {
-                        //   setSearchedField("");
+                        //   applyTransformation();
                         // }}
                         onKeyDown={(event) => {
                           if (event.key === "Enter" && searchable) {
@@ -772,41 +808,23 @@ export default function ReviewPage() {
                         }}
                       />
                     ) : (
-                      <Input
+                      <AutocompleteComponent
                         {...InputStyle}
-                        value={inputValues ? inputValues[field.id] : ""}
-                        onChange={(
-                          event: React.ChangeEvent<HTMLInputElement>
-                        ) => {
-                          handleInputChange(field.id, event.target.value);
-                        }}
-                        onFocus={() => {
-                          const detectedField =
-                            documents[documentIndex]?.detectedFields[
-                              field.modelField
-                            ];
-                          setActiveField(field.id);
-                          setSearchedField(field.id);
-                          if (
-                            detectedField &&
-                            !activatedFields.includes(field.id)
-                          ) {
-                            setScrollTo({
-                              page: detectedField.page,
-                              coordinates: detectedField.coordinates,
-                            });
-                            setActivatedFields([...activatedFields, field.id]);
-                          }
-                        }}
-                        // onBlur={() => {
-                        //   setSearchedField("");
-                        // }}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" && searchable) {
-                            jumpToField(field);
-                            setSearchedField(activeField);
-                          }
-                        }}
+                        organization={organization}
+                        inputValues={inputValues}
+                        field={field}
+                        handleInputChange={handleInputChange}
+                        documentIndex={documentIndex}
+                        documents={documents}
+                        activatedFields={activatedFields}
+                        setActivatedFields={setActivatedFields}
+                        setActiveField={setActiveField}
+                        setSearchedField={setSearchedField}
+                        jumpToField={jumpToField}
+                        searchable={searchable}
+                        activeField={activeField}
+                        setScrollTo={setScrollTo}
+                        applyTransformation={applyTransformation}
                       />
                     )}
                   </div>

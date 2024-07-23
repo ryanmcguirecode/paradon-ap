@@ -11,6 +11,8 @@ export interface DocumentConfigField {
   transformation?: {
     id: string;
     inputField: string;
+    outputField: string;
+    transformation: Transformation;
   };
 }
 

@@ -9,6 +9,7 @@ export async function GET(req) {
       req.nextUrl.searchParams,
       "transformation"
     );
+    console.log("key", key, "transformation", transformation);
     const db = await openDB();
     if (transformation && key) {
       return NextResponse.json(
