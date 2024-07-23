@@ -103,6 +103,14 @@ async function DELETE(req: NextRequest) {
       transformations: updatedTransformations,
     });
 
+    fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/mappings`, { // TESTING FIX
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ organization, transformation }),
+    });
+
     return NextResponse.json(
       { message: "Transformation deleted successfully" },
       { status: 200 }

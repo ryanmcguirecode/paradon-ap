@@ -30,6 +30,7 @@ import { Transform } from "stream";
 import CsvUpload from "./CsvUpload";
 import test from "node:test";
 import { auth } from "firebase-admin";
+import { usePathname, useRouter } from "next/navigation";
 
 interface TransformationProps {
   auth: AuthContext;
@@ -44,13 +45,9 @@ export function TransformationComponent({
   isNew,
   transformation,
 }: TransformationProps) {
+  const router = useRouter();
   const [options, setOptions] = useState([]);
-  // const [inputField, setinputField] = useState(
-  //   transformation?.inputField || ""
-  // );
-  // const [outputField, setOutputField] = useState(
-  //   transformation?.outputField || ""
-  // );
+
   const [transformationName, setTransformationName] = useState(
     transformation?.name || ""
   );
@@ -322,7 +319,7 @@ export function TransformationComponent({
                 </Option>
               </Select>
             </FormControl>
-            {isNew && (
+            {isNew ? (
               <Box
                 sx={{
                   display: "flex",
@@ -346,6 +343,19 @@ export function TransformationComponent({
                   </Box>
                 </FormControl>
               </Box>
+            ) : (
+              <FormControl>
+                <FormLabel>Lookup Table</FormLabel>
+                <Button
+                  onClick={() => {
+                    router.push(
+                      `/api/mappings?transformation=${transformationName}`
+                    );
+                  }}
+                >
+                  Show Mappings
+                </Button>
+              </FormControl>
             )}
           </Box>
         )}

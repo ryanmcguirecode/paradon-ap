@@ -8,8 +8,7 @@ export async function GET(req) {
     const transformation = getUrlSearchParameter(
       req.nextUrl.searchParams,
       "transformation"
-    );
-    console.log("key", key, "transformation", transformation);
+    ).toLowerCase();
     const db = await openDB();
     if (transformation && key) {
       return NextResponse.json(
@@ -52,7 +51,12 @@ export async function POST(req) {
     data.forEach((item, index) => {
       if (index !== 0) query += ", ";
       query += "(?, ?, ?, ?)";
-      values.push(item.key, item.value, item.createdBy, item.transformation);
+      values.push(
+        item.key,
+        item.value,
+        item.createdBy,
+        item.transformation.toLowerCase()
+      );
     });
 
     await db.run(query, values);
@@ -62,6 +66,25 @@ export async function POST(req) {
     console.error("Error creating mapping:", error);
     return NextResponse.json(
       { error: "Failed to create mapping" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req) {
+  try {
+    const { transformation } = await req.json();
+    const db = await openDB();
+
+    await db.run("DELETE FROM mappings WHERE transformation = ?", [
+      transformation.toString().toLowerCase(),
+    ]);
+
+    return NextResponse.json({ message: "Mapping deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting mapping:", error);
+    return NextResponse.json(
+      { error: "Failed to delete mapping" },
       { status: 500 }
     );
   }

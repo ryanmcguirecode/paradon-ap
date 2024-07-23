@@ -310,7 +310,6 @@ export default function ReviewPage() {
   }, [fieldsApplied]);
 
   const applyTransformation = async () => {
-    console.log("Applying transformation");
     if (
       !documentsFetched ||
       !documentConfigs ||
