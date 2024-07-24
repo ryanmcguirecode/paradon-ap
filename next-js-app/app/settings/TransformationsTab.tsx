@@ -26,6 +26,7 @@ import CsvUpload from "./CsvUpload";
 
 import { auth } from "firebase-admin";
 import { useRouter } from "next/navigation";
+import { or } from "firebase/firestore";
 
 interface TransformationProps {
   auth: AuthContext;
@@ -96,7 +97,10 @@ export function TransformationComponent({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ data: csvData }),
+          body: JSON.stringify({
+            data: csvData,
+            organization: auth.organization,
+          }),
         });
       } catch (error) {
         console.error("Error creating mapping:", error);
@@ -347,7 +351,7 @@ export function TransformationComponent({
                       sx={{ width: "auto", minWidth: "200px" }}
                       onClick={() => {
                         router.push(
-                          `/api/mappings?transformation=${transformationName}`
+                          `/api/mappings?organization=${auth.organization}&transformation=${transformationName}`
                         );
                       }}
                     >

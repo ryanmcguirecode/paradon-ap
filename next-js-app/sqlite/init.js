@@ -4,7 +4,7 @@ const db = new sqlite3.Database("../database.sqlite");
 
 db.serialize(() => {
   db.run(`
-    CREATE TABLE mappings (
+    CREATE TABLE utexasMappings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       key TEXT,
       value TEXT,

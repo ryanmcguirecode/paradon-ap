@@ -5,6 +5,10 @@ import getUrlSearchParameter from "@/utils/getUrlSearchParameter";
 export async function GET(req) {
   try {
     const key = getUrlSearchParameter(req.nextUrl.searchParams, "key");
+    const organization = getUrlSearchParameter(
+      req.nextUrl.searchParams,
+      "organization"
+    );
     const transformation = getUrlSearchParameter(
       req.nextUrl.searchParams,
       "transformation"
@@ -13,7 +17,7 @@ export async function GET(req) {
     if (transformation && key) {
       return NextResponse.json(
         await db.all(
-          "SELECT * FROM mappings WHERE key = ? AND transformation = ?",
+          `SELECT * FROM ${organization}Mappings WHERE key = ? AND transformation = ?`,
           key,
           transformation
         )
@@ -21,12 +25,14 @@ export async function GET(req) {
     } else if (transformation) {
       return NextResponse.json(
         await db.all(
-          "SELECT * FROM mappings WHERE transformation = ?",
+          `SELECT * FROM ${organization}Mappings WHERE transformation = ?`,
           transformation
         )
       );
     } else {
-      return NextResponse.json(await db.all("SELECT * FROM mappings"));
+      return NextResponse.json(
+        await db.all(`SELECT * FROM {organization}Mappings`)
+      );
     }
   } catch (error) {
     console.error("Error executing query:", error);
@@ -39,12 +45,11 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-    const { data }: { data: any[] } = await req.json();
+    const { data, organization } = await req.json();
     const db = await openDB();
 
     // Construct the query with placeholders
-    let query =
-      "INSERT INTO mappings (key, value, created_by, transformation) VALUES ";
+    let query = `INSERT INTO ${organization}Mappings (key, value, created_by, transformation) VALUES `;
     const values = [];
 
     // Add placeholders and corresponding values
@@ -73,12 +78,13 @@ export async function POST(req) {
 
 export async function DELETE(req) {
   try {
-    const { transformation } = await req.json();
+    const { transformation, organization } = await req.json();
     const db = await openDB();
 
-    await db.run("DELETE FROM mappings WHERE transformation = ?", [
-      transformation.toString().toLowerCase(),
-    ]);
+    await db.run(
+      `DELETE FROM ${organization}Mappings WHERE transformation = ?`,
+      [transformation.toString().toLowerCase()]
+    );
 
     return NextResponse.json({ message: "Mapping deleted successfully" });
   } catch (error) {

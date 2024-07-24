@@ -125,6 +125,8 @@ function FieldProperty({
   }
 
   const fieldIsEmpty = isEmptyField(field);
+  var fieldOptions = fields.map((field) => field.id);
+  if (isNew) fieldOptions.push(id);
 
   return (
     <Accordion sx={{ marginLeft: indentation * 20 + "px" }}>
@@ -229,8 +231,9 @@ function FieldProperty({
             <FormControl sx={{ flex: 1, minWidth: "50px" }}>
               <FormLabel>Input Field</FormLabel>
               <Autocomplete
-                options={[...fields.map((field) => field.id), id]}
+                options={fieldOptions}
                 inputValue={field?.transformation?.inputField || ""}
+                value={field?.transformation?.inputField || ""}
                 onInputChange={(event, newValue) => {
                   onChange({
                     ...field,
@@ -270,6 +273,7 @@ function FieldProperty({
                   });
                 }}
                 inputValue={field?.transformation?.id || ""}
+                value={field?.transformation?.id || ""}
                 placeholder="Select Transform"
                 sx={{ width: "100%" }}
               />
@@ -277,8 +281,9 @@ function FieldProperty({
             <FormControl sx={{ flex: 1, minWidth: "50px" }}>
               <FormLabel>Output Field</FormLabel>
               <Autocomplete
-                options={[...fields.map((field) => field.id), id]}
+                options={fieldOptions}
                 inputValue={field?.transformation?.outputField || ""}
+                value={field?.transformation?.outputField || ""}
                 onInputChange={(event, newValue) => {
                   onChange({
                     ...field,

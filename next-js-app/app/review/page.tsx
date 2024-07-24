@@ -347,7 +347,7 @@ export default function ReviewPage() {
                 continue;
               }
               const response = await fetch(
-                `/api/mappings?key=${defaultValue}&transformation=${field.transformation.id}`,
+                `/api/mappings?organization=${organization}&key=${defaultValue}&transformation=${field.transformation.id}`,
                 {
                   method: "GET",
                   headers: {
@@ -372,7 +372,7 @@ export default function ReviewPage() {
                 continue;
               }
               const response = await fetch(
-                `/api/mappings?&transformation=${field.transformation.id}`,
+                `/api/mappings?&organization=${organization}&transformation=${field.transformation.id}`,
                 {
                   method: "GET",
                   headers: {
