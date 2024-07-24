@@ -5,5 +5,6 @@ export interface Transformation {
     regexPattern: string;
     replacementValue: string;
     lookupMethod: string;
+    learning: boolean;
   };
 }

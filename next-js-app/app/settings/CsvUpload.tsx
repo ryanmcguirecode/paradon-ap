@@ -1,10 +1,10 @@
 import * as React from "react";
 import Button from "@mui/joy/Button";
-import SvgIcon from "@mui/joy/SvgIcon";
 import { styled, Box } from "@mui/joy";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Papa from "papaparse";
 import DriveFolderUploadIcon from "@mui/icons-material/DriveFolderUpload";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 const VisuallyHiddenInput = styled("input")`
   clip: rect(0 0 0 0);
@@ -51,7 +51,13 @@ export default function CsvUpload({
     }
   };
 
-  return (
+  useEffect(() => {
+    return () => {
+      setFile(null);
+    };
+  }, [disabled]);
+
+  return !file ? (
     <Box>
       <Button
         component="label"
@@ -60,6 +66,7 @@ export default function CsvUpload({
         color="neutral"
         startDecorator={<DriveFolderUploadIcon />}
         disabled={disabled}
+        sx={{ width: "auto", minWidth: "200px" }}
       >
         Upload a file
         <VisuallyHiddenInput
@@ -68,6 +75,18 @@ export default function CsvUpload({
           onChange={handleFileChange}
           disabled={disabled}
         />
+      </Button>
+    </Box>
+  ) : (
+    <Box>
+      <Button
+        component="label"
+        tabIndex={-1}
+        color="success"
+        startDecorator={<CheckCircleIcon />}
+        sx={{ width: "auto", minWidth: "200px" }}
+      >
+        {file.name}
       </Button>
     </Box>
   );

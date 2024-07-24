@@ -18,7 +18,6 @@ import {
   FormControl,
   Divider,
   CircularProgress,
-  Autocomplete,
 } from "@mui/joy";
 import SearchIcon from "@mui/icons-material/Search";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
@@ -327,7 +326,6 @@ export default function ReviewPage() {
 
       if (field.kind === "string" && field.transformation?.id) {
         outField = field.transformation.outputField;
-        console.log(field.transformation?.transformation?.body?.lookupMethod);
 
         if (field?.transformation?.transformation?.type === "replace") {
           defaultValue = regexReplace(
@@ -392,13 +390,12 @@ export default function ReviewPage() {
 
                 const fuse = new Fuse(data, options);
                 const searchTerm = defaultValue;
-                const result = fuse.search(searchTerm);
+                const result: any[] = fuse.search(searchTerm);
 
                 if (result.length > 0) {
                   // Sort results by score in ascending order (best match first)
                   result.sort((a, b) => a.score - b.score);
                   // Get the best match (first item after sorting)
-                  console.log("default", defaultValue, result);
                   defaultValue = result[0].item.value;
                 }
               } else {
@@ -431,9 +428,44 @@ export default function ReviewPage() {
   }
 
   async function saveDocumentValues(submit: boolean) {
-    const newDocument = {
+    if (submit) {
+      // Save mappings from detected fields to fields
+      interface Mapping {
+        detectedValue: string;
+        inputValue: string;
+        field: string;
+        transformation: string;
+      }
+      const newMappings = new Array<Mapping>();
+
+      for (let doc of documents) {
+        if (!doc.documentType) {
+          continue;
+        }
+        const detectedFields = doc.detectedFields;
+        const fields = documentConfigs[doc?.documentType].fields;
+
+        for (const field of fields) {
+          if (field.transformation?.transformation?.body?.learning) {
+            if (detectedFields[field.modelField]?.value) {
+              newMappings.push({
+                detectedValue: detectedFields[field.modelField]?.value,
+                inputValue: doc.fields[field.id],
+                field: field.id,
+                transformation: field.transformation.id,
+              });
+            }
+          }
+        }
+      }
+      alert(JSON.stringify(newMappings, null, 2));
+      return;
+    }
+
+    const newDocument: Document = {
       ...documents[documentIndex],
       fields: { ...inputValues },
+      documentType: documentType,
     };
     const newDocumentIndex = submit ? documentIndex : documentIndex + 1;
     const newDocuments = documents.map((document, index) => {
@@ -763,9 +795,6 @@ export default function ReviewPage() {
                             setActivatedFields([...activatedFields, field.id]);
                           }
                         }}
-                        // onBlur={() => {
-                        //   applyTransformation();
-                        // }}
                         onKeyDown={(event) => {
                           if (event.key === "Enter" && searchable) {
                             jumpToField(field);
@@ -806,9 +835,6 @@ export default function ReviewPage() {
                             setActivatedFields([...activatedFields, field.id]);
                           }
                         }}
-                        // onBlur={() => {
-                        //   applyTransformation();
-                        // }}
                         onKeyDown={(event) => {
                           if (event.key === "Enter" && searchable) {
                             jumpToField(field);
@@ -844,9 +870,6 @@ export default function ReviewPage() {
                             setActivatedFields([...activatedFields, field.id]);
                           }
                         }}
-                        // onBlur={() => {
-                        //   applyTransformation();
-                        // }}
                         onKeyDown={(event) => {
                           if (event.key === "Enter" && searchable) {
                             jumpToField(field);
@@ -856,7 +879,6 @@ export default function ReviewPage() {
                       />
                     ) : (
                       <AutocompleteComponent
-                        {...InputStyle}
                         organization={organization}
                         inputValues={inputValues}
                         field={field}

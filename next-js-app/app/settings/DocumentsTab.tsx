@@ -216,52 +216,20 @@ function FieldProperty({
             indentation={indentation + 1}
           />
           {/* <Autocomplete></Autocomplete> */}
+          <Typography>Transformation</Typography>
           <Box
             sx={{
               display: "flex",
               flexDirection: "row",
               gap: "20px",
-              alignItems: "center",
-              justifyContent: "center",
+              marginLeft: `${(indentation + 1) * 20}px`,
+              flexWrap: "wrap",
             }}
           >
-            <FormControl
-              sx={{
-                mx: "5px",
-                my: "5px",
-              }}
-            >
-              <FormControl>
-                <FormLabel>Transformation</FormLabel>
-                <Autocomplete
-                  options={transformations.map(
-                    (transformation) => transformation.name
-                  )}
-                  onInputChange={(event, newValue) => {
-                    onChange({
-                      ...field,
-                      transformation: {
-                        id: newValue,
-                        inputField: field?.transformation?.inputField || "",
-                        outputField: field?.transformation?.outputField || "",
-                        transformation: {
-                          ...transformations.find(
-                            (transformation) => transformation.name === newValue
-                          ),
-                        },
-                      },
-                    });
-                  }}
-                  inputValue={field?.transformation?.id || ""}
-                  value={[field?.transformation?.id || ""]}
-                  placeholder="Select Transform"
-                  sx={{ width: 200 }}
-                ></Autocomplete>
-              </FormControl>
+            <FormControl sx={{ flex: 1, minWidth: "50px" }}>
               <FormLabel>Input Field</FormLabel>
               <Autocomplete
                 options={[...fields.map((field) => field.id), id]}
-                value={[field?.transformation?.inputField || ""]}
                 inputValue={field?.transformation?.inputField || ""}
                 onInputChange={(event, newValue) => {
                   onChange({
@@ -277,19 +245,39 @@ function FieldProperty({
                   });
                 }}
                 placeholder="Select Field"
-                sx={{ width: 200 }}
+                sx={{ width: "100%" }}
               />
             </FormControl>
-            <FormControl
-              sx={{
-                mx: "20px",
-                my: "5px",
-              }}
-            >
+            <FormControl sx={{ flex: 1, minWidth: "50px" }}>
+              <FormLabel>Transformation</FormLabel>
+              <Autocomplete
+                options={transformations.map(
+                  (transformation) => transformation.name
+                )}
+                onInputChange={(event, newValue) => {
+                  onChange({
+                    ...field,
+                    transformation: {
+                      id: newValue,
+                      inputField: field?.transformation?.inputField || "",
+                      outputField: field?.transformation?.outputField || "",
+                      transformation: {
+                        ...transformations.find(
+                          (transformation) => transformation.name === newValue
+                        ),
+                      },
+                    },
+                  });
+                }}
+                inputValue={field?.transformation?.id || ""}
+                placeholder="Select Transform"
+                sx={{ width: "100%" }}
+              />
+            </FormControl>
+            <FormControl sx={{ flex: 1, minWidth: "50px" }}>
               <FormLabel>Output Field</FormLabel>
               <Autocomplete
                 options={[...fields.map((field) => field.id), id]}
-                value={[field?.transformation?.outputField || ""]}
                 inputValue={field?.transformation?.outputField || ""}
                 onInputChange={(event, newValue) => {
                   onChange({
@@ -305,7 +293,7 @@ function FieldProperty({
                   });
                 }}
                 placeholder="Select Field"
-                sx={{ width: 200 }}
+                sx={{ width: "100%" }}
               />
             </FormControl>
           </Box>

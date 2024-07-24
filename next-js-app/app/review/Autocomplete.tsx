@@ -1,17 +1,10 @@
 import { use, useEffect, useState } from "react";
-import PdfViewer from "@/components/PdfViewer";
-
-import { useRouter } from "next/navigation";
-import { useSearchParams } from "next/navigation";
 
 import { Input, Autocomplete } from "@mui/joy";
 
-import { Transformation } from "@/types/Transformation";
 import { DocumentConfigField } from "@/types/DocumentConfig";
 
 import InputStyle from "./InputStyle";
-
-import { regexReplace } from "@/utils/regexReplace";
 
 const AutocompleteComponent = ({
   inputValues,
@@ -71,7 +64,7 @@ const AutocompleteComponent = ({
           ) {
             opts = (data as any[]).map((item) => item.key);
           }
-          const uniqueOpts = [...new Set(opts)];
+          const uniqueOpts = Array.from(new Set(opts));
           setOptions(uniqueOpts);
         });
     } catch (error) {
@@ -93,7 +86,10 @@ const AutocompleteComponent = ({
   return field?.transformation?.transformation &&
     field.transformation.transformation.type == "lookup" ? (
     <Autocomplete
-      {...InputStyle}
+      key={field.id}
+      variant="outlined"
+      size="sm"
+      sx={{ marginBottom: "5px", boxShadow: "sm" }}
       value={inputValues ? inputValues[field.id] : ""}
       inputValue={inputValues ? inputValues[field.id] : ""}
       options={options || []}
@@ -131,6 +127,7 @@ const AutocompleteComponent = ({
     />
   ) : (
     <Input
+      key={field.id}
       {...InputStyle}
       value={inputValues ? inputValues[field.id] : ""}
       onChange={(event) => {

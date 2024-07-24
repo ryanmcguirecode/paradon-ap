@@ -15,22 +15,17 @@ import {
   Select,
   Option,
 } from "@mui/joy";
-import AddCircleOutlineOutlinedIcon from "@mui/icons-material/AddCircleOutlineOutlined";
-import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
-import ErrorOutlineOutlinedIcon from "@mui/icons-material/ErrorOutlineOutlined";
 
 import {
   DocumentConfig as Document,
   DocumentConfigField as DocumentField,
 } from "@/types/DocumentConfig";
 import { Transformation } from "@/types/Transformation";
-import { azureInvoiceFields } from "@/types/AzureField";
 import { useAuth } from "@/components/AuthContext";
-import { Transform } from "stream";
 import CsvUpload from "./CsvUpload";
-import test from "node:test";
+
 import { auth } from "firebase-admin";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 interface TransformationProps {
   auth: AuthContext;
@@ -64,6 +59,9 @@ export function TransformationComponent({
     transformation?.body?.lookupMethod || "exact"
   );
   const [csvData, setCsvData] = useState([]);
+  const [learning, setLearning] = useState(
+    transformation?.body?.learning || false
+  );
 
   const isValid =
     transformationName &&
@@ -86,6 +84,7 @@ export function TransformationComponent({
             regexPattern: regexPattern,
             replacementValue: replacementValue,
             lookupMethod: lookupMethod,
+            learning: learning,
           },
         },
       }),
@@ -110,6 +109,9 @@ export function TransformationComponent({
     setTransformationType("lookup");
     setRegexPattern("");
     setReplacementValue("");
+    setLookupMethod("exact");
+    setCsvData([]);
+    setLearning(false);
   }
 
   useEffect(() => {
@@ -162,8 +164,8 @@ export function TransformationComponent({
         return;
       }
       body.push({
-        key: rowArray[0],
-        value: rowArray[1],
+        key: key,
+        value: value,
         createdBy: auth.user.email,
         transformation: transformationName,
       });
@@ -178,9 +180,8 @@ export function TransformationComponent({
         flexDirection: "column",
         alignItems: "center",
         backgroundColor: "background.surface",
-        border: "1px solid",
-        borderColor: "border",
-        borderRadius: 8,
+        border: ".5px solid",
+        borderColor: "black",
         my: "20px",
         width: "100%",
         minWidth: "fit-content", // Ensure the Box is at least as wide as its children
@@ -252,7 +253,7 @@ export function TransformationComponent({
             <FormControl
               sx={{
                 mx: "20px",
-                my: "10px",
+                my: "20px",
               }}
             >
               <FormLabel>Regex Pattern</FormLabel>
@@ -269,7 +270,7 @@ export function TransformationComponent({
             <FormControl
               sx={{
                 mx: "20px",
-                my: "10px",
+                my: "20px",
               }}
             >
               <FormLabel>Replacement Value</FormLabel>
@@ -296,7 +297,7 @@ export function TransformationComponent({
             <FormControl
               sx={{
                 mx: "20px",
-                my: "10px",
+                my: "20px",
               }}
             >
               <FormLabel>Match</FormLabel>
@@ -306,7 +307,7 @@ export function TransformationComponent({
                   setLookupMethod(value);
                 }}
                 disabled={!isNew}
-                sx={{ width: "auto" }}
+                sx={{ width: "auto", minWidth: "100px" }}
               >
                 <Option key="exact" value="exact">
                   <Typography level="body-lg" color="neutral">
@@ -320,44 +321,57 @@ export function TransformationComponent({
                 </Option>
               </Select>
             </FormControl>
-            {isNew ? (
-              <Box
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: "background.surface",
+              }}
+            >
+              <FormControl
                 sx={{
-                  display: "flex",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: "background.surface",
+                  mx: "20px",
+                  my: "20px",
                 }}
               >
-                <FormControl
-                  sx={{
-                    mx: "20px",
-                    my: "10px",
-                  }}
-                >
-                  <FormLabel>Lookup Table</FormLabel>
-                  <Box>
+                <FormLabel>Lookup Table</FormLabel>
+                <Box>
+                  {isNew ? (
                     <CsvUpload
                       disabled={csvData == null || transformationName == ""}
                       onDataParsed={(data) => uploadCsvData(data)}
                     />
-                  </Box>
-                </FormControl>
-              </Box>
-            ) : (
-              <FormControl>
-                <FormLabel>Lookup Table</FormLabel>
-                <Button
-                  onClick={() => {
-                    router.push(
-                      `/api/mappings?transformation=${transformationName}`
-                    );
-                  }}
-                >
-                  Show Mappings
-                </Button>
+                  ) : (
+                    <Button
+                      sx={{ width: "auto", minWidth: "200px" }}
+                      onClick={() => {
+                        router.push(
+                          `/api/mappings?transformation=${transformationName}`
+                        );
+                      }}
+                    >
+                      Show Mappings
+                    </Button>
+                  )}
+                </Box>
               </FormControl>
-            )}
+              <FormControl
+                sx={{
+                  mx: "20px",
+                  my: "20px",
+                }}
+              >
+                <FormLabel>Learning</FormLabel>
+                <Checkbox
+                  checked={learning}
+                  onChange={() => setLearning(!learning)}
+                  disabled={!isNew}
+                >
+                  Learning
+                </Checkbox>
+              </FormControl>
+            </Box>
           </Box>
         )}
       </Box>
@@ -441,15 +455,15 @@ export default function TransformationsTab() {
             <TransformationComponent
               auth={{ user, loading, level, organization }}
               transformation={transformation}
-              refresh={fetchTransformations}
               isNew={false}
+              refresh={fetchTransformations}
             ></TransformationComponent>
           );
         })}
       <TransformationComponent
         auth={{ user, loading, level, organization }}
-        refresh={fetchTransformations}
         isNew
+        refresh={fetchTransformations}
       ></TransformationComponent>
     </Box>
   );

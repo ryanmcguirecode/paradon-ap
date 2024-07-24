@@ -21,5 +21,6 @@ export default interface Document {
   timeCreated: string;
   updated: string;
   detectedFields: Partial<Record<AzureField, DetectedField>>;
-  fields: { [key: string]: Field };
+  fields: { [key: string]: any };
+  documentType?: string;
 }

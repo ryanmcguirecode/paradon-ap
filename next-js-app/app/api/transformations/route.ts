@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { adminOrganizationDB } from "@/auth/firebaseAdmin";
+import { Transformation } from "@/types/Transformation";
 import getUrlSearchParameter from "@/utils/getUrlSearchParameter";
 
 async function POST(req: NextRequest) {
@@ -78,7 +79,11 @@ async function GET(req: NextRequest) {
 }
 
 async function DELETE(req: NextRequest) {
-  const { organization, transformation } = await req.json();
+  const {
+    organization,
+    transformation,
+  }: { organization: string; transformation: Transformation } =
+    await req.json();
 
   if (!organization) {
     return NextResponse.json({ message: "No organization" }, { status: 500 });
@@ -103,13 +108,27 @@ async function DELETE(req: NextRequest) {
       transformations: updatedTransformations,
     });
 
-    fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/mappings`, { // TESTING FIX
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ organization, transformation }),
-    });
+    if (transformation.type === "lookup") {
+      const deleted = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/api/mappings`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            organization: organization,
+            transformation: transformation.name,
+          }),
+        }
+      );
+      if (deleted.status !== 200) {
+        return NextResponse.json(
+          { message: "Error deleting transformation" },
+          { status: 500 }
+        );
+      }
+    }
 
     return NextResponse.json(
       { message: "Transformation deleted successfully" },
