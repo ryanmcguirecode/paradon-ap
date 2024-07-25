@@ -26,7 +26,7 @@ import { useAuth } from "@/components/AuthContext";
 import NavigationLayout from "@/components/NavigationLayout";
 import Document from "@/types/Document";
 import { DocumentConfig, DocumentConfigField } from "@/types/DocumentConfig";
-import { Transformation } from "@/types/Transformation";
+import { Transformation, fetchTransformation } from "@/types/Transformation";
 
 import CurrencyInput, { currencyToNumber } from "./CurrencyInput";
 import DateInput, { dateToIsoString } from "./DateInput";
@@ -324,30 +324,34 @@ export default function ReviewPage() {
       let defaultValue = inputValues[field.id];
       var outField = field.id;
 
-      if (field.kind === "string" && field.transformation?.id) {
-        outField = field.transformation.outputField;
+      if (field.kind === "string" && field.transformationMetadata?.id) {
+        let transformation: Transformation = await fetchTransformation(
+          organization,
+          field.transformationMetadata?.id
+        );
 
-        if (field?.transformation?.transformation?.type === "replace") {
+        outField = field.transformationMetadata.outputField;
+
+        if (transformation?.type === "replace") {
           defaultValue = regexReplace(
             defaultValue,
-            field.transformation.transformation.body.regexPattern,
-            field.transformation.transformation.body.replacementValue
+            transformation?.body.regexPattern,
+            transformation?.body.replacementValue
           );
         } else if (
           field.kind === "string" &&
-          field?.transformation?.transformation?.type === "lookup"
+          transformation?.type === "lookup"
         ) {
           if (
-            field.transformation?.transformation?.body?.lookupMethod ===
-              "exact" ||
-            !field.transformation?.transformation?.body?.lookupMethod
+            transformation?.body?.lookupMethod === "exact" ||
+            !transformation?.body?.lookupMethod
           ) {
             try {
               if (!defaultValue) {
                 continue;
               }
               const response = await fetch(
-                `/api/mappings?organization=${organization}&key=${defaultValue}&transformation=${field.transformation.id}`,
+                `/api/mappings?organization=${organization}&key=${defaultValue}&transformation=${field.transformationMetadata.id}`,
                 {
                   method: "GET",
                   headers: {
@@ -364,15 +368,13 @@ export default function ReviewPage() {
             } catch (error) {
               console.error("Error fetching mapping:", error);
             }
-          } else if (
-            field.transformation?.transformation?.body?.lookupMethod === "fuzzy"
-          ) {
+          } else if (transformation?.body?.lookupMethod === "fuzzy") {
             try {
               if (!defaultValue) {
                 continue;
               }
               const response = await fetch(
-                `/api/mappings?&organization=${organization}&transformation=${field.transformation.id}`,
+                `/api/mappings?&organization=${organization}&transformation=${field.transformationMetadata.id}`,
                 {
                   method: "GET",
                   headers: {
@@ -446,14 +448,33 @@ export default function ReviewPage() {
         const fields = documentConfigs[doc?.documentType].fields;
 
         for (const field of fields) {
-          if (field.transformation?.transformation?.body?.learning) {
-            if (detectedFields[field.modelField]?.value) {
-              newMappings.push({
-                detectedValue: detectedFields[field.modelField]?.value,
-                inputValue: doc.fields[field.id],
-                field: field.id,
-                transformation: field.transformation.id,
-              });
+          if (field.transformationMetadata?.id) {
+            const transformation: Transformation = await fetchTransformation(
+              organization,
+              field.transformationMetadata?.id
+            );
+
+            const inputField = fields.find((f) => {
+              return f.id === field.transformationMetadata?.inputField;
+            });
+            const outputField = fields.find(
+              (f) => f.id === field.transformationMetadata?.outputField
+            );
+
+            if (!inputField || !outputField) {
+              console.error("Input or output field not found");
+              continue;
+            }
+
+            if (transformation?.body?.learning) {
+              if (detectedFields[field.modelField]?.value) {
+                newMappings.push({
+                  detectedValue: detectedFields[inputField.modelField]?.value,
+                  inputValue: doc.fields[outputField.id],
+                  field: field.id,
+                  transformation: field.transformationMetadata.id,
+                });
+              }
             }
           }
         }

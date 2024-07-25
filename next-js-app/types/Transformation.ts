@@ -8,3 +8,20 @@ export interface Transformation {
     learning: boolean;
   };
 }
+
+export async function fetchTransformation(
+  organization,
+  transformation
+): Promise<Transformation> {
+  const response = await fetch(
+    `/api/transformations?organization=${organization}&transformation=${transformation}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  const data = await response.json();
+  return data;
+}

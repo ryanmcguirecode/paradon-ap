@@ -8,11 +8,10 @@ export interface DocumentConfigField {
   color: [number, number, number];
   required: boolean;
   modelField?: AzureField | null;
-  transformation?: {
+  transformationMetadata?: {
     id: string;
     inputField: string;
     outputField: string;
-    transformation: Transformation;
   };
 }
 

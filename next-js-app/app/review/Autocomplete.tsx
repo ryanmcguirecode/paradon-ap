@@ -1,9 +1,7 @@
 import { use, useEffect, useState } from "react";
-
 import { Input, Autocomplete } from "@mui/joy";
-
 import { DocumentConfigField } from "@/types/DocumentConfig";
-
+import { Transformation, fetchTransformation } from "@/types/Transformation";
 import InputStyle from "./InputStyle";
 
 const AutocompleteComponent = ({
@@ -41,32 +39,40 @@ const AutocompleteComponent = ({
 }) => {
   const [options, setOptions] = useState([]);
   const [inputChanged, setInputChanged] = useState(false);
+  const [transformation, setTransformation] = useState<Transformation | null>(
+    null
+  );
 
   const fetchOptions = async () => {
-    if (!field?.transformation?.id) {
+    if (!field?.transformationMetadata?.id) {
       return;
     }
     try {
-      fetch(
-        `/api/mappings?organization=${organization}&transformation=${field.transformation.id}`,
+      const transformation = await fetchTransformation(
+        organization,
+        field.transformationMetadata.id
+      );
+      setTransformation(transformation);
+
+      const response = await fetch(
+        `/api/mappings?organization=${organization}&transformation=${field.transformationMetadata.id}`,
         {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
           },
         }
-      )
-        .then((response) => response.json().then((data) => data))
-        .then((data) => {
-          var opts = (data as any[]).map((item) => item.value);
-          if (
-            field.transformation.outputField != field.transformation.inputField
-          ) {
-            opts = (data as any[]).map((item) => item.key);
-          }
-          const uniqueOpts = Array.from(new Set(opts));
-          setOptions(uniqueOpts);
-        });
+      );
+      const data = await response.json();
+      let opts = (data as any[]).map((item) => item.value);
+      if (
+        field.transformationMetadata.outputField !==
+        field.transformationMetadata.inputField
+      ) {
+        opts = (data as any[]).map((item) => item.key);
+      }
+      const uniqueOpts = Array.from(new Set(opts));
+      setOptions(uniqueOpts);
     } catch (error) {
       console.error("Error fetching mapping:", error);
     }
@@ -83,8 +89,7 @@ const AutocompleteComponent = ({
     }
   }, [inputValues]);
 
-  return field?.transformation?.transformation &&
-    field.transformation.transformation.type == "lookup" ? (
+  return transformation?.type === "lookup" ? (
     <Autocomplete
       key={field.id}
       variant="outlined"
@@ -102,7 +107,7 @@ const AutocompleteComponent = ({
           handleInputChange(field.id, "");
         }
       }}
-      onChange={(event, newValue) => {
+      onChange={() => {
         setInputChanged(true);
       }}
       onFocus={() => {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
 import {
   Accordion,
   AccordionDetails,
@@ -10,11 +9,9 @@ import {
   Autocomplete,
   Box,
   Button,
-  Checkbox,
   CircularProgress,
   FormControl,
   FormLabel,
-  Input,
   Tab,
   tabClasses,
   TabList,
@@ -32,7 +29,7 @@ import {
   DocumentConfig as Document,
   DocumentConfigField as DocumentField,
 } from "@/types/DocumentConfig";
-import { Transformation } from "@/types/Transformation";
+import { Transformation, fetchTransformation } from "@/types/Transformation";
 import { azureInvoiceFields } from "@/types/AzureField";
 
 import {
@@ -50,7 +47,6 @@ import {
   SelectProperty,
   TrueFalseProperty,
 } from "./SettingsInputs";
-import { on } from "events";
 
 interface FieldPropertyProps {
   fields: DocumentField[];
@@ -69,7 +65,7 @@ function FieldProperty({
   fields,
   field,
   isNew = false,
-  onChange = (field) => {},
+  onChange = () => {},
   onCreate = () => {},
   onDelete = () => {},
   usedFieldIds = [],
@@ -217,7 +213,6 @@ function FieldProperty({
             options={[null, ...Object.keys(azureInvoiceFields)]}
             indentation={indentation + 1}
           />
-          {/* <Autocomplete></Autocomplete> */}
           <Typography>Transformation</Typography>
           <Box
             sx={{
@@ -232,18 +227,16 @@ function FieldProperty({
               <FormLabel>Input Field</FormLabel>
               <Autocomplete
                 options={fieldOptions}
-                inputValue={field?.transformation?.inputField || ""}
-                value={field?.transformation?.inputField || ""}
+                inputValue={field?.transformationMetadata?.inputField || ""}
+                value={field?.transformationMetadata?.inputField || ""}
                 onInputChange={(event, newValue) => {
                   onChange({
                     ...field,
-                    transformation: {
-                      id: field?.transformation?.id || "",
+                    transformationMetadata: {
+                      id: field?.transformationMetadata?.id || "",
                       inputField: newValue,
-                      outputField: field?.transformation?.outputField || "",
-                      transformation: {
-                        ...field?.transformation?.transformation,
-                      },
+                      outputField:
+                        field?.transformationMetadata?.outputField || "",
                     },
                   });
                 }}
@@ -260,20 +253,17 @@ function FieldProperty({
                 onInputChange={(event, newValue) => {
                   onChange({
                     ...field,
-                    transformation: {
+                    transformationMetadata: {
                       id: newValue,
-                      inputField: field?.transformation?.inputField || "",
-                      outputField: field?.transformation?.outputField || "",
-                      transformation: {
-                        ...transformations.find(
-                          (transformation) => transformation.name === newValue
-                        ),
-                      },
+                      inputField:
+                        field?.transformationMetadata?.inputField || "",
+                      outputField:
+                        field?.transformationMetadata?.outputField || "",
                     },
                   });
                 }}
-                inputValue={field?.transformation?.id || ""}
-                value={field?.transformation?.id || ""}
+                inputValue={field?.transformationMetadata?.id || ""}
+                value={field?.transformationMetadata?.id || ""}
                 placeholder="Select Transform"
                 sx={{ width: "100%" }}
               />
@@ -282,18 +272,16 @@ function FieldProperty({
               <FormLabel>Output Field</FormLabel>
               <Autocomplete
                 options={fieldOptions}
-                inputValue={field?.transformation?.outputField || ""}
-                value={field?.transformation?.outputField || ""}
+                inputValue={field?.transformationMetadata?.outputField || ""}
+                value={field?.transformationMetadata?.outputField || ""}
                 onInputChange={(event, newValue) => {
                   onChange({
                     ...field,
-                    transformation: {
-                      id: field?.transformation?.id || "",
-                      inputField: field?.transformation?.inputField || "",
+                    transformationMetadata: {
+                      id: field?.transformationMetadata?.id || "",
+                      inputField:
+                        field?.transformationMetadata?.inputField || "",
                       outputField: newValue,
-                      transformation: {
-                        ...field?.transformation?.transformation,
-                      },
                     },
                   });
                 }}

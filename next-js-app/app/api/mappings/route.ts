@@ -12,7 +12,7 @@ export async function GET(req) {
     const transformation = getUrlSearchParameter(
       req.nextUrl.searchParams,
       "transformation"
-    ).toLowerCase();
+    )?.toLowerCase();
     const db = await openDB();
     if (transformation && key) {
       return NextResponse.json(
@@ -31,7 +31,7 @@ export async function GET(req) {
       );
     } else {
       return NextResponse.json(
-        await db.all(`SELECT * FROM {organization}Mappings`)
+        await db.all(`SELECT * FROM ${organization}Mappings`)
       );
     }
   } catch (error) {
