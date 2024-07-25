@@ -27,6 +27,7 @@ import NavigationLayout from "@/components/NavigationLayout";
 import Document from "@/types/Document";
 import { DocumentConfig, DocumentConfigField } from "@/types/DocumentConfig";
 import { Transformation, fetchTransformation } from "@/types/Transformation";
+import { Mapping } from "@/types/Mapping";
 
 import CurrencyInput, { currencyToNumber } from "./CurrencyInput";
 import DateInput, { dateToIsoString } from "./DateInput";
@@ -35,6 +36,7 @@ import InputStyle from "./InputStyle";
 import { regexReplace } from "@/utils/regexReplace";
 import AutocompleteComponent from "./Autocomplete";
 import Fuse from "fuse.js";
+import MappingsTable from "./MappingsTable";
 
 export default function ReviewPage() {
   const router = useRouter();
@@ -59,8 +61,8 @@ export default function ReviewPage() {
   }>({});
 
   const [inputValues, setInputValues] = useState<{ [key: string]: any }>();
-  const [transformations, setTransformations] = useState<Transformation[]>();
-
+  const [showMappings, setShowMappings] = useState(false);
+  const [mappings, setMappings] = useState<any[]>([]);
   // Acquire batch and fetch documents
   useEffect(() => {
     if (loading) {
@@ -102,24 +104,24 @@ export default function ReviewPage() {
       setDocumentsFetched(true);
     };
 
-    async function fetchTransformations() {
-      // Fetch transformations
-      const response = await fetch(
-        `/api/transformations?organization=${organization}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      response.json().then((data) => {
-        setTransformations(data);
-      });
-    }
+    // async function fetchTransformations() {
+    //   // Fetch transformations
+    //   const response = await fetch(
+    //     `/api/transformations?organization=${organization}`,
+    //     {
+    //       method: "GET",
+    //       headers: {
+    //         "Content-Type": "application/json",
+    //       },
+    //     }
+    //   );
+    //   response.json().then((data) => {
+    //     setTransformations(data);
+    //   });
+    // }
 
     acquireBatch(batchId || "").then(() => fetchDocuments());
-    fetchTransformations();
+    // fetchTransformations();
   }, [loading]);
 
   // Heartbeat to database that the user is still using the batch every 30s
@@ -350,8 +352,9 @@ export default function ReviewPage() {
               if (!defaultValue) {
                 continue;
               }
+              const defaultValueURI = encodeURIComponent(defaultValue);
               const response = await fetch(
-                `/api/mappings?organization=${organization}&key=${defaultValue}&transformation=${field.transformationMetadata.id}`,
+                `/api/mappings?organization=${organization}&key=${defaultValueURI}&transformation=${field.transformationMetadata.id}`,
                 {
                   method: "GET",
                   headers: {
@@ -373,8 +376,9 @@ export default function ReviewPage() {
               if (!defaultValue) {
                 continue;
               }
+              const defaultValueURI = encodeURIComponent(defaultValue);
               const response = await fetch(
-                `/api/mappings?&organization=${organization}&transformation=${field.transformationMetadata.id}`,
+                `/api/mappings?organization=${organization}&transformation=${field.transformationMetadata.id}&key=${defaultValueURI}`,
                 {
                   method: "GET",
                   headers: {
@@ -384,24 +388,38 @@ export default function ReviewPage() {
               );
               const data = await response.json();
               if (data.length > 0) {
-                // set default value to the closest fuzzy match
-                const options = {
-                  keys: ["value"],
-                  includeScore: true,
-                };
-
-                const fuse = new Fuse(data, options);
-                const searchTerm = defaultValue;
-                const result: any[] = fuse.search(searchTerm);
-
-                if (result.length > 0) {
-                  // Sort results by score in ascending order (best match first)
-                  result.sort((a, b) => a.score - b.score);
-                  // Get the best match (first item after sorting)
-                  defaultValue = result[0].item.value;
-                }
+                defaultValue = data[0].value;
               } else {
-                continue;
+                const response = await fetch(
+                  `/api/mappings?&organization=${organization}&transformation=${field.transformationMetadata.id}`,
+                  {
+                    method: "GET",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                  }
+                );
+                const data = await response.json();
+                if (data.length > 0) {
+                  // set default value to the closest fuzzy match
+                  const options = {
+                    keys: ["value"],
+                    includeScore: true,
+                  };
+
+                  const fuse = new Fuse(data, options);
+                  const searchTerm = defaultValue;
+                  const result: any[] = fuse.search(searchTerm);
+
+                  if (result.length > 0) {
+                    // Sort results by score in ascending order (best match first)
+                    result.sort((a, b) => a.score - b.score);
+                    // Get the best match (first item after sorting)
+                    defaultValue = result[0].item.value;
+                  }
+                } else {
+                  continue;
+                }
               }
             } catch (error) {
               console.error("Error fetching mapping:", error);
@@ -432,12 +450,6 @@ export default function ReviewPage() {
   async function saveDocumentValues(submit: boolean) {
     if (submit) {
       // Save mappings from detected fields to fields
-      interface Mapping {
-        detectedValue: string;
-        inputValue: string;
-        field: string;
-        transformation: string;
-      }
       const newMappings = new Array<Mapping>();
 
       for (let doc of documents) {
@@ -469,9 +481,9 @@ export default function ReviewPage() {
             if (transformation?.body?.learning) {
               if (detectedFields[field.modelField]?.value) {
                 newMappings.push({
-                  detectedValue: detectedFields[inputField.modelField]?.value,
-                  inputValue: doc.fields[outputField.id],
-                  field: field.id,
+                  key: detectedFields[inputField.modelField]?.value,
+                  value: doc.fields[outputField.id],
+                  createdBy: user.email,
                   transformation: field.transformationMetadata.id,
                 });
               }
@@ -479,7 +491,9 @@ export default function ReviewPage() {
           }
         }
       }
-      alert(JSON.stringify(newMappings, null, 2));
+      // display mappings in a table overlay for review
+      setShowMappings(true);
+      setMappings(newMappings);
       return;
     }
 
@@ -924,6 +938,12 @@ export default function ReviewPage() {
           ) : null}
         </Box>
       </Box>
+      <MappingsTable
+        auth={{ user, organization }}
+        data={mappings}
+        showMappings={showMappings}
+        setShowMappings={setShowMappings}
+      />
     </NavigationLayout>
   );
 }
