@@ -310,6 +310,7 @@ export default function ReviewPage() {
     }
   }, [fieldsApplied]);
 
+  // Happens when the document is loaded in, only want to apply transformation to detected fields and not overwrite user input
   const applyTransformation = async () => {
     if (
       !documentsFetched ||
@@ -323,114 +324,202 @@ export default function ReviewPage() {
     const fields = documentConfigs[documentType]?.fields || [];
 
     for (const field of fields) {
-      let defaultValue = inputValues[field.id];
+      const savedValue = documents[documentIndex]?.fields?.[field.id];
+      let detectedField =
+        documents[documentIndex]?.detectedFields[field.modelField]?.value;
+
+      if (field.kind === "currency" && typeof detectedField !== "string") {
+        detectedField = currencyToNumber(detectedField);
+      } else if (field.kind === "date") {
+        detectedField = dateToIsoString(detectedField);
+      } else {
+        detectedField = detectedField;
+      }
+
+      // If the field is not detected or the field is already filled out, skip
+      if (savedValue || !detectedField) {
+        continue;
+      }
+
+      // If the field is not a string or has a transformation, skip
+      if (!(field.kind === "string" && field.transformationMetadata?.id)) {
+        continue;
+      }
+
+      // Default value is the detected value, value to be outputted
+      var defaultValue = detectedField;
+
+      // where we will store the transformed value
       var outField = field.id;
 
-      if (field.kind === "string" && field.transformationMetadata?.id) {
-        let transformation: Transformation = await fetchTransformation(
-          organization,
-          field.transformationMetadata?.id
+      // only on string fields for now
+      let transformation: Transformation = await fetchTransformation(
+        organization,
+        field.transformationMetadata?.id
+      );
+
+      outField = field.transformationMetadata.outputField;
+
+      if (transformation?.type === "replace") {
+        defaultValue = regexReplace(
+          defaultValue,
+          transformation?.body.regexPattern,
+          transformation?.body.replacementValue
         );
-
-        outField = field.transformationMetadata.outputField;
-
-        if (transformation?.type === "replace") {
-          defaultValue = regexReplace(
-            defaultValue,
-            transformation?.body.regexPattern,
-            transformation?.body.replacementValue
-          );
-        } else if (
-          field.kind === "string" &&
-          transformation?.type === "lookup"
+      } else if (field.kind === "string" && transformation?.type === "lookup") {
+        if (
+          transformation?.body?.lookupMethod === "exact" ||
+          !transformation?.body?.lookupMethod
         ) {
-          if (
-            transformation?.body?.lookupMethod === "exact" ||
-            !transformation?.body?.lookupMethod
-          ) {
-            try {
-              if (!defaultValue) {
-                continue;
-              }
-              const defaultValueURI = encodeURIComponent(defaultValue);
-              const response = await fetch(
-                `/api/mappings?organization=${organization}&key=${defaultValueURI}&transformation=${field.transformationMetadata.id}`,
-                {
-                  method: "GET",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                }
-              );
-              const data = await response.json();
-              if (data.length > 0) {
-                defaultValue = data[0].value;
-              } else {
-                continue;
-              }
-            } catch (error) {
-              console.error("Error fetching mapping:", error);
+          try {
+            if (!defaultValue) {
+              continue;
             }
-          } else if (transformation?.body?.lookupMethod === "fuzzy") {
-            try {
-              if (!defaultValue) {
-                continue;
+            const defaultValueURI = encodeURIComponent(defaultValue);
+            const response = await fetch(
+              `/api/mappings?organization=${organization}&key=${defaultValueURI}&transformation=${field.transformationMetadata.id}`,
+              {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                },
               }
-              const defaultValueURI = encodeURIComponent(defaultValue);
-              const response = await fetch(
-                `/api/mappings?organization=${organization}&transformation=${field.transformationMetadata.id}&key=${defaultValueURI}`,
-                {
-                  method: "GET",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                }
-              );
-              const data = await response.json();
-              if (data.length > 0) {
-                defaultValue = data[0].value;
-              } else {
-                const response = await fetch(
-                  `/api/mappings?&organization=${organization}&transformation=${field.transformationMetadata.id}`,
-                  {
-                    method: "GET",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                  }
-                );
-                const data = await response.json();
-                if (data.length > 0) {
-                  // set default value to the closest fuzzy match
-                  const options = {
-                    keys: ["value"],
-                    includeScore: true,
-                  };
-
-                  const fuse = new Fuse(data, options);
-                  const searchTerm = defaultValue;
-                  const result: any[] = fuse.search(searchTerm);
-
-                  if (result.length > 0) {
-                    // Sort results by score in ascending order (best match first)
-                    result.sort((a, b) => a.score - b.score);
-                    // Get the best match (first item after sorting)
-                    defaultValue = result[0].item.value;
-                  }
-                } else {
-                  continue;
-                }
-              }
-            } catch (error) {
-              console.error("Error fetching mapping:", error);
+            );
+            const data = await response.json();
+            if (data.length > 0) {
+              defaultValue = data[0].value;
+            } else {
+              continue;
             }
+          } catch (error) {
+            console.error("Error fetching mapping:", error);
           }
+        } else if (transformation?.body?.lookupMethod === "fuzzy") {
+          try {
+            if (!defaultValue) {
+              continue;
+            }
+            const defaultValueURI = encodeURIComponent(defaultValue);
+            const response = await fetch(
+              `/api/mappings?organization=${organization}&transformation=${field.transformationMetadata.id}&key=${defaultValueURI}`,
+              {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+            const data = await response.json();
+            if (data.length > 0) {
+              defaultValue = data[0].value;
+            } else {
+              const response = await fetch(
+                `/api/mappings?&organization=${organization}&transformation=${field.transformationMetadata.id}`,
+                {
+                  method: "GET",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                }
+              );
+              const data = await response.json();
+              if (data.length > 0) {
+                // set default value to the closest fuzzy match
+                const options = {
+                  keys: ["value"],
+                  includeScore: true,
+                };
+
+                const fuse = new Fuse(data, options);
+                const searchTerm = defaultValue;
+                const result: any[] = fuse.search(searchTerm);
+
+                if (result.length > 0) {
+                  // Sort results by score in ascending order (best match first)
+                  result.sort((a, b) => a.score - b.score);
+                  // Get the best match (first item after sorting)
+                  defaultValue = result[0].item.value;
+                }
+              } else {
+                continue;
+              }
+            }
+          } catch (error) {
+            console.error("Error fetching mapping:", error);
+          }
+        }
+      }
+
+      newInputValues[outField] = defaultValue;
+    }
+    setInputValues({ ...inputValues, ...newInputValues });
+  };
+
+  async function applyTransformationDynamically() {
+    if (
+      !documentsFetched ||
+      !documentConfigs ||
+      !documentType ||
+      !inputValues
+    ) {
+      return;
+    }
+    const newInputValues = inputValues;
+    const fields = documentConfigs[documentType]?.fields || [];
+
+    for (const field of fields) {
+      // If the field is not a string or has a transformation, skip
+      if (!(field.kind === "string" && field.transformationMetadata?.id)) {
+        continue;
+      }
+
+      // Default value is the detected value, value to be outputted
+      var defaultValue = inputValues[field.id];
+
+      if (!defaultValue) {
+        continue;
+      }
+
+      // where we will store the transformed value
+      var outField = field.id;
+
+      // only on string fields for now
+      let transformation: Transformation = await fetchTransformation(
+        organization,
+        field.transformationMetadata?.id
+      );
+
+      outField = field.transformationMetadata.outputField;
+
+      if (field.kind === "string" && transformation?.type === "lookup") {
+        try {
+          if (!defaultValue) {
+            continue;
+          }
+          const defaultValueURI = encodeURIComponent(defaultValue);
+          const response = await fetch(
+            `/api/mappings?organization=${organization}&key=${defaultValueURI}&transformation=${field.transformationMetadata.id}`,
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+          const data = await response.json();
+          if (data.length > 0) {
+            defaultValue = data[0].value;
+          } else {
+            continue;
+          }
+        } catch (error) {
+          console.error("Error fetching mapping:", error);
         }
       }
       newInputValues[outField] = defaultValue;
     }
-    setInputValues(newInputValues);
-  };
+    setInputValues({ ...inputValues, ...newInputValues });
+  }
 
   function requiredFieldsFilledOut() {
     if (!documentConfigs || !documentConfigs[documentType] || !inputValues) {
@@ -928,7 +1017,7 @@ export default function ReviewPage() {
                         searchable={searchable}
                         activeField={activeField}
                         setScrollTo={setScrollTo}
-                        applyTransformation={applyTransformation}
+                        applyTransformation={applyTransformationDynamically}
                       />
                     )}
                   </div>
