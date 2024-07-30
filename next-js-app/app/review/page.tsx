@@ -337,84 +337,51 @@ export default function ReviewPage() {
       }
 
       // If the field is not detected or the field is already filled out, skip
-      if (savedValue || !detectedField) {
+      if (savedValue || !detectedField || !field.transformationMetadata) {
         continue;
       }
 
-      // If the field is not a string or has a transformation, skip
-      if (!(field.kind === "string" && field.transformationMetadata?.id)) {
-        continue;
-      }
+      for (let transformationMetadata of field.transformationMetadata) {
+        // If the field is not a string or has a transformation, skip
+        if (!(field.kind === "string" && transformationMetadata?.id)) {
+          continue;
+        }
 
-      // Default value is the detected value, value to be outputted
-      var defaultValue = detectedField;
+        // Default value is the detected value, value to be outputted
+        var defaultValue = detectedField;
 
-      // where we will store the transformed value
-      var outField = field.id;
+        // where we will store the transformed value
+        var outField = field.id;
 
-      // only on string fields for now
-      let transformation: Transformation = await fetchTransformation(
-        organization,
-        field.transformationMetadata?.id
-      );
-
-      outField = field.transformationMetadata.outputField;
-
-      if (transformation?.type === "replace") {
-        defaultValue = regexReplace(
-          defaultValue,
-          transformation?.body.regexPattern,
-          transformation?.body.replacementValue
+        // only on string fields for now
+        let transformation: Transformation = await fetchTransformation(
+          organization,
+          transformationMetadata?.id
         );
-      } else if (field.kind === "string" && transformation?.type === "lookup") {
-        if (
-          transformation?.body?.lookupMethod === "exact" ||
-          !transformation?.body?.lookupMethod
+
+        outField = transformationMetadata.outputField;
+
+        if (transformation?.type === "replace") {
+          defaultValue = regexReplace(
+            defaultValue,
+            transformation?.body.regexPattern,
+            transformation?.body.replacementValue
+          );
+        } else if (
+          field.kind === "string" &&
+          transformation?.type === "lookup"
         ) {
-          try {
-            if (!defaultValue) {
-              continue;
-            }
-            const defaultValueURI = encodeURIComponent(defaultValue);
-            const response = await fetch(
-              `/api/mappings?organization=${organization}&key=${defaultValueURI}&transformation=${field.transformationMetadata.id}`,
-              {
-                method: "GET",
-                headers: {
-                  "Content-Type": "application/json",
-                },
+          if (
+            transformation?.body?.lookupMethod === "exact" ||
+            !transformation?.body?.lookupMethod
+          ) {
+            try {
+              if (!defaultValue) {
+                continue;
               }
-            );
-            const data = await response.json();
-            if (data.length > 0) {
-              defaultValue = data[0].value;
-            } else {
-              continue;
-            }
-          } catch (error) {
-            console.error("Error fetching mapping:", error);
-          }
-        } else if (transformation?.body?.lookupMethod === "fuzzy") {
-          try {
-            if (!defaultValue) {
-              continue;
-            }
-            const defaultValueURI = encodeURIComponent(defaultValue);
-            const response = await fetch(
-              `/api/mappings?organization=${organization}&transformation=${field.transformationMetadata.id}&key=${defaultValueURI}`,
-              {
-                method: "GET",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-              }
-            );
-            const data = await response.json();
-            if (data.length > 0) {
-              defaultValue = data[0].value;
-            } else {
+              const defaultValueURI = encodeURIComponent(defaultValue);
               const response = await fetch(
-                `/api/mappings?&organization=${organization}&transformation=${field.transformationMetadata.id}`,
+                `/api/mappings?organization=${organization}&key=${defaultValueURI}&transformation=${transformationMetadata.id}`,
                 {
                   method: "GET",
                   headers: {
@@ -424,38 +391,76 @@ export default function ReviewPage() {
               );
               const data = await response.json();
               if (data.length > 0) {
-                // set default value to the closest fuzzy match
-                const options = {
-                  keys: ["value"],
-                  includeScore: true,
-                };
-
-                const fuse = new Fuse(data, options);
-                const searchTerm = defaultValue;
-                const result: any[] = fuse.search(searchTerm);
-
-                if (result.length > 0) {
-                  // Sort results by score in ascending order (best match first)
-                  result.sort((a, b) => a.score - b.score);
-                  // Get the best match (first item after sorting)
-                  defaultValue = result[0].item.value;
-                }
+                defaultValue = data[0].value;
               } else {
                 continue;
               }
+            } catch (error) {
+              console.error("Error fetching mapping:", error);
             }
-          } catch (error) {
-            console.error("Error fetching mapping:", error);
+          } else if (transformation?.body?.lookupMethod === "fuzzy") {
+            try {
+              if (!defaultValue) {
+                continue;
+              }
+              const defaultValueURI = encodeURIComponent(defaultValue);
+              const response = await fetch(
+                `/api/mappings?organization=${organization}&transformation=${transformationMetadata.id}&key=${defaultValueURI}`,
+                {
+                  method: "GET",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                }
+              );
+              const data = await response.json();
+              if (data.length > 0) {
+                defaultValue = data[0].value;
+              } else {
+                const response = await fetch(
+                  `/api/mappings?&organization=${organization}&transformation=${transformationMetadata.id}`,
+                  {
+                    method: "GET",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                  }
+                );
+                const data = await response.json();
+                if (data.length > 0) {
+                  // set default value to the closest fuzzy match
+                  const options = {
+                    keys: ["value"],
+                    includeScore: true,
+                  };
+
+                  const fuse = new Fuse(data, options);
+                  const searchTerm = defaultValue;
+                  const result: any[] = fuse.search(searchTerm);
+
+                  if (result.length > 0) {
+                    // Sort results by score in ascending order (best match first)
+                    result.sort((a, b) => a.score - b.score);
+                    // Get the best match (first item after sorting)
+                    defaultValue = result[0].item.value;
+                  }
+                } else {
+                  continue;
+                }
+              }
+            } catch (error) {
+              console.error("Error fetching mapping:", error);
+            }
           }
         }
-      }
 
-      newInputValues[outField] = defaultValue;
+        newInputValues[outField] = defaultValue;
+      }
+      setInputValues({ ...inputValues, ...newInputValues });
     }
-    setInputValues({ ...inputValues, ...newInputValues });
   };
 
-  async function applyTransformationDynamically() {
+  async function applyTransformationDynamically(id: string) {
     if (
       !documentsFetched ||
       !documentConfigs ||
@@ -464,19 +469,30 @@ export default function ReviewPage() {
     ) {
       return;
     }
+    console.log("Applying transformation dynamically", id);
     const newInputValues = inputValues;
-    const fields = documentConfigs[documentType]?.fields || [];
+    const field = documentConfigs[documentType]?.fields.find(
+      (field) => field.id === id
+    );
 
-    for (const field of fields) {
+    // Default value is the detected value, value to be outputted
+    var defaultValue = inputValues[field.id];
+
+    if (!defaultValue) {
+      return;
+    }
+
+    if (!field.transformationMetadata) {
+      return;
+    }
+
+    if (field.kind !== "string") {
+      return;
+    }
+
+    for (let transformationMetadata of field.transformationMetadata) {
       // If the field is not a string or has a transformation, skip
-      if (!(field.kind === "string" && field.transformationMetadata?.id)) {
-        continue;
-      }
-
-      // Default value is the detected value, value to be outputted
-      var defaultValue = inputValues[field.id];
-
-      if (!defaultValue) {
+      if (!transformationMetadata?.id) {
         continue;
       }
 
@@ -486,10 +502,10 @@ export default function ReviewPage() {
       // only on string fields for now
       let transformation: Transformation = await fetchTransformation(
         organization,
-        field.transformationMetadata?.id
+        transformationMetadata?.id
       );
 
-      outField = field.transformationMetadata.outputField;
+      outField = transformationMetadata.outputField;
 
       if (field.kind === "string" && transformation?.type === "lookup") {
         try {
@@ -497,8 +513,17 @@ export default function ReviewPage() {
             continue;
           }
           const defaultValueURI = encodeURIComponent(defaultValue);
+          console.log(
+            "Default value URI",
+            "/api/mappings?organization=" +
+              organization +
+              "&key=" +
+              defaultValueURI +
+              "&transformation=" +
+              transformationMetadata.id
+          );
           const response = await fetch(
-            `/api/mappings?organization=${organization}&key=${defaultValueURI}&transformation=${field.transformationMetadata.id}`,
+            `/api/mappings?organization=${organization}&key=${defaultValueURI}&transformation=${transformationMetadata.id}`,
             {
               method: "GET",
               headers: {
@@ -549,32 +574,37 @@ export default function ReviewPage() {
         const fields = documentConfigs[doc?.documentType].fields;
 
         for (const field of fields) {
-          if (field.transformationMetadata?.id) {
-            const transformation: Transformation = await fetchTransformation(
-              organization,
-              field.transformationMetadata?.id
-            );
+          if (!field.transformationMetadata) {
+            continue;
+          }
+          for (let transformationMetadata of field.transformationMetadata) {
+            if (transformationMetadata?.id) {
+              const transformation: Transformation = await fetchTransformation(
+                organization,
+                transformationMetadata?.id
+              );
 
-            const inputField = fields.find((f) => {
-              return f.id === field.transformationMetadata?.inputField;
-            });
-            const outputField = fields.find(
-              (f) => f.id === field.transformationMetadata?.outputField
-            );
+              const inputField = fields.find((f) => {
+                return f.id === transformationMetadata?.inputField;
+              });
+              const outputField = fields.find(
+                (f) => f.id === transformationMetadata?.outputField
+              );
 
-            if (!inputField || !outputField) {
-              console.error("Input or output field not found");
-              continue;
-            }
+              if (!inputField || !outputField) {
+                console.error("Input or output field not found");
+                continue;
+              }
 
-            if (transformation?.body?.learning) {
-              if (detectedFields[field.modelField]?.value) {
-                newMappings.push({
-                  key: detectedFields[inputField.modelField]?.value,
-                  value: doc.fields[outputField.id],
-                  createdBy: user.email,
-                  transformation: field.transformationMetadata.id,
-                });
+              if (transformation?.body?.learning) {
+                if (detectedFields[field.modelField]?.value) {
+                  newMappings.push({
+                    key: detectedFields[inputField.modelField]?.value,
+                    value: doc.fields[outputField.id],
+                    createdBy: user.email,
+                    transformation: transformationMetadata.id,
+                  });
+                }
               }
             }
           }

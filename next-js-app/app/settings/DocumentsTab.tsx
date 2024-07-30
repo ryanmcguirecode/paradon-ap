@@ -213,82 +213,125 @@ function FieldProperty({
             options={[null, ...Object.keys(azureInvoiceFields)]}
             indentation={indentation + 1}
           />
-          <Typography>Transformation</Typography>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "row",
-              gap: "20px",
-              marginLeft: `${(indentation + 1) * 20}px`,
-              flexWrap: "wrap",
-            }}
-          >
-            <FormControl sx={{ flex: 1, minWidth: "50px" }}>
-              <FormLabel>Input Field</FormLabel>
-              <Autocomplete
-                options={fieldOptions}
-                inputValue={field?.transformationMetadata?.inputField || ""}
-                value={field?.transformationMetadata?.inputField || ""}
-                onInputChange={(event, newValue) => {
-                  onChange({
-                    ...field,
-                    transformationMetadata: {
-                      id: field?.transformationMetadata?.id || "",
-                      inputField: newValue,
-                      outputField:
-                        field?.transformationMetadata?.outputField || "",
-                    },
-                  });
+          <Typography>Transformations</Typography>
+          <Box sx={{ marginLeft: `${(indentation + 1) * 20}px` }}>
+            {field?.transformationMetadata?.map((transformation, index) => (
+              <Box
+                key={index}
+                sx={{
+                  display: "flex",
+                  flexDirection: "row",
+                  gap: "20px",
+                  flexWrap: "wrap",
+                  marginBottom: "10px",
                 }}
-                placeholder="Select Field"
-                sx={{ width: "100%" }}
-              />
-            </FormControl>
-            <FormControl sx={{ flex: 1, minWidth: "50px" }}>
-              <FormLabel>Transformation</FormLabel>
-              <Autocomplete
-                options={transformations.map(
-                  (transformation) => transformation.name
-                )}
-                onInputChange={(event, newValue) => {
-                  onChange({
-                    ...field,
-                    transformationMetadata: {
-                      id: newValue,
-                      inputField:
-                        field?.transformationMetadata?.inputField || "",
-                      outputField:
-                        field?.transformationMetadata?.outputField || "",
-                    },
-                  });
-                }}
-                inputValue={field?.transformationMetadata?.id || ""}
-                value={field?.transformationMetadata?.id || ""}
-                placeholder="Select Transform"
-                sx={{ width: "100%" }}
-              />
-            </FormControl>
-            <FormControl sx={{ flex: 1, minWidth: "50px" }}>
-              <FormLabel>Output Field</FormLabel>
-              <Autocomplete
-                options={fieldOptions}
-                inputValue={field?.transformationMetadata?.outputField || ""}
-                value={field?.transformationMetadata?.outputField || ""}
-                onInputChange={(event, newValue) => {
-                  onChange({
-                    ...field,
-                    transformationMetadata: {
-                      id: field?.transformationMetadata?.id || "",
-                      inputField:
-                        field?.transformationMetadata?.inputField || "",
-                      outputField: newValue,
-                    },
-                  });
-                }}
-                placeholder="Select Field"
-                sx={{ width: "100%" }}
-              />
-            </FormControl>
+              >
+                <FormControl sx={{ flex: 1, minWidth: "50px" }}>
+                  <FormLabel>Input Field</FormLabel>
+                  <Autocomplete
+                    disabled={true}
+                    options={fieldOptions}
+                    inputValue={field.id || ""}
+                    value={transformation.inputField || ""}
+                    onInputChange={(event, newValue) => {
+                      const newTransformations = field.transformationMetadata
+                        ? [...field.transformationMetadata]
+                        : [];
+                      newTransformations[index] = {
+                        ...newTransformations[index],
+                        inputField: newValue,
+                      };
+                      onChange({
+                        ...field,
+                        transformationMetadata: newTransformations,
+                      });
+                    }}
+                    placeholder="Select Field"
+                    sx={{ width: "100%" }}
+                  />
+                </FormControl>
+                <FormControl sx={{ flex: 1, minWidth: "50px" }}>
+                  <FormLabel>Transformation</FormLabel>
+                  <Autocomplete
+                    options={transformations.map(
+                      (transformation) => transformation.name
+                    )}
+                    onInputChange={(event, newValue) => {
+                      const newTransformations =
+                        field.transformationMetadata || [];
+                      newTransformations[index] = {
+                        ...newTransformations[index],
+                        id: newValue,
+                      };
+                      onChange({
+                        ...field,
+                        transformationMetadata: newTransformations,
+                      });
+                    }}
+                    inputValue={transformation.id || ""}
+                    value={transformation.id || ""}
+                    placeholder="Select Transform"
+                    sx={{ width: "100%" }}
+                  />
+                </FormControl>
+                <FormControl sx={{ flex: 1, minWidth: "50px" }}>
+                  <FormLabel>Output Field</FormLabel>
+                  <Autocomplete
+                    options={fieldOptions}
+                    inputValue={transformation.outputField || ""}
+                    value={transformation.outputField || ""}
+                    onInputChange={(event, newValue) => {
+                      const newTransformations =
+                        field.transformationMetadata || [];
+                      newTransformations[index] = {
+                        ...newTransformations[index],
+                        outputField: newValue,
+                      };
+                      onChange({
+                        ...field,
+                        transformationMetadata: newTransformations,
+                      });
+                    }}
+                    placeholder="Select Field"
+                    sx={{ width: "100%" }}
+                  />
+                </FormControl>
+                <Button
+                  size="md"
+                  color="danger"
+                  onClick={() => {
+                    const newTransformations =
+                      field.transformationMetadata.filter(
+                        (_, i) => i !== index
+                      );
+                    onChange({
+                      ...field,
+                      transformationMetadata: newTransformations,
+                    });
+                  }}
+                  sx={{ alignSelf: "center", marginTop: "auto" }}
+                >
+                  Delete Transformation
+                </Button>
+              </Box>
+            ))}
+            <Button
+              size="md"
+              color="primary"
+              onClick={() => {
+                const newTransformations = [
+                  ...(field.transformationMetadata || []),
+                  { id: "", inputField: "", outputField: "" },
+                ];
+                onChange({
+                  ...field,
+                  transformationMetadata: newTransformations,
+                });
+              }}
+              sx={{ margin: "auto", marginTop: "20px" }}
+            >
+              Add Transformation
+            </Button>
           </Box>
           {!isNewField && (
             <Button

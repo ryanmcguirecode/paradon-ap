@@ -12,7 +12,7 @@ export interface DocumentConfigField {
     id: string;
     inputField: string;
     outputField: string;
-  };
+  }[];
 }
 
 export interface DocumentConfig {

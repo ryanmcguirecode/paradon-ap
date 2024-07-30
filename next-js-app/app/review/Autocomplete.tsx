@@ -44,18 +44,18 @@ const AutocompleteComponent = ({
   );
 
   const fetchOptions = async () => {
-    if (!field?.transformationMetadata?.id) {
+    if (!field?.transformationMetadata?.[0]?.id) {
       return;
     }
     try {
       const transformation = await fetchTransformation(
         organization,
-        field.transformationMetadata.id
+        field.transformationMetadata[0].id
       );
       setTransformation(transformation);
 
       const response = await fetch(
-        `/api/mappings?organization=${organization}&transformation=${field.transformationMetadata.id}`,
+        `/api/mappings?organization=${organization}&transformation=${field.transformationMetadata[0].id}`,
         {
           method: "GET",
           headers: {
@@ -66,8 +66,8 @@ const AutocompleteComponent = ({
       const data = await response.json();
       let opts = (data as any[]).map((item) => item.value);
       if (
-        field.transformationMetadata.outputField !==
-        field.transformationMetadata.inputField
+        field.transformationMetadata[0].outputField !==
+        field.transformationMetadata[0].inputField
       ) {
         opts = (data as any[]).map((item) => item.key);
       }
@@ -84,7 +84,7 @@ const AutocompleteComponent = ({
 
   useEffect(() => {
     if (inputChanged) {
-      applyTransformation();
+      applyTransformation(field.id);
       setInputChanged(false);
     }
   }, [inputValues]);
