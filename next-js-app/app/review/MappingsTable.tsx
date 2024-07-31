@@ -60,7 +60,7 @@ export default function MappingsTable({
     });
     if (res.ok) {
       setShowMappings(false);
-      // saveDocumentValues(true);
+      saveDocumentValues(true);
     }
   };
 

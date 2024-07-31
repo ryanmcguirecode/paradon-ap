@@ -541,7 +541,6 @@ export default function ReviewPage() {
 
     for (let doc of documents) {
       if (!doc.documentType) {
-        console.error("Document type not found");
         continue;
       }
       const detectedFields = doc.detectedFields;
