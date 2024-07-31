@@ -15,11 +15,13 @@ export default function MappingsTable({
   data,
   showMappings,
   setShowMappings,
+  saveDocumentValues,
 }: {
   auth: any;
   data: Mapping[];
   showMappings: boolean;
   setShowMappings: (show: boolean) => void;
+  saveDocumentValues: (submit: boolean) => void;
 }) {
   const [checkedRows, setCheckedRows] = useState<Mapping[]>([]);
   const [newData, setNewData] = useState<Mapping[]>(data);
@@ -58,6 +60,7 @@ export default function MappingsTable({
     });
     if (res.ok) {
       setShowMappings(false);
+      // saveDocumentValues(true);
     }
   };
 

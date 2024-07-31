@@ -6,7 +6,7 @@ db.serialize(() => {
   db.run(`
     CREATE TABLE utexasMappings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      key TEXT,
+      key TEXT UNIQUE,
       value TEXT,
       created_by TEXT,
       transformation TEXT

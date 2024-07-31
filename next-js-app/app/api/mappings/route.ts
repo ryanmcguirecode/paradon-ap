@@ -49,7 +49,13 @@ export async function POST(req) {
     const db = await openDB();
 
     // Construct the query with placeholders
-    let query = `INSERT INTO ${organization}Mappings (key, value, created_by, transformation) VALUES `;
+    let query = `INSERT INTO ${organization}Mappings (key, value, created_by, transformation)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(key)
+    DO UPDATE SET
+        value = excluded.value,
+        created_by = excluded.created_by,
+        transformation = excluded.transformation;`;
     const values = [];
 
     // Add placeholders and corresponding values

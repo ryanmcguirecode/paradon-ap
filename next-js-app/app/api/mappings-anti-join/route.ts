@@ -19,7 +19,7 @@ export async function POST(req) {
         CREATE TEMPORARY TABLE tempMappings (
           key TEXT,
           value TEXT,
-          createdBy TEXT,
+          created_by TEXT,
           transformation TEXT
         );
       `);
@@ -35,17 +35,17 @@ export async function POST(req) {
         ]
       );
       await db.run(
-        `INSERT INTO tempMappings (key, value, createdBy, transformation) VALUES ${insertValues}`,
+        `INSERT INTO tempMappings (key, value, created_by, transformation) VALUES ${insertValues}`,
         insertParams
       );
 
       // Perform the anti-join to find new or changed mappings
       const results = await db.all(`
-        SELECT t.key, t.value, t.createdBy, t.transformation
+        SELECT t.key, t.value, t.created_by, t.transformation
         FROM tempMappings t
         LEFT JOIN ${organization}Mappings o ON t.key = o.key
         WHERE o.key IS NULL OR o.value != t.value
-        GROUP BY t.key, t.value, t.createdBy, t.transformation
+        GROUP BY t.key, t.value, t.created_by, t.transformation
       `);
 
       // Drop the temporary table

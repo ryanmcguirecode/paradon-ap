@@ -37,6 +37,7 @@ import { regexReplace } from "@/utils/regexReplace";
 import AutocompleteComponent from "./Autocomplete";
 import Fuse from "fuse.js";
 import MappingsTable from "./MappingsTable";
+import { doc } from "firebase/firestore";
 
 export default function ReviewPage() {
   const router = useRouter();
@@ -104,24 +105,7 @@ export default function ReviewPage() {
       setDocumentsFetched(true);
     };
 
-    // async function fetchTransformations() {
-    //   // Fetch transformations
-    //   const response = await fetch(
-    //     `/api/transformations?organization=${organization}`,
-    //     {
-    //       method: "GET",
-    //       headers: {
-    //         "Content-Type": "application/json",
-    //       },
-    //     }
-    //   );
-    //   response.json().then((data) => {
-    //     setTransformations(data);
-    //   });
-    // }
-
     acquireBatch(batchId || "").then(() => fetchDocuments());
-    // fetchTransformations();
   }, [loading]);
 
   // Heartbeat to database that the user is still using the batch every 30s
@@ -469,7 +453,6 @@ export default function ReviewPage() {
     ) {
       return;
     }
-    console.log("Applying transformation dynamically", id);
     const newInputValues = inputValues;
     const field = documentConfigs[documentType]?.fields.find(
       (field) => field.id === id
@@ -513,15 +496,6 @@ export default function ReviewPage() {
             continue;
           }
           const defaultValueURI = encodeURIComponent(defaultValue);
-          console.log(
-            "Default value URI",
-            "/api/mappings?organization=" +
-              organization +
-              "&key=" +
-              defaultValueURI +
-              "&transformation=" +
-              transformationMetadata.id
-          );
           const response = await fetch(
             `/api/mappings?organization=${organization}&key=${defaultValueURI}&transformation=${transformationMetadata.id}`,
             {
@@ -561,62 +535,64 @@ export default function ReviewPage() {
     return true;
   }
 
-  async function saveDocumentValues(submit: boolean) {
-    if (submit) {
-      // Save mappings from detected fields to fields
-      const newMappings = new Array<Mapping>();
+  async function getMappingsDisplay() {
+    // Save mappings from detected fields to fields
+    const newMappings = new Array<Mapping>();
 
-      for (let doc of documents) {
-        if (!doc.documentType) {
+    for (let doc of documents) {
+      if (!doc.documentType) {
+        console.error("Document type not found");
+        continue;
+      }
+      const detectedFields = doc.detectedFields;
+      const fields = documentConfigs[doc?.documentType].fields;
+
+      for (const field of fields) {
+        if (!field.transformationMetadata) {
           continue;
         }
-        const detectedFields = doc.detectedFields;
-        const fields = documentConfigs[doc?.documentType].fields;
+        for (let transformationMetadata of field.transformationMetadata) {
+          if (transformationMetadata?.id) {
+            const transformation: Transformation = await fetchTransformation(
+              organization,
+              transformationMetadata?.id
+            );
 
-        for (const field of fields) {
-          if (!field.transformationMetadata) {
-            continue;
-          }
-          for (let transformationMetadata of field.transformationMetadata) {
-            if (transformationMetadata?.id) {
-              const transformation: Transformation = await fetchTransformation(
-                organization,
-                transformationMetadata?.id
-              );
+            const inputField = fields.find((f) => {
+              return f.id === transformationMetadata?.inputField;
+            });
+            const outputField = fields.find(
+              (f) => f.id === transformationMetadata?.outputField
+            );
 
-              const inputField = fields.find((f) => {
-                return f.id === transformationMetadata?.inputField;
-              });
-              const outputField = fields.find(
-                (f) => f.id === transformationMetadata?.outputField
-              );
+            if (!inputField || !outputField) {
+              console.error("Input or output field not found");
+              continue;
+            }
 
-              if (!inputField || !outputField) {
-                console.error("Input or output field not found");
-                continue;
-              }
-
-              if (transformation?.body?.learning) {
-                if (detectedFields[field.modelField]?.value) {
-                  newMappings.push({
-                    key: detectedFields[inputField.modelField]?.value,
-                    value: doc.fields[outputField.id],
-                    createdBy: user.email,
-                    transformation: transformationMetadata.id,
-                  });
-                }
+            if (transformation?.body?.learning) {
+              if (detectedFields[field.modelField]?.value) {
+                newMappings.push({
+                  key: detectedFields[inputField.modelField]?.value,
+                  value: doc.fields[outputField.id],
+                  createdBy: user.email,
+                  transformation: transformationMetadata.id,
+                });
               }
             }
           }
         }
       }
-      // display mappings in a table overlay for review
+    }
+    // display mappings in a table overlay for review
+    if (newMappings.length > 0) {
       setShowMappings(true);
       setMappings(newMappings);
-      return;
     }
+  }
 
-    const newDocument: Document = {
+  const saveDocumentValues = async (submit: boolean) => {
+    const newDocument = {
       ...documents[documentIndex],
       fields: { ...inputValues },
       documentType: documentType,
@@ -664,7 +640,7 @@ export default function ReviewPage() {
         router.push("/batches");
       });
     }
-  }
+  };
 
   return (
     <NavigationLayout disabled={true}>
@@ -756,7 +732,7 @@ export default function ReviewPage() {
                   setDocumentIndex(documentIndex + 1);
                 }}
                 tabIndex={-1}
-                disabled={documentIndex === documents.length - 1}
+                disabled={documentIndex === documents.length}
                 sx={{ paddingLeft: "30px", paddingRight: "30px" }}
               >
                 Kick Out
@@ -765,7 +741,7 @@ export default function ReviewPage() {
                 <Button
                   size="sm"
                   color="success"
-                  onClick={() => saveDocumentValues(true)}
+                  onClick={() => getMappingsDisplay()}
                   sx={{ paddingLeft: "30px", paddingRight: "30px" }}
                 >
                   Submit
@@ -1062,6 +1038,7 @@ export default function ReviewPage() {
         data={mappings}
         showMappings={showMappings}
         setShowMappings={setShowMappings}
+        saveDocumentValues={saveDocumentValues}
       />
     </NavigationLayout>
   );
