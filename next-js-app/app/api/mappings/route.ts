@@ -48,14 +48,9 @@ export async function POST(req) {
     const { data, organization } = await req.json();
     const db = await openDB();
 
-    // Construct the query with placeholders
-    let query = `INSERT INTO ${organization}Mappings (key, value, created_by, transformation)
-    VALUES (?, ?, ?, ?)
-    ON CONFLICT(key)
-    DO UPDATE SET
-        value = excluded.value,
-        created_by = excluded.created_by,
-        transformation = excluded.transformation;`;
+    let baseQuery = `INSERT INTO ${organization}Mappings (key, value, created_by, transformation) VALUES `;
+
+    let query = baseQuery;
     const values = [];
 
     // Add placeholders and corresponding values
@@ -70,7 +65,17 @@ export async function POST(req) {
       );
     });
 
-    await db.run(query, values);
+    query += ` ON CONFLICT(key)
+    DO UPDATE SET
+        value = excluded.value,
+        created_by = excluded.created_by,
+        transformation = excluded.transformation;`;
+
+    db.run(query, values, function (err) {
+      if (err) {
+        return console.error("Error creating mapping:", err.message);
+      }
+    });
 
     return NextResponse.json({ message: "Mapping created successfully" });
   } catch (error) {
