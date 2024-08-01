@@ -660,6 +660,21 @@ export default function ReviewPage() {
     });
   };
 
+  const saveAndExit = async () => {
+    await fetch("/api/save-and-exit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        batch: batchId,
+        organization: organization,
+      }),
+    }).then(() => {
+      router.push("/batches");
+    });
+  };
+
   return (
     <NavigationLayout disabled={true}>
       <Box
@@ -875,8 +890,8 @@ export default function ReviewPage() {
                           justifyContent: "space-between",
                           paddingLeft: "10px",
                           paddingRight: "10px",
-                          height: "28px",
-                          marginBottom: "5px",
+                          height: "24px",
+                          marginBottom: "2px",
                           borderRadius: "5px",
                           background:
                             activeField == field.id
@@ -892,14 +907,15 @@ export default function ReviewPage() {
                           transition: "background-position 0.25s ease-out",
                         }}
                       >
-                        <Typography level="title-md">
+                        <Typography level="title-sm">
                           {field.displayName}
                         </Typography>
                         {searchable ? (
                           <IconButton
                             tabIndex={-1}
+                            size="sm"
                             sx={{
-                              "--IconButton-size": "20px",
+                              "--IconButton-size": "2px",
                               transition: "background-color 0.3s ease",
                               backgroundColor: `rgb(${field.color.join(",")})`,
                               ":hover": {
@@ -915,7 +931,7 @@ export default function ReviewPage() {
                         ) : (
                           <Box
                             sx={{
-                              width: "31px",
+                              width: "28px",
                               height: "24px",
                               borderRadius: "22%",
                               backgroundColor: `rgb(${field.color.join(",")})`,
@@ -1057,6 +1073,46 @@ export default function ReviewPage() {
               })}
             </Sheet>
           ) : null}
+          <Box
+            sx={{
+              display: "flex",
+              padding: "10px",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              flex: 0,
+              borderTop: "1px solid #e0e0e0",
+            }}
+          >
+            <Box sx={{ display: "flex", gap: "10px" }}>
+              {documentsFetched && !finished ? (
+                <Button
+                  size="sm"
+                  color="success"
+                  tabIndex={-1}
+                  onClick={() => {
+                    saveAndExit();
+                  }}
+                  sx={{
+                    paddingLeft: "30px",
+                    paddingRight: "30px",
+                  }}
+                >
+                  Save and Exit
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  tabIndex={-1}
+                  disabled={true}
+                  sx={{
+                    paddingLeft: "30px",
+                    paddingRight: "30px",
+                    opacity: 0,
+                  }}
+                ></Button>
+              )}
+            </Box>
+          </Box>
         </Box>
       </Box>
       {showMappings && (
