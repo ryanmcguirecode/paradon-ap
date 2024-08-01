@@ -34,7 +34,7 @@ export default function FileViewPopup({
         return;
       }
       try {
-        const response = await fetch(`/api/get-pdf?fileName=${filename}`);
+        const response = await fetch(`/api/get-pdf?filename=${filename}`);
         if (!response.ok) {
           throw new Error("Failed to fetch PDF");
         }

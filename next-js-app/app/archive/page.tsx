@@ -18,7 +18,7 @@ import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 
 import NavigationLayout from "@/components/NavigationLayout";
 import FileViewPopup from "@/components/FileViewPopup";
-import Document from "@/components/Document";
+import Document from "@/types/Document";
 import { useAuth } from "@/components/AuthContext";
 
 function formatDate(date: string | null) {
@@ -235,7 +235,7 @@ export default function DocumentsPage() {
                     textOverflow: "ellipsis",
                   }}
                 >
-                  {formatDate(file.timeReceived)}
+                  {formatDate(file.timeCreated)}
                 </Typography>
               </Box>
             ))}

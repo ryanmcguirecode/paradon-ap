@@ -92,7 +92,6 @@ export async function GET(req: NextRequest) {
     const snapshot = await query.get();
     const rows = snapshot.docs.map((doc) => ({
       ...doc.data(),
-      filename: doc.id,
     }));
 
     const convertDatesToStrings = (row: any) => {

@@ -544,7 +544,7 @@ export default function ReviewPage() {
     const newMappings = new Array<Mapping>();
 
     for (let doc of documents) {
-      if (!doc.documentType) {
+      if (!doc.documentType || doc.kickedOut) {
         continue;
       }
       const detectedFields = doc.detectedFields;
@@ -603,10 +603,12 @@ export default function ReviewPage() {
   }, [documentIndex]);
 
   const saveDocumentValues = async (kickOut: boolean) => {
+    console.log("Saving document values");
     const newDocument = {
       ...documents[documentIndex],
       documentType: kickOut ? "" : documentType,
       fields: {},
+      kickedOut: kickOut,
     };
     if (!kickOut) {
       newDocument.fields = { ...inputValues };
@@ -614,6 +616,7 @@ export default function ReviewPage() {
     var newDocumentIndex = documentIndex;
     const newDocuments = documents.map((document, index) => {
       if (index === documentIndex) {
+        console.log("Saving document values", newDocument);
         return newDocument;
       }
       return document;
