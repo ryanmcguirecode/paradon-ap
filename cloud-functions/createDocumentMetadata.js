@@ -10,7 +10,7 @@ async function addDocumentToBatch(docId, organization) {
 
   const orgRef = firestore.collection("organizations").doc(organization);
   const orgDoc = await orgRef.get();
-  const maxBatchSize = orgDoc.data().batching.maxSize || 100;
+  const maxBatchSize = orgDoc.data().batching?.maxSize || 100;
 
   while (retryCount < maxRetries) {
     try {
