@@ -37,7 +37,6 @@ import { regexReplace } from "@/utils/regexReplace";
 import AutocompleteComponent from "./Autocomplete";
 import Fuse from "fuse.js";
 import MappingsTable from "./MappingsTable";
-import { doc } from "firebase/firestore";
 
 export default function ReviewPage() {
   const router = useRouter();
@@ -64,6 +63,7 @@ export default function ReviewPage() {
   const [inputValues, setInputValues] = useState<{ [key: string]: any }>();
   const [showMappings, setShowMappings] = useState(false);
   const [mappings, setMappings] = useState<any[]>([]);
+  const [finished, setFinished] = useState(false);
   // Acquire batch and fetch documents
   useEffect(() => {
     if (loading) {
@@ -319,7 +319,6 @@ export default function ReviewPage() {
       } else {
         detectedField = detectedField;
       }
-
       // If the field is not detected or the field is already filled out, skip
       if (savedValue || !detectedField || !field.transformationMetadata) {
         continue;
@@ -441,6 +440,11 @@ export default function ReviewPage() {
         newInputValues[outField] = defaultValue;
       }
       setInputValues({ ...inputValues, ...newInputValues });
+    }
+    for (const field of fields) {
+      if (field.kind === "string") {
+        applyTransformationDynamically(field.id);
+      }
     }
   };
 
@@ -565,7 +569,6 @@ export default function ReviewPage() {
             );
 
             if (!inputField || !outputField) {
-              console.error("Input or output field not found");
               continue;
             }
 
@@ -587,16 +590,28 @@ export default function ReviewPage() {
     if (newMappings.length > 0) {
       setShowMappings(true);
       setMappings(newMappings);
+    } else {
+      submitDocumentValues();
     }
   }
 
-  const saveDocumentValues = async (submit: boolean) => {
+  useEffect(() => {
+    if (!documentsFetched || !documentConfigs || !documentType) {
+      return;
+    }
+    setFinished(documentIndex === documents.length);
+  }, [documentIndex]);
+
+  const saveDocumentValues = async (kickOut: boolean) => {
     const newDocument = {
       ...documents[documentIndex],
-      fields: { ...inputValues },
-      documentType: documentType,
+      documentType: kickOut ? "" : documentType,
+      fields: {},
     };
-    const newDocumentIndex = submit ? documentIndex : documentIndex + 1;
+    if (!kickOut) {
+      newDocument.fields = { ...inputValues };
+    }
+    var newDocumentIndex = documentIndex;
     const newDocuments = documents.map((document, index) => {
       if (index === documentIndex) {
         return newDocument;
@@ -605,7 +620,11 @@ export default function ReviewPage() {
     });
 
     setDocuments(newDocuments);
-    setDocumentIndex(newDocumentIndex);
+    if (newDocumentIndex === documents.length - 1) {
+      setFinished(true);
+    } else {
+      setDocumentIndex(documentIndex + 1);
+    }
     var response: any = await fetch("/api/save-batch-progress", {
       method: "POST",
       headers: {
@@ -624,21 +643,21 @@ export default function ReviewPage() {
       alert(response.error);
       router.push("/batches");
     }
+  };
 
-    if (submit) {
-      await fetch("/api/submit-batch", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          batch: batchId,
-          organization: organization,
-        }),
-      }).then(() => {
-        router.push("/batches");
-      });
-    }
+  const submitDocumentValues = async () => {
+    await fetch("/api/submit-batch", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        batch: batchId,
+        organization: organization,
+      }),
+    }).then(() => {
+      router.push("/batches");
+    });
   };
 
   return (
@@ -713,7 +732,11 @@ export default function ReviewPage() {
             <Button
               size="sm"
               color="neutral"
-              onClick={() => setDocumentIndex(documentIndex - 1)}
+              onClick={() =>
+                finished
+                  ? setFinished(false)
+                  : setDocumentIndex(documentIndex - 1)
+              }
               disabled={documentIndex === 0}
               tabIndex={-1}
               sx={{ paddingLeft: "30px", paddingRight: "30px" }}
@@ -724,23 +747,27 @@ export default function ReviewPage() {
               {documentIndex + 1} / {documents.length}
             </Typography>
             <Box sx={{ display: "flex", gap: "10px" }}>
-              <Button
-                size="sm"
-                color="danger"
-                onClick={() => {
-                  setDocumentIndex(documentIndex + 1);
-                }}
-                tabIndex={-1}
-                disabled={documentIndex === documents.length}
-                sx={{ paddingLeft: "30px", paddingRight: "30px" }}
-              >
-                Kick Out
-              </Button>
-              {documentIndex === documents.length - 1 ? (
+              {finished ? (
+                <></>
+              ) : (
+                <Button
+                  size="sm"
+                  color="danger"
+                  onClick={() => {
+                    saveDocumentValues(true);
+                  }}
+                  sx={{ paddingLeft: "30px", paddingRight: "30px" }}
+                >
+                  Kick Out
+                </Button>
+              )}
+              {finished ? (
                 <Button
                   size="sm"
                   color="success"
-                  onClick={() => getMappingsDisplay()}
+                  onClick={async () => {
+                    getMappingsDisplay();
+                  }}
                   sx={{ paddingLeft: "30px", paddingRight: "30px" }}
                 >
                   Submit
@@ -822,7 +849,7 @@ export default function ReviewPage() {
                 backgroundColor: "white",
               }}
             >
-              {documentConfigs[documentType].fields.map((field, index) => {
+              {documentConfigs[documentType]?.fields.map((field, index) => {
                 const handleInputChange = (
                   fieldId: string,
                   value: string | number
@@ -835,7 +862,7 @@ export default function ReviewPage() {
 
                 const searchable =
                   field.modelField &&
-                  documents[documentIndex].detectedFields?.[field.modelField]
+                  documents[documentIndex]?.detectedFields?.[field.modelField]
                     ?.value;
 
                 return (
@@ -1032,13 +1059,15 @@ export default function ReviewPage() {
           ) : null}
         </Box>
       </Box>
-      <MappingsTable
-        auth={{ user, organization }}
-        data={mappings}
-        showMappings={showMappings}
-        setShowMappings={setShowMappings}
-        saveDocumentValues={saveDocumentValues}
-      />
+      {showMappings && (
+        <MappingsTable
+          auth={{ user, organization }}
+          data={mappings}
+          showMappings={showMappings}
+          setShowMappings={setShowMappings}
+          submitDocumentValues={submitDocumentValues}
+        />
+      )}
     </NavigationLayout>
   );
 }
