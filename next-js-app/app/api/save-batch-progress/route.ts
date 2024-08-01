@@ -67,6 +67,8 @@ export async function POST(req: NextRequest) {
     await documentRef.update({
       fields: document.fields,
       updated: new Date().toISOString(),
+      documentType: document.documentType,
+      kickedOut: document.kickedOut,
     });
 
     return NextResponse.json({ message: "success" }, { status: 200 });

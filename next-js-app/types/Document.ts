@@ -18,6 +18,7 @@ export default interface Document {
   id: string;
   organization: string;
   reviewed: boolean;
+  kickedOut: boolean;
   timeCreated: string;
   updated: string;
   detectedFields: Partial<Record<AzureField, DetectedField>>;
