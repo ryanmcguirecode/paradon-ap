@@ -56,7 +56,7 @@ export default function DocumentsPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loadingDocuments, setLoadingDocuments] = useState<boolean>(true);
   const [moreDocuments, setMoreDocuments] = useState<boolean>(true);
-  const [openFile, setOpenFile] = useState<string | null>(null);
+  const [openFile, setOpenFile] = useState<Document>(null);
   const [fileViewPopupOpen, setFileViewPopupOpen] = useState(false);
 
   const [currentFilters, setCurrentFilters] = useState<any>({
@@ -190,7 +190,7 @@ export default function DocumentsPage() {
               <Box
                 key={index}
                 onClick={() => {
-                  setOpenFile(file.filename);
+                  setOpenFile(file);
                   setFileViewPopupOpen(true);
                 }}
                 sx={{
@@ -254,7 +254,7 @@ export default function DocumentsPage() {
       <FileViewPopup
         open={fileViewPopupOpen}
         setOpen={setFileViewPopupOpen}
-        filename={openFile}
+        file={openFile}
       />
       <NavigationLayout>
         <Box

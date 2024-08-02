@@ -723,7 +723,7 @@ export default function ReviewPage() {
                 doc={documents[documentIndex]}
                 fields={documentConfigs[documentType].fields}
                 activeDetectedField={
-                  documents[documentIndex].detectedFields[
+                  documents[documentIndex].detectedFields?.[
                     activeField &&
                       documentConfigs[documentType].fields.find(
                         (field) => field.id === searchedField
@@ -956,7 +956,7 @@ export default function ReviewPage() {
                         }}
                         onFocus={() => {
                           const detectedField =
-                            documents[documentIndex]?.detectedFields[
+                            documents[documentIndex]?.detectedFields?.[
                               field.modelField
                             ];
                           setActiveField(field.id);
