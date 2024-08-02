@@ -863,8 +863,10 @@ export default function ReviewPage() {
             <Sheet
               sx={{
                 padding: "5px",
-                overflow: "scroll",
+                overflow: "auto",
+                flexGrow: 1,
                 backgroundColor: "white",
+
               }}
             >
               {documentConfigs[documentType]?.fields.map((field, index) => {

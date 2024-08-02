@@ -14,6 +14,7 @@ import {
   Typography,
   Sheet,
 } from "@mui/joy";
+import PdfViewer from "./PdfViewer";
 
 interface FileViewPopupProps {
   open: boolean;
@@ -26,21 +27,18 @@ export default function FileViewPopup({
   setOpen,
   filename,
 }: FileViewPopupProps) {
-  const [pdfUrl, setPdfUrl] = useState<string>("");
+  const [pdfData, setPdfData] = useState(null);
 
   useEffect(() => {
     const fetchPdf = async () => {
-      if (!filename) {
-        return;
-      }
       try {
         const response = await fetch(`/api/get-pdf?filename=${filename}`);
         if (!response.ok) {
           throw new Error("Failed to fetch PDF");
         }
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        setPdfUrl(url);
+
+        const arrayBuffer = await response.arrayBuffer();
+        setPdfData(arrayBuffer);
       } catch (error) {
         console.error("Error fetching PDF:", error);
       }
@@ -64,17 +62,7 @@ export default function FileViewPopup({
       }}
     >
       <ModalClose variant="plain" color="neutral" sx={{ zIndex: 10 }} />
-      {open && (
-        <iframe
-          src={pdfUrl}
-          style={{
-            flex: 1,
-            paddingTop: "55px",
-            paddingLeft: "40px",
-            paddingRight: "40px",
-          }}
-        />
-      )}
+      {open && <PdfViewer arrayBuffer={pdfData} />}
     </Drawer>
   );
 }

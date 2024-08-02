@@ -24,10 +24,10 @@ const MIN_ZOOM = 0.25;
 
 interface PdfViewerProps {
   arrayBuffer: ArrayBuffer | null;
-  doc: Document;
-  fields: DocumentConfigField[];
-  activeField: DocumentConfigField | null;
-  activeDetectedField: DetectedField | null;
+  doc?: Document;
+  fields?: DocumentConfigField[];
+  activeField?: DocumentConfigField | null;
+  activeDetectedField?: DetectedField | null;
   scrollTo?: any;
 }
 
@@ -58,9 +58,10 @@ const PdfViewer = ({
   useEffect(() => {}, [doc, fields]);
 
   useEffect(() => {
-    if (!doc || !fields || !arrayBuffer) {
+    if (!arrayBuffer) {
       return;
     }
+    arrayBuffer = arrayBuffer.slice(0);
     const loadPdf = async () => {
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       setPdfDoc(pdf);
@@ -77,6 +78,9 @@ const PdfViewer = ({
   }, [arrayBuffer]);
 
   useEffect(() => {
+    if (!doc || !fields) {
+      return;
+    }
     const rectangles = [];
     for (const field of fields) {
       if (!field.modelField || !doc.detectedFields[field.modelField]) continue;
