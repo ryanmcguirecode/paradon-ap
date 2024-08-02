@@ -39,6 +39,11 @@ export async function GET(req: NextRequest) {
       req.nextUrl.searchParams,
       "organization"
     );
+    const kickedOut = getUrlSearchParameter(
+      req.nextUrl.searchParams,
+      "kickedOut"
+    );
+    console.log("kickedOut", kickedOut);
 
     // console.log("offset", offset);
     // console.log("limit", limit);
@@ -87,6 +92,9 @@ export async function GET(req: NextRequest) {
     }
     if (offset) {
       query = query.offset(Number(offset));
+    }
+    if (kickedOut) {
+      query = query.where("kickedOut", "==", kickedOut === "true");
     }
 
     const snapshot = await query.get();

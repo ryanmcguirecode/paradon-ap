@@ -65,8 +65,10 @@ export default function DocumentsPage() {
     createdFromDate: null,
     createdToDate: null,
     filename: null,
+    kickedOut: null
   });
   // const [documentType, setDocumentType] = useState<string | null>(null);
+  const [kickedOut, setKickedOut] = useState<boolean>(null);
   const [reviewed, setReviewed] = useState<boolean | null>(true);
   const [createdFromDate, setCreatedFromDate] = useState<string | null>(null);
   const [createdToDate, setCreatedToDate] = useState<string | null>(null);
@@ -77,7 +79,8 @@ export default function DocumentsPage() {
     currentFilters.reviewed !== reviewed ||
     currentFilters.createdFromDate !== createdFromDate ||
     currentFilters.createdToDate !== createdToDate ||
-    currentFilters.filename !== filename;
+    currentFilters.filename !== filename ||
+    currentFilters.kickedOut !== kickedOut;
 
   const getFilteredDocuments = (
     offset: number,
@@ -92,6 +95,7 @@ export default function DocumentsPage() {
     url.searchParams.append("createdFromDate", filters.createdFromDate);
     url.searchParams.append("createdToDate", filters.createdToDate);
     url.searchParams.append("filename", filters.filename);
+    url.searchParams.append("kickedOut", String(filters.kickedOut));
 
     fetch(url)
       .then((response) => response.json())
@@ -289,6 +293,25 @@ export default function DocumentsPage() {
               </Select>
             </Box> */}
             <Box>
+              <FormLabel sx={{ paddingBottom: "5px" }}>Kicked Out</FormLabel>
+              <Select
+                defaultValue={null}
+                onChange={(e, value: boolean | null) => {
+                  setKickedOut(value);
+                }}
+              >
+                <Option key="any" value={null}>
+                  Any
+                </Option>
+                <Option key="yes" value={true}>
+                  Yes
+                </Option>
+                <Option key="no" value={false}>
+                  No
+                </Option>
+              </Select>
+            </Box>
+            <Box>
               <FormLabel sx={{ paddingBottom: "5px" }}>Reviewed</FormLabel>
               <Select
                 defaultValue={true}
@@ -342,6 +365,7 @@ export default function DocumentsPage() {
                   createdFromDate: createdFromDate,
                   createdToDate: createdToDate,
                   filename: filename,
+                  kickedOut: kickedOut
                 };
                 setCurrentFilters(newFilters);
                 getFilteredDocuments(0, newFilters);
