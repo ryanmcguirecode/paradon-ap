@@ -46,3 +46,39 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error }, { status: 500 });
   }
 }
+
+export async function POST(req: NextRequest) {
+  const { pdfBytes, orgId, fileName } = await req.json();
+  if (!pdfBytes) {
+    return NextResponse.json({ error: "Missing pdfBytes" }, { status: 400 });
+  }
+  if (!orgId) {
+    return NextResponse.json({ error: "Missing orgId" }, { status: 400 });
+  }
+  if (!fileName) {
+    return NextResponse.json({ error: "Missing fileName" }, { status: 400 });
+  }
+
+  try {
+    const bucket = storage.bucket(bucketName);
+    const file = bucket.file(fileName + ".pdf");
+
+    // Decode base64 to buffer
+    const buffer = Buffer.from(pdfBytes, "base64");
+
+    // Upload the file
+    await file.save(buffer, {
+      contentType: "application/pdf",
+      metadata: {
+        metadata: {
+          organization: orgId,
+        },
+      },
+    });
+
+    return NextResponse.json({ message: "File uploaded" }, { status: 200 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

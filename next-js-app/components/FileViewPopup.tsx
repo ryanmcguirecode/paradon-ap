@@ -9,7 +9,7 @@ import {
   Grid,
 } from "@mui/joy";
 import PdfViewer from "./PdfViewer";
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument } from "pdf-lib";
 import Document from "@/types/Document";
 
 interface FileViewPopupProps {
@@ -27,7 +27,6 @@ export default function FileViewPopup({
   const [pageNumbers, setPageNumbers] = useState("");
   const [splitPages, setSplitPages] = useState<number[]>([]);
   const [splitPdfData, setSplitPdfData] = useState<ArrayBuffer | null>(null);
-
 
   useEffect(() => {
     const fetchPdf = async () => {
@@ -53,35 +52,43 @@ export default function FileViewPopup({
     let pages = pageNumbers.split(",").map((num) => parseInt(num.trim(), 10));
     pages = [...pages, null]; // Adding null to handle the end of the last range
     setSplitPages(pages);
-  
+
     if (pdfData) {
       try {
         const pdfDoc = await PDFDocument.load(pdfData);
-  
+
         for (let i = 0; i < pages.length - 1; i++) {
           const start = pages[i] - 1;
-          const end = (pages[i + 1] ? pages[i + 1] - 1 : pdfDoc.getPageCount() - 1); // Handle the last range properly
+          const end = pages[i + 1]
+            ? pages[i + 1] - 2 // decrement once for 0-based index and once for exclusive range
+            : pdfDoc.getPageCount() - 1; // Handle the last range properly
           const splitPdfDoc = await PDFDocument.create();
-  
+
           for (let j = start; j <= end; j++) {
             const [copiedPage] = await splitPdfDoc.copyPages(pdfDoc, [j]);
             splitPdfDoc.addPage(copiedPage);
           }
-  
-          const pdfBytesNew = await splitPdfDoc.save();
-          fetch(`/api/upload-pdf?filename=${file.filename}-split-${i}`, {
-            method: "POST",
-            body: pdfBytesNew,
-          });
 
+          const pdfBytesNew = await splitPdfDoc.save();
+          const pdfBytesBase64 = Buffer.from(pdfBytesNew).toString("base64"); // Encode as base64
+
+          fetch(`/api/upload`, {
+            method: "POST",
+            body: JSON.stringify({
+              pdfBytes: pdfBytesBase64, // Send as base64 string
+              orgId: file.organization,
+              fileName: `${file.filename}-split-${i + 1}`,
+            }),
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
         }
-  
       } catch (error) {
         console.error("Error splitting PDF:", error);
       }
     }
   };
-  
 
   return (
     <Drawer
