@@ -41,7 +41,7 @@ const PdfViewer = ({
 }: PdfViewerProps) => {
   const containerRef = useRef(null);
   const [pdfDoc, setPdfDoc] = useState(null);
-  const [scale, setScale] = useState(1);
+  const [scale, setScale] = useState(0);
   const [inputZoom, setInputZoom] = useState<string>("100");
   const [rotation, setRotation] = useState(0);
   const [annotations, setAnnotations] = useState([]);
@@ -64,13 +64,13 @@ const PdfViewer = ({
     arrayBuffer = arrayBuffer.slice(0);
     const loadPdf = async () => {
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      setPdfDoc(pdf);
 
       const container = containerRef.current;
       const firstPage = await pdf.getPage(1);
       const viewport = firstPage.getViewport({ scale: 1 });
       const initialScale = (container.clientWidth * 0.9) / viewport.width;
       setScale(initialScale);
+      setPdfDoc(pdf);
       setInputZoom(Math.floor(initialScale * 100).toString());
     };
 
@@ -110,14 +110,13 @@ const PdfViewer = ({
   }, [showAnnotations]);
 
   useEffect(() => {
-    if (!pdfDoc) {
+    if (!pdfDoc || scale === 0) {
       return;
     }
     const renderAllPages = async () => {
       const container = containerRef.current;
       scrollPositionRef.current = container.scrollTop; // Save scroll position
       container.innerHTML = ""; // Clear existing content
-      overlayCanvasRefs.current = []; // Clear overlay canvas refs
 
       const observerOptions = {
         root: container,
@@ -140,6 +139,9 @@ const PdfViewer = ({
           }
         });
       }, observerOptions);
+
+      const overlayCanvases = [];
+      const pageElements = [];
 
       for (let num = 1; num <= pdfDoc.numPages; num++) {
         const page = await pdfDoc.getPage(num);
@@ -185,27 +187,55 @@ const PdfViewer = ({
         pageContainer.appendChild(canvas);
         pageContainer.appendChild(overlayCanvas);
         pageContainer.appendChild(animationCanvas);
-        container.appendChild(pageContainer);
 
-        const renderTask = page.render(renderContext);
-        await renderTask.promise;
-
-        overlayCanvasRefs.current.push(overlayCanvas);
-
-        drawAnnotations(
-          overlayCanvas.getContext("2d"),
-          annotations,
-          viewport,
-          num,
-          scale,
-          rotation
-        );
-        if (num === activeDetectedField?.page) {
-          startAnimation(animationContext, viewport);
-        }
-
-        observerRef.current.observe(pageContainer); // Observe the page container
+        pageElements.push({
+          page,
+          pageContainer,
+          renderContext,
+          overlayCanvas,
+          animationCanvas,
+        });
       }
+
+      pageElements.forEach(
+        async (
+          {
+            page,
+            pageContainer,
+            renderContext,
+            overlayCanvas,
+            animationCanvas,
+          },
+          num
+        ) => {
+          container.appendChild(pageContainer);
+
+          const renderTask = page.render(renderContext);
+          await renderTask.promise;
+
+          overlayCanvases.push(overlayCanvas);
+
+          drawAnnotations(
+            overlayCanvas.getContext("2d"),
+            annotations,
+            renderContext.viewport,
+            num + 1,
+            scale,
+            rotation
+          );
+
+          if (num + 1 === activeDetectedField?.page) {
+            startAnimation(
+              animationCanvas.getContext("2d"),
+              renderContext.viewport
+            );
+          }
+
+          observerRef.current.observe(pageContainer); // Observe the page container
+        }
+      );
+
+      overlayCanvasRefs.current = overlayCanvases;
 
       // Check if the PDF overflows the container
       if (pdfDoc && containerRef.current) {
@@ -216,8 +246,9 @@ const PdfViewer = ({
         });
       }
 
-      container.scrollTop = scrollPositionRef.current; // Restore scroll position}
+      container.scrollTop = scrollPositionRef.current; // Restore scroll position
     };
+
     renderAllPages();
 
     return () => {
@@ -396,9 +427,12 @@ const PdfViewer = ({
   };
 
   const renderAnnotations = async () => {
+    console.log(overlayCanvasRefs.current);
     overlayCanvasRefs.current.forEach((overlayCanvas, index) => {
       const context = overlayCanvas.getContext("2d");
       const pageNum = index + 1;
+      console.log("pageNum", pageNum);
+      console.log("pdfDoc", pdfDoc);
       pdfDoc.getPage(pageNum).then((page) => {
         const viewport = page.getViewport({ scale, rotation });
         if (showAnnotations) {

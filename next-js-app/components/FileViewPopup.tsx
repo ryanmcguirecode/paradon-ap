@@ -54,9 +54,9 @@ export default function FileViewPopup({
     pages = [...pages, null]; // Adding null to handle the end of the last range
     setSplitPages(pages);
   
-    if (pdfBytes) {
+    if (pdfData) {
       try {
-        const pdfDoc = await PDFDocument.load(pdfBytes);
+        const pdfDoc = await PDFDocument.load(pdfData);
   
         for (let i = 0; i < pages.length - 1; i++) {
           const start = pages[i] - 1;
