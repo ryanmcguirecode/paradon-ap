@@ -12,8 +12,7 @@ const storage = new Storage({
 const bucketName = "paradon-ap-test";
 const userId = "utexas";
 const files = Array.from(
-  { length: 5 },
-  (_, i) => `testing/test-invoices/test-invoice-${30 + 1}.pdf`
+  ["/Users/dylanmcguire/Desktop/projects/paradon-ap/cloud-functions/testing/invoice 4.pdf"]
 );
 
 // Function to upload a file with metadata

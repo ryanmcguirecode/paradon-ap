@@ -1,10 +1,10 @@
 # npm start
 
-for i in {1..20}
+for i in {1}
 do
   curl -X POST http://localhost:8080 -H "Content-Type: application/json" -d '{
     "data": {
-      "name": "test-invoice-'$i'.pdf",
+      "name": "invoice 4.pdf",
       "bucket": "paradon-ap-test",
       "contentType": "application/json",
       "metageneration": "1",
