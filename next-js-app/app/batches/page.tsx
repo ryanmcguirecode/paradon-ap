@@ -25,6 +25,7 @@ import { useAuth } from "@/components/AuthContext";
 import ArrowDownward from "@mui/icons-material/ArrowDownward";
 import ArrowUpward from "@mui/icons-material/ArrowUpward";
 import { auth } from "firebase-admin";
+import WarningDialogue from "./WarningDialogue";
 
 function getPreviewImage(isCheckedOut: boolean | null) {
   return (
@@ -64,6 +65,7 @@ function BatchComponent({
   refreshPage,
 }: BatchComponentProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [warningOpen, setWarningOpen] = useState(false);
 
   const onUnlock = () => {
     const url = new URL("/api/release-batch", window.location.origin);
@@ -96,10 +98,15 @@ function BatchComponent({
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
+        <WarningDialogue
+          showWarning={warningOpen}
+          setShowWarning={setWarningOpen}
+          onUnlock={onUnlock}
+        ></WarningDialogue>
         <Button
           color="neutral"
           variant="plain"
-          onClick={onUnlock}
+          onClick={() => setWarningOpen(true)}
           sx={{
             borderRadius: "15px",
             padding: "10px",
@@ -465,23 +472,6 @@ export default function BatchesPage() {
               }}
             ></Input>
           </Box>
-          {/* broken */}{" "}
-          {/* <Button
-            disabled={!canClear}
-            onClick={() => {
-              const newFilters = {
-                createdFromDate: null,
-                createdToDate: null,
-                isCheckedOut: null,
-                // isFinished: isFinished,
-                isFull: null,
-              };
-              setCurrentFilters(newFilters);
-              getFilteredBatches(0, newFilters);
-            }}
-          >
-            Clear
-          </Button> */}
         </Box>
         <Box
           sx={{
