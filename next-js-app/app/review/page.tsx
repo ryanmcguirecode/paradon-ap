@@ -18,6 +18,7 @@ import {
   FormControl,
   Divider,
   CircularProgress,
+  Textarea,
 } from "@mui/joy";
 import SearchIcon from "@mui/icons-material/Search";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
@@ -308,6 +309,9 @@ export default function ReviewPage() {
     const fields = documentConfigs[documentType]?.fields || [];
 
     for (const field of fields) {
+      if (field.modelField === "Items") {
+        continue;
+      }
       const savedValue = documents[documentIndex]?.fields?.[field.id];
       let detectedField =
         documents[documentIndex]?.detectedFields[field.modelField]?.value;
@@ -603,7 +607,6 @@ export default function ReviewPage() {
   }, [documentIndex]);
 
   const saveDocumentValues = async (kickOut: boolean) => {
-    console.log("Saving document values");
     const newDocument = {
       ...documents[documentIndex],
       documentType: kickOut ? "" : documentType,
@@ -616,7 +619,6 @@ export default function ReviewPage() {
     var newDocumentIndex = documentIndex;
     const newDocuments = documents.map((document, index) => {
       if (index === documentIndex) {
-        console.log("Saving document values", newDocument);
         return newDocument;
       }
       return document;
@@ -866,7 +868,6 @@ export default function ReviewPage() {
                 overflow: "auto",
                 flexGrow: 1,
                 backgroundColor: "white",
-
               }}
             >
               {documentConfigs[documentType]?.fields.map((field, index) => {
@@ -1054,7 +1055,7 @@ export default function ReviewPage() {
                           }
                         }}
                       />
-                    ) : (
+                    ) : field.kind === "string" ? (
                       <AutocompleteComponent
                         organization={organization}
                         inputValues={inputValues}
@@ -1072,6 +1073,18 @@ export default function ReviewPage() {
                         setScrollTo={setScrollTo}
                         applyTransformation={applyTransformationDynamically}
                       />
+                    ) : field.kind === "longstring" ? (
+                      <Textarea
+                        variant="outlined"
+                        size="sm"
+                        sx={{ marginBottom: "5px", boxShadow: "sm" }}
+                        value={inputValues ? inputValues[field.id] : ""}
+                        onChange={(event) => {
+                          handleInputChange(field.id, event.target.value);
+                        }}
+                      />
+                    ) : (
+                      <></>
                     )}
                   </div>
                 );

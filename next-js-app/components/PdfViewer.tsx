@@ -427,12 +427,9 @@ const PdfViewer = ({
   };
 
   const renderAnnotations = async () => {
-    console.log(overlayCanvasRefs.current);
     overlayCanvasRefs.current.forEach((overlayCanvas, index) => {
       const context = overlayCanvas.getContext("2d");
       const pageNum = index + 1;
-      console.log("pageNum", pageNum);
-      console.log("pdfDoc", pdfDoc);
       pdfDoc.getPage(pageNum).then((page) => {
         const viewport = page.getViewport({ scale, rotation });
         if (showAnnotations) {

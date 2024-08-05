@@ -65,7 +65,6 @@ export async function POST(req: NextRequest) {
     await batchRef.update({
       documents: batchData.documents.slice(documentIndex),
     });
-    console.log(batchData.documents.slice(documentIndex));
 
     return NextResponse.json({ message: "success" }, { status: 200 });
   } catch (error) {

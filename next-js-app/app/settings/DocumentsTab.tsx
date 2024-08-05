@@ -75,7 +75,7 @@ function FieldProperty({
 }: FieldPropertyProps) {
   let id: string,
     displayName: string,
-    kind: "string" | "number" | "date" | "currency" | null,
+    kind: "string" | "number" | "date" | "currency" | "longstring" | null,
     color: [number, number, number],
     modelField: string | null,
     required: boolean;
@@ -172,11 +172,16 @@ function FieldProperty({
             onChange={(value) => {
               onChange({
                 ...field,
-                kind: value as "string" | "number" | "date" | "currency", // TODO: Fix this
+                kind: value as
+                  | "string"
+                  | "number"
+                  | "date"
+                  | "currency"
+                  | "longstring", // TODO: Fix this
               });
             }}
             errorFunction={!fieldIsEmpty ? fieldTypeErrorCheck : undefined}
-            options={["string", "number", "date", "currency"]}
+            options={["string", "number", "date", "currency", "longstring"]}
             indentation={indentation + 1}
           />
           <TrueFalseProperty
@@ -229,23 +234,10 @@ function FieldProperty({
                 <FormControl sx={{ flex: 1, minWidth: "50px" }}>
                   <FormLabel>Input Field</FormLabel>
                   <Autocomplete
+                    options={[]}
                     disabled={true}
-                    options={fieldOptions}
                     inputValue={field.id || ""}
                     value={transformation.inputField || ""}
-                    onInputChange={(event, newValue) => {
-                      const newTransformations = field.transformationMetadata
-                        ? [...field.transformationMetadata]
-                        : [];
-                      newTransformations[index] = {
-                        ...newTransformations[index],
-                        inputField: newValue,
-                      };
-                      onChange({
-                        ...field,
-                        transformationMetadata: newTransformations,
-                      });
-                    }}
                     placeholder="Select Field"
                     sx={{ width: "100%" }}
                   />

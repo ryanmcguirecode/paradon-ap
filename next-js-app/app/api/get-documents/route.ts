@@ -43,7 +43,6 @@ export async function GET(req: NextRequest) {
       req.nextUrl.searchParams,
       "kickedOut"
     );
-    console.log("kickedOut", kickedOut);
 
     // console.log("offset", offset);
     // console.log("limit", limit);

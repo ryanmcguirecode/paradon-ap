@@ -4,7 +4,7 @@ import { Transformation } from "./Transformation";
 export interface DocumentConfigField {
   id: string;
   displayName: string;
-  kind: "string" | "number" | "date" | "currency";
+  kind: "string" | "number" | "date" | "currency" | "longstring";
   color: [number, number, number];
   required: boolean;
   modelField?: AzureField | null;

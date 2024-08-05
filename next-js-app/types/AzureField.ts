@@ -35,5 +35,6 @@ export const azureInvoiceFields = {
   CurrencyCode: "	The currency code associated with the extracted amount",
   PaymentDetails: "Payment Option details (e.g. Net 30)",
   TaxDetails: "Tax details (e.g. amount and rate)",
+  Items: "Line items on the invoice",
 };
 export type AzureField = keyof typeof azureInvoiceFields;
