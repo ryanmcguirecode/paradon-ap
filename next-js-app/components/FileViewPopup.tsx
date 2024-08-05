@@ -11,6 +11,8 @@ import {
 import PdfViewer from "./PdfViewer";
 import { PDFDocument } from "pdf-lib";
 import Document from "@/types/Document";
+import CheckCircle from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
 
 interface FileViewPopupProps {
   open: boolean;
@@ -25,8 +27,7 @@ export default function FileViewPopup({
 }: FileViewPopupProps) {
   const [pdfData, setPdfData] = useState(null);
   const [pageNumbers, setPageNumbers] = useState("");
-  const [splitPages, setSplitPages] = useState<number[]>([]);
-  const [splitPdfData, setSplitPdfData] = useState<ArrayBuffer | null>(null);
+  const [success, setSuccess] = useState(null);
 
   useEffect(() => {
     const fetchPdf = async () => {
@@ -51,7 +52,6 @@ export default function FileViewPopup({
   const handleSplit = async () => {
     let pages = pageNumbers.split(",").map((num) => parseInt(num.trim(), 10));
     pages = [...pages, null]; // Adding null to handle the end of the last range
-    setSplitPages(pages);
 
     if (pdfData) {
       try {
@@ -82,6 +82,12 @@ export default function FileViewPopup({
             headers: {
               "Content-Type": "application/json",
             },
+          }).then((response) => {
+            if (response.ok) {
+              setSuccess(true);
+            } else {
+              setSuccess(false);
+            }
           });
         }
       } catch (error) {
@@ -156,14 +162,37 @@ export default function FileViewPopup({
               onChange={(e) => setPageNumbers(e.target.value)}
               sx={{ mt: 2 }}
             />
-            <Button
-              onClick={handleSplit}
-              variant="solid"
-              color="primary"
-              sx={{ mt: 2 }}
-            >
-              Split and Reprocess
-            </Button>
+            {success === true && (
+              <Button
+                variant="solid"
+                color="success"
+                sx={{ mt: 2 }}
+                endDecorator={<CheckCircle />}
+              >
+                Success
+              </Button>
+            )}
+            {success === false && (
+              <Button
+                variant="solid"
+                color="danger"
+                onClick={() => setSuccess(null)}
+                endDecorator={<CancelIcon />}
+                sx={{ mt: 2 }}
+              >
+                Failed, Try Again
+              </Button>
+            )}
+            {success === null && (
+              <Button
+                onClick={handleSplit}
+                variant="solid"
+                color="primary"
+                sx={{ mt: 2 }}
+              >
+                Split and Reprocess
+              </Button>
+            )}
             {/* Display splitPages or any additional split logic here */}
           </Grid>
         )}
