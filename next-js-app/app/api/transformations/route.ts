@@ -75,7 +75,7 @@ async function GET(req: NextRequest) {
       });
 
       const transformationData = transformations.find(
-        (t) => t.name === transformation
+        (t) => t.name.toLowerCase() === transformation.toLowerCase()
       );
 
       if (transformationData) {
