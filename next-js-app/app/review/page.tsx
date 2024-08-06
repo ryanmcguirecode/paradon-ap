@@ -949,7 +949,7 @@ export default function ReviewPage() {
                         <CurrencyInput
                           {...InputStyle}
                           value={
-                            fields[documentIndex]
+                            fields[documentIndex]?.[field.id]
                               ? fields[documentIndex][field.id]
                               : 0
                           }
@@ -996,7 +996,7 @@ export default function ReviewPage() {
                             startDecorator: { tabIndex: 0 },
                           }}
                           value={
-                            fields[documentIndex]
+                            fields[documentIndex]?.[field.id]
                               ? fields[documentIndex][field.id]
                               : ""
                           }
@@ -1037,7 +1037,7 @@ export default function ReviewPage() {
                         <Input
                           {...InputStyle}
                           value={
-                            fields[documentIndex]
+                            fields[documentIndex]?.[field.id]
                               ? fields[documentIndex][field.id]
                               : ""
                           }
@@ -1099,7 +1099,7 @@ export default function ReviewPage() {
                           size="sm"
                           sx={{ marginBottom: "5px", boxShadow: "sm" }}
                           value={
-                            fields[documentIndex]
+                            fields[documentIndex]?.[field.id]
                               ? fields[documentIndex][field.id]
                               : ""
                           }

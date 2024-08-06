@@ -96,8 +96,8 @@ const AutocompleteComponent = ({
       variant="outlined"
       size="sm"
       sx={{ marginBottom: "5px", boxShadow: "sm" }}
-      value={inputValues ? inputValues[field.id] : ""}
-      inputValue={inputValues ? inputValues[field.id] : ""}
+      value={inputValues?.[field.id] ? inputValues[field.id] : ""}
+      inputValue={inputValues?.[field.id] ? inputValues[field.id] : ""}
       options={options || []}
       onInputChange={(event, newValue, reason) => {
         handleInputChange(field.id, newValue);
@@ -135,7 +135,7 @@ const AutocompleteComponent = ({
     <Input
       key={field.id}
       {...InputStyle}
-      value={inputValues ? inputValues[field.id] : ""}
+      value={inputValues?.[field.id] ? inputValues[field.id] : ""}
       onChange={(event) => {
         handleInputChange(field.id, event.target.value);
       }}
