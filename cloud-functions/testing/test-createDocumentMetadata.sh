@@ -4,7 +4,7 @@ for i in {1}
 do
   curl -X POST http://localhost:8080 -H "Content-Type: application/json" -d '{
     "data": {
-      "name": "invoice 4.pdf",
+      "name": "invoice 10.pdf",
       "bucket": "paradon-ap-test",
       "contentType": "application/json",
       "metageneration": "1",

@@ -9,10 +9,47 @@ require("dotenv").config({ path: ".env.local" });
 
 function formatFields(fields) {
   const formattedFields = {};
-
   for (let key of Object.keys(fields)) {
     if (key === "Items") {
-      //   console.log("Items:", fields[key]);
+      formattedFields[key] = {
+        values: fields[key].values.map((item, index) => {
+          let page = null;
+          let coordinates = [];
+
+          const pages = (item.boundingRegions || []).map(
+            (region) => region.pageNumber
+          );
+          if (pages.length > 0) {
+            page = Math.min(...pages);
+          }
+
+          const polygons = (item.boundingRegions || []).map(
+            (region) => region.polygon
+          );
+          const xValues = polygons
+            .map((polygon) => polygon.map((point) => point.x))
+            .flat();
+          const yValues = polygons
+            .map((polygon) => polygon.map((point) => point.y))
+            .flat();
+          if (xValues.length > 0 || yValues.length > 0) {
+            coordinates = [
+              Math.min(...xValues),
+              Math.max(...xValues),
+              Math.min(...yValues),
+              Math.max(...yValues),
+            ];
+          }
+
+          return {
+            kind: item.kind,
+            page: page,
+            coordinates: coordinates,
+            content: item.content,
+            confidence: item.confidence,
+          };
+        }),
+      };
     } else {
       let page = null;
       let coordinates = [];
