@@ -4,12 +4,13 @@ const db = new sqlite3.Database("../database.sqlite");
 
 db.serialize(() => {
   db.run(`
-    CREATE TABLE utexasMappings (
+    CREATE TABLE IF NOT EXISTS utexasMappings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      key TEXT UNIQUE,
+      key TEXT,
       value TEXT,
       created_by TEXT,
-      transformation TEXT
+      transformation TEXT,
+      UNIQUE(key, transformation)
     );
   `);
 });

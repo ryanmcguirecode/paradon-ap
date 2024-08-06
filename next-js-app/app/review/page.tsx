@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import PdfViewer from "@/components/PdfViewer";
 
 import { useRouter } from "next/navigation";
@@ -54,17 +54,17 @@ export default function ReviewPage() {
   const [activeField, setActiveField] = useState<string>("");
   const [searchedField, setSearchedField] = useState<string>("");
   const [activatedFields, setActivatedFields] = useState<string[]>([]);
-  const [fieldsApplied, setFieldsApplied] = useState(false);
+  const [fields, setFields] = useState([]);
 
   const [documentType, setDocumentType] = useState<string>();
   const [documentConfigs, setDocumentConfigs] = useState<{
     [key: string]: DocumentConfig;
   }>({});
 
-  const [inputValues, setInputValues] = useState<{ [key: string]: any }>();
   const [showMappings, setShowMappings] = useState(false);
   const [mappings, setMappings] = useState<any[]>([]);
   const [finished, setFinished] = useState(false);
+
   // Acquire batch and fetch documents
   useEffect(() => {
     if (loading) {
@@ -151,7 +151,7 @@ export default function ReviewPage() {
       });
 
       // Use navigator.sendBeacon to ensure the batch release request is sent
-      const result = navigator.sendBeacon("/api/release-batch", data);
+      navigator.sendBeacon("/api/release-batch", data);
     };
 
     /* Check batch back in when clicking link */
@@ -185,6 +185,10 @@ export default function ReviewPage() {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [loading]);
+
+  useEffect(() => {
+    applyTransformationsStatically();
+  }, [documentsFetched]);
 
   // Fetch document configs
   useEffect(() => {
@@ -256,156 +260,80 @@ export default function ReviewPage() {
     }
   };
 
-  async function applyFieldFunctions() {
-    const newInputValues = {};
-    const fields = documentConfigs[documentType]?.fields || [];
+  async function applyTransformationsStatically() {
+    documents.forEach(async (document, index) => {
+      const newInputValues = {};
+      const configFields = documentConfigs[documentType]?.fields || [];
 
-    for (const field of fields) {
-      let defaultValue;
-      const detectedField =
-        documents[documentIndex].fields?.[field.id] ||
-        documents[documentIndex].detectedFields[field.modelField]?.value ||
-        "";
+      for (const field of configFields) {
+        if (field.modelField === "Items") {
+          continue;
+        }
+        const savedValue = document?.fields?.[field.id];
+        let detectedField = document?.detectedFields[field.modelField]?.value;
 
-      if (field.kind === "currency" && typeof detectedField !== "string") {
-        defaultValue = currencyToNumber(detectedField);
-      } else if (field.kind === "date") {
-        defaultValue = dateToIsoString(detectedField);
-      } else {
-        defaultValue = detectedField;
-      }
-      newInputValues[field.id] = defaultValue;
-    }
-    setInputValues(newInputValues);
-    setFieldsApplied(true); // Set the state to indicate fields have been applied
-  }
-
-  // Reset input values when document or document type changes
-  useEffect(() => {
-    if (!documentsFetched || !documentConfigs || !documentType) {
-      return;
-    }
-    applyFieldFunctions();
-  }, [documentsFetched, documentConfigs, documentIndex, documentType]);
-
-  useEffect(() => {
-    if (fieldsApplied) {
-      applyTransformation();
-      setFieldsApplied(false); // Reset the state to indicate fields have not been applied
-    }
-  }, [fieldsApplied]);
-
-  // Happens when the document is loaded in, only want to apply transformation to detected fields and not overwrite user input
-  const applyTransformation = async () => {
-    if (
-      !documentsFetched ||
-      !documentConfigs ||
-      !documentType ||
-      !inputValues
-    ) {
-      return;
-    }
-    const newInputValues = inputValues;
-    const fields = documentConfigs[documentType]?.fields || [];
-
-    for (const field of fields) {
-      if (field.modelField === "Items") {
-        continue;
-      }
-      const savedValue = documents[documentIndex]?.fields?.[field.id];
-      let detectedField =
-        documents[documentIndex]?.detectedFields[field.modelField]?.value;
-
-      if (field.kind === "currency" && typeof detectedField !== "string") {
-        detectedField = currencyToNumber(detectedField);
-      } else if (field.kind === "date") {
-        detectedField = dateToIsoString(detectedField);
-      } else {
-        detectedField = detectedField;
-      }
-      // If the field is not detected or the field is already filled out, skip
-      if (savedValue || !detectedField || !field.transformationMetadata) {
-        continue;
-      }
-
-      for (let transformationMetadata of field.transformationMetadata) {
-        // If the field is not a string or has a transformation, skip
-        if (!(field.kind === "string" && transformationMetadata?.id)) {
+        if (field.kind === "currency" && typeof detectedField !== "string") {
+          detectedField = currencyToNumber(detectedField);
+        } else if (field.kind === "date") {
+          detectedField = dateToIsoString(detectedField);
+        } else {
+          detectedField = detectedField;
+        }
+        // If the field is not detected or the field is already filled out, skip
+        if (savedValue || !detectedField) {
           continue;
         }
 
-        // Default value is the detected value, value to be outputted
-        var defaultValue = detectedField;
-
-        // where we will store the transformed value
-        var outField = field.id;
-
-        // only on string fields for now
-        let transformation: Transformation = await fetchTransformation(
-          organization,
-          transformationMetadata?.id
-        );
-
-        outField = transformationMetadata.outputField;
-
-        if (transformation?.type === "replace") {
-          defaultValue = regexReplace(
-            defaultValue,
-            transformation?.body.regexPattern,
-            transformation?.body.replacementValue
-          );
-        } else if (
-          field.kind === "string" &&
-          transformation?.type === "lookup"
+        if (
+          !field.transformationMetadata ||
+          field.transformationMetadata.length === 0
         ) {
-          if (
-            transformation?.body?.lookupMethod === "exact" ||
-            !transformation?.body?.lookupMethod
+          newInputValues[field.id] = detectedField;
+          continue;
+        }
+
+        for (let transformationMetadata of field.transformationMetadata) {
+
+          // If the field is not a string or has a transformation, skip
+          if (!(field.kind === "string" && transformationMetadata?.id)) {
+            continue;
+          }
+
+          // Default value is the detected value, value to be outputted
+          var defaultValue = detectedField;
+
+          // where we will store the transformed value
+          var outField = field.id;
+
+          // only on string fields for now
+          let transformation: Transformation = await fetchTransformation(
+            organization,
+            transformationMetadata?.id
+          );
+
+          outField = transformationMetadata.outputField;
+
+          if (transformation?.type === "replace") {
+            defaultValue = regexReplace(
+              defaultValue,
+              transformation?.body.regexPattern,
+              transformation?.body.replacementValue
+            );
+          } else if (
+            field.kind === "string" &&
+            transformation?.type === "lookup"
           ) {
-            try {
-              if (!defaultValue) {
-                continue;
-              }
-              const defaultValueURI = encodeURIComponent(defaultValue);
-              const response = await fetch(
-                `/api/mappings?organization=${organization}&key=${defaultValueURI}&transformation=${transformationMetadata.id}`,
-                {
-                  method: "GET",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
+            if (
+              transformation?.body?.lookupMethod === "exact" ||
+              !transformation?.body?.lookupMethod
+            ) {
+              try {
+                if (!defaultValue) {
+                  continue;
                 }
-              );
-              const data = await response.json();
-              if (data.length > 0) {
-                defaultValue = data[0].value;
-              } else {
-                continue;
-              }
-            } catch (error) {
-              console.error("Error fetching mapping:", error);
-            }
-          } else if (transformation?.body?.lookupMethod === "fuzzy") {
-            try {
-              if (!defaultValue) {
-                continue;
-              }
-              const defaultValueURI = encodeURIComponent(defaultValue);
-              const response = await fetch(
-                `/api/mappings?organization=${organization}&transformation=${transformationMetadata.id}&key=${defaultValueURI}`,
-                {
-                  method: "GET",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                }
-              );
-              const data = await response.json();
-              if (data.length > 0) {
-                defaultValue = data[0].value;
-              } else {
+                const defaultValueURI = encodeURIComponent(defaultValue);
                 const response = await fetch(
-                  `/api/mappings?&organization=${organization}&transformation=${transformationMetadata.id}`,
+                  `/api/mappings?organization=${organization}&key=${defaultValueURI}&transformation=${transformationMetadata.id}`,
                   {
                     method: "GET",
                     headers: {
@@ -415,50 +343,84 @@ export default function ReviewPage() {
                 );
                 const data = await response.json();
                 if (data.length > 0) {
-                  // set default value to the closest fuzzy match
-                  const options = {
-                    keys: ["value"],
-                    includeScore: true,
-                  };
-
-                  const fuse = new Fuse(data, options);
-                  const searchTerm = defaultValue;
-                  const result: any[] = fuse.search(searchTerm);
-
-                  if (result.length > 0) {
-                    // Sort results by score in ascending order (best match first)
-                    result.sort((a, b) => a.score - b.score);
-                    // Get the best match (first item after sorting)
-                    defaultValue = result[0].item.value;
-                  }
+                  defaultValue = data[0].value;
                 } else {
                   continue;
                 }
+              } catch (error) {
+                console.error("Error fetching mapping:", error);
               }
-            } catch (error) {
-              console.error("Error fetching mapping:", error);
+            } else if (transformation?.body?.lookupMethod === "fuzzy") {
+              try {
+                if (!defaultValue) {
+                  continue;
+                }
+                const defaultValueURI = encodeURIComponent(defaultValue);
+                const response = await fetch(
+                  `/api/mappings?organization=${organization}&transformation=${transformationMetadata.id}&key=${defaultValueURI}`,
+                  {
+                    method: "GET",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                  }
+                );
+                const data = await response.json();
+                if (data.length > 0) {
+                  defaultValue = data[0].value;
+                } else {
+                  const response = await fetch(
+                    `/api/mappings?&organization=${organization}&transformation=${transformationMetadata.id}`,
+                    {
+                      method: "GET",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                    }
+                  );
+                  const data = await response.json();
+                  if (data.length > 0) {
+                    // set default value to the closest fuzzy match
+                    const options = {
+                      keys: ["value"],
+                      includeScore: true,
+                    };
+
+                    const fuse = new Fuse(data, options);
+                    const searchTerm = defaultValue;
+                    const result: any[] = fuse.search(searchTerm);
+
+                    if (result.length > 0) {
+                      // Sort results by score in ascending order (best match first)
+                      result.sort((a, b) => a.score - b.score);
+                      // Get the best match (first item after sorting)
+                      defaultValue = result[0].item.value;
+                    }
+                  }
+                }
+              } catch (error) {
+                console.error("Error fetching mapping:", error);
+              }
             }
           }
+          newInputValues[outField] = defaultValue;
         }
-
-        newInputValues[outField] = defaultValue;
+        applyTransformationDynamically(newInputValues, field.id, index);
       }
-      setInputValues({ ...inputValues, ...newInputValues });
-    }
-    for (const field of fields) {
-      if (field.kind === "string") {
-        applyTransformationDynamically(field.id);
-      }
-    }
-  };
+      setFields((fields) => {
+        const newFields = [...fields];
+        newFields[index] = newInputValues;
+        return newFields;
+      });
+    });
+  }
 
-  async function applyTransformationDynamically(id: string) {
-    if (
-      !documentsFetched ||
-      !documentConfigs ||
-      !documentType ||
-      !inputValues
-    ) {
+  async function applyTransformationDynamically(
+    inputValues: any,
+    id: string,
+    index: number
+  ) {
+    if (!documentsFetched || !documentConfigs || !documentType) {
       return;
     }
     const newInputValues = inputValues;
@@ -467,7 +429,7 @@ export default function ReviewPage() {
     );
 
     // Default value is the detected value, value to be outputted
-    var defaultValue = inputValues[field.id];
+    var defaultValue = documents[index].fields[id] || newInputValues[id];
 
     if (!defaultValue) {
       return;
@@ -525,18 +487,29 @@ export default function ReviewPage() {
       }
       newInputValues[outField] = defaultValue;
     }
-    setInputValues({ ...inputValues, ...newInputValues });
+    setFields((fields) => {
+      const newFields = [...fields];
+      newFields[index] = {
+        ...fields[index],
+        ...newInputValues,
+      };
+      return newFields;
+    });
   }
 
   function requiredFieldsFilledOut() {
-    if (!documentConfigs || !documentConfigs[documentType] || !inputValues) {
+    if (
+      !documentConfigs ||
+      !documentConfigs[documentType] ||
+      !fields[documentIndex]
+    ) {
       return false;
     }
     const requiredFields = documentConfigs[documentType].fields
       .filter((field) => field.required)
       .map((field) => field.id);
     for (const field of requiredFields) {
-      if (!inputValues[field]) {
+      if (!fields[documentIndex][field]) {
         return false;
       }
     }
@@ -614,7 +587,7 @@ export default function ReviewPage() {
       kickedOut: kickOut,
     };
     if (!kickOut) {
-      newDocument.fields = { ...inputValues };
+      newDocument.fields = { ...fields[documentIndex] };
     }
     var newDocumentIndex = documentIndex;
     const newDocuments = documents.map((document, index) => {
@@ -875,9 +848,13 @@ export default function ReviewPage() {
                   fieldId: string,
                   value: string | number
                 ) => {
-                  setInputValues({
-                    ...inputValues,
-                    [fieldId]: value,
+                  setFields((fields) => {
+                    const newFields = [...fields];
+                    newFields[documentIndex] = {
+                      ...newFields[documentIndex],
+                      [fieldId]: value,
+                    };
+                    return newFields;
                   });
                 };
 
@@ -949,7 +926,11 @@ export default function ReviewPage() {
                     {field.kind === "currency" ? (
                       <CurrencyInput
                         {...InputStyle}
-                        value={inputValues ? inputValues[field.id] : 0}
+                        value={
+                          fields[documentIndex]
+                            ? fields[documentIndex][field.id]
+                            : 0
+                        }
                         onChange={(
                           event: React.ChangeEvent<HTMLInputElement>
                         ) => {
@@ -989,7 +970,11 @@ export default function ReviewPage() {
                           input: { tabIndex: 0 },
                           startDecorator: { tabIndex: 0 },
                         }}
-                        value={inputValues ? inputValues[field.id] : ""}
+                        value={
+                          fields[documentIndex]
+                            ? fields[documentIndex][field.id]
+                            : ""
+                        }
                         onChange={(
                           event: React.ChangeEvent<HTMLInputElement>
                         ) => {
@@ -1023,7 +1008,11 @@ export default function ReviewPage() {
                     ) : field.kind === "number" ? (
                       <Input
                         {...InputStyle}
-                        value={inputValues ? inputValues[field.id] : ""}
+                        value={
+                          fields[documentIndex]
+                            ? fields[documentIndex][field.id]
+                            : ""
+                        }
                         type="number"
                         onChange={(
                           event: React.ChangeEvent<HTMLInputElement>
@@ -1058,7 +1047,7 @@ export default function ReviewPage() {
                     ) : field.kind === "string" ? (
                       <AutocompleteComponent
                         organization={organization}
-                        inputValues={inputValues}
+                        inputValues={fields[documentIndex]}
                         field={field}
                         handleInputChange={handleInputChange}
                         documentIndex={documentIndex}
@@ -1078,7 +1067,11 @@ export default function ReviewPage() {
                         variant="outlined"
                         size="sm"
                         sx={{ marginBottom: "5px", boxShadow: "sm" }}
-                        value={inputValues ? inputValues[field.id] : ""}
+                        value={
+                          fields[documentIndex]
+                            ? fields[documentIndex][field.id]
+                            : ""
+                        }
                         onChange={(event) => {
                           handleInputChange(field.id, event.target.value);
                         }}

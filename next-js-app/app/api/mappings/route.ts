@@ -65,7 +65,7 @@ export async function POST(req) {
       );
     });
 
-    query += ` ON CONFLICT(key)
+    query += ` ON CONFLICT(key, transformation)
     DO UPDATE SET
         value = excluded.value,
         created_by = excluded.created_by,
