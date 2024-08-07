@@ -239,6 +239,7 @@ const PdfViewer = ({
             container: textLayerDiv,
             viewport: renderContext.viewport,
             textDivs: [],
+            enhancedTextSelection: true,
           });
 
           drawAnnotations(
