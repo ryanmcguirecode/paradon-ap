@@ -262,7 +262,8 @@ export default function ReviewPage() {
   };
 
   async function applyTransformationsStatically() {
-    documents.forEach(async (document, index) => {
+    setTransformationsApplied(false);
+    const promises = documents.map(async (document, index) => {
       const newInputValues = {};
       const configFields = documentConfigs[documentType]?.fields || [];
 
@@ -306,7 +307,7 @@ export default function ReviewPage() {
           var outField = field.id;
 
           // only on string fields for now
-          let transformation: Transformation = await fetchTransformation(
+          let transformation = await fetchTransformation(
             organization,
             transformationMetadata?.id
           );
@@ -388,7 +389,7 @@ export default function ReviewPage() {
 
                     const fuse = new Fuse(data, options);
                     const searchTerm = defaultValue;
-                    const result: any[] = fuse.search(searchTerm);
+                    const result = fuse.search(searchTerm);
 
                     if (result.length > 0) {
                       // Sort results by score in ascending order (best match first)
@@ -407,14 +408,25 @@ export default function ReviewPage() {
         }
         await applyTransformationDynamically(newInputValues, field.id, index);
       }
-      setFields((fields) => {
-        const newFields = [...fields];
-        newFields[index] = newInputValues;
-        return newFields;
-      });
+      return { newInputValues, index };
     });
+
+    const results = await Promise.all(promises);
+
+    setFields((fields) => {
+      const newFields = [...fields];
+      results.forEach(({ newInputValues, index }) => {
+        newFields[index] = newInputValues;
+      });
+      return newFields;
+    });
+
     setTransformationsApplied(true);
   }
+
+  useEffect(() => {
+    console.log(transformationsApplied);
+  }, [transformationsApplied]);
 
   async function applyTransformationDynamically(
     inputValues: any,
