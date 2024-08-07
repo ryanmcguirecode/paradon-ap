@@ -14,6 +14,7 @@ import AutoFixNormalIcon from "@mui/icons-material/AutoFixNormal";
 import AutoFixOffIcon from "@mui/icons-material/AutoFixOff";
 import RemoveIcon from "@mui/icons-material/Remove";
 import * as pdfjsLib from "pdfjs-dist/webpack.mjs";
+import "pdfjs-dist/web/pdf_viewer.css";
 import Rotate90DegreesCwOutlinedIcon from "@mui/icons-material/Rotate90DegreesCwOutlined";
 import Document, { DetectedField } from "@/types/Document";
 import { DocumentConfigField } from "@/types/DocumentConfig";
@@ -51,6 +52,7 @@ const PdfViewer = ({
   const [fitMode, setFitMode] = useState("height");
   const [pdfOverflow, setPdfOverflow] = useState(false);
   const overlayCanvasRefs = useRef([]);
+  const textLayerRefs = useRef([]);
   const scrollPositionRef = useRef(0);
   const observerRef = useRef(null);
   const animationRef = useRef(null);
@@ -141,6 +143,7 @@ const PdfViewer = ({
       }, observerOptions);
 
       const overlayCanvases = [];
+      const textLayers = [];
       const pageElements = [];
 
       for (let num = 1; num <= pdfDoc.numPages; num++) {
@@ -158,6 +161,18 @@ const PdfViewer = ({
         canvas.height = viewport.height;
         canvas.width = viewport.width;
         canvas.style.display = "block"; // Ensure each canvas is a block element
+
+        const textLayerDiv = document.createElement("div");
+        textLayerDiv.className = "textLayer";
+        textLayerDiv.style.position = "absolute";
+        textLayerDiv.style.top = "0";
+        textLayerDiv.style.left = "0";
+        textLayerDiv.style.height = viewport.height;
+        textLayerDiv.style.width = viewport.width;
+
+        textLayerDiv.style.display = "flex";
+        textLayerDiv.style.alignItems = pdfOverflow ? "center" : "flex-start";
+        textLayerDiv.style.flexDirection = "column";
 
         const renderContext = {
           canvasContext: context,
@@ -185,6 +200,7 @@ const PdfViewer = ({
         const animationContext = animationCanvas.getContext("2d");
 
         pageContainer.appendChild(canvas);
+        pageContainer.appendChild(textLayerDiv);
         pageContainer.appendChild(overlayCanvas);
         pageContainer.appendChild(animationCanvas);
 
@@ -193,6 +209,7 @@ const PdfViewer = ({
           pageContainer,
           renderContext,
           overlayCanvas,
+          textLayerDiv,
           animationCanvas,
         });
       }
@@ -204,6 +221,7 @@ const PdfViewer = ({
             pageContainer,
             renderContext,
             overlayCanvas,
+            textLayerDiv,
             animationCanvas,
           },
           num
@@ -214,6 +232,14 @@ const PdfViewer = ({
           await renderTask.promise;
 
           overlayCanvases.push(overlayCanvas);
+          textLayers.push(textLayerDiv);
+
+          pdfjsLib.renderTextLayer({
+            textContentSource: await page.getTextContent(),
+            container: textLayerDiv,
+            viewport: renderContext.viewport,
+            textDivs: [],
+          });
 
           drawAnnotations(
             overlayCanvas.getContext("2d"),
@@ -236,6 +262,7 @@ const PdfViewer = ({
       );
 
       overlayCanvasRefs.current = overlayCanvases;
+      textLayerRefs.current = textLayers;
 
       // Check if the PDF overflows the container
       if (pdfDoc && containerRef.current) {
@@ -379,18 +406,6 @@ const PdfViewer = ({
     if (rotation < 0) {
       rotation += 360;
     }
-
-    // let viewportWidth, viewportHeight;
-    // if (rotation % 180 !== 0) {
-    //   [viewportHeight, viewportWidth] = viewportSize;
-    // } else {
-    //   [viewportWidth, viewportHeight] = viewportSize;
-    // }
-
-    // if (viewport.height === null || viewport.width === null) {
-    //   console.error("Viewport size is null");
-    //   return [0, 0, 0, 0];
-    // }
 
     switch (rotation) {
       case 90:
