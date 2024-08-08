@@ -162,18 +162,6 @@ const PdfViewer = ({
         canvas.width = viewport.width;
         canvas.style.display = "block"; // Ensure each canvas is a block element
 
-        const textLayerDiv = document.createElement("div");
-        textLayerDiv.className = "textLayer";
-        textLayerDiv.style.position = "absolute";
-        textLayerDiv.style.top = "0";
-        textLayerDiv.style.left = "0";
-        textLayerDiv.style.height = viewport.height;
-        textLayerDiv.style.width = viewport.width;
-
-        textLayerDiv.style.display = "flex";
-        textLayerDiv.style.alignItems = pdfOverflow ? "center" : "flex-start";
-        textLayerDiv.style.flexDirection = "column";
-
         const renderContext = {
           canvasContext: context,
           viewport: viewport,
@@ -200,7 +188,6 @@ const PdfViewer = ({
         const animationContext = animationCanvas.getContext("2d");
 
         pageContainer.appendChild(canvas);
-        pageContainer.appendChild(textLayerDiv);
         pageContainer.appendChild(overlayCanvas);
         pageContainer.appendChild(animationCanvas);
 
@@ -209,7 +196,6 @@ const PdfViewer = ({
           pageContainer,
           renderContext,
           overlayCanvas,
-          textLayerDiv,
           animationCanvas,
         });
       }
@@ -221,25 +207,51 @@ const PdfViewer = ({
             pageContainer,
             renderContext,
             overlayCanvas,
-            textLayerDiv,
             animationCanvas,
           },
           num
         ) => {
+          console.log("Rendering page", num);
           container.appendChild(pageContainer);
 
           const renderTask = page.render(renderContext);
           await renderTask.promise;
 
           overlayCanvases.push(overlayCanvas);
-          textLayers.push(textLayerDiv);
 
-          pdfjsLib.renderTextLayer({
-            textContentSource: await page.getTextContent(),
-            container: textLayerDiv,
-            viewport: renderContext.viewport,
-            textDivs: [],
-            enhancedTextSelection: true,
+          page.getTextContent().then((textContent) => {
+            const styles = textContent.styles;
+
+            console.log(textContent);
+            textContent.items.forEach((item) => {
+              const tx = item.transform[4] * scale;
+              const ty = item.transform[5] * scale;
+              const fontSize = item.transform[0];
+              const style = styles[item.fontName];
+
+              const ascent = style.ascent * fontSize;
+              const descent = style.descent * fontSize;
+
+              const textDiv = document.createElement("div");
+              textDiv.style.position = "absolute";
+              textDiv.style.left = `${tx}px`;
+              textDiv.style.top = `${
+                renderContext.viewport.height - ty - fontSize * scale
+              }px`;
+              if (num === 0) {
+                textDiv.style.top = `${
+                  renderContext.viewport.height - ty - fontSize * scale + 5
+                }px`;
+              }
+              textDiv.style.fontSize = `${fontSize * scale}px`;
+              textDiv.style.width = `${item.width * scale * 2}px`;
+              textDiv.textContent = item.str;
+              textDiv.style.fontFamily = style.fontFamily;
+              textDiv.style.fontWeight = style.fontWeight;
+              textDiv.style.color = "transparent";
+
+              pageContainer.appendChild(textDiv);
+            });
           });
 
           drawAnnotations(
