@@ -149,7 +149,6 @@ const PdfViewer = ({
       for (let num = 1; num <= pdfDoc.numPages; num++) {
         const page = await pdfDoc.getPage(num);
         const viewport = page.getViewport({ scale, rotation });
-        console.log("Viewport", viewport);
 
         const pageContainer = document.createElement("div");
         pageContainer.style.position = "relative";
@@ -212,7 +211,6 @@ const PdfViewer = ({
           },
           num
         ) => {
-          console.log("Rendering page", num);
           container.appendChild(pageContainer);
 
           const renderTask = page.render(renderContext);

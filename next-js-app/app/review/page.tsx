@@ -424,10 +424,6 @@ export default function ReviewPage() {
     setTransformationsApplied(true);
   }
 
-  useEffect(() => {
-    console.log(transformationsApplied);
-  }, [transformationsApplied]);
-
   async function applyTransformationDynamically(
     inputValues: any,
     id: string,
