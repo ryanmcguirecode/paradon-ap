@@ -149,6 +149,7 @@ const PdfViewer = ({
       for (let num = 1; num <= pdfDoc.numPages; num++) {
         const page = await pdfDoc.getPage(num);
         const viewport = page.getViewport({ scale, rotation });
+        console.log("Viewport", viewport);
 
         const pageContainer = document.createElement("div");
         pageContainer.style.position = "relative";
@@ -222,7 +223,6 @@ const PdfViewer = ({
           page.getTextContent().then((textContent) => {
             const styles = textContent.styles;
 
-            console.log(textContent);
             textContent.items.forEach((item) => {
               const tx = item.transform[4] * scale;
               const ty = item.transform[5] * scale;
@@ -244,7 +244,16 @@ const PdfViewer = ({
                 }px`;
               }
               textDiv.style.fontSize = `${fontSize * scale}px`;
-              textDiv.style.width = `${item.width * scale * 2}px`;
+
+              // 100px is added to the width to prevent text from overflowing the container
+              if (
+                item.width * scale + tx + 100 >
+                renderContext.viewport.width
+              ) {
+                textDiv.style.width = `${renderContext.viewport.width - tx}px`;
+              } else {
+                textDiv.style.width = `${item.width * scale + 100}px`;
+              }
               textDiv.textContent = item.str;
               textDiv.style.fontFamily = style.fontFamily;
               textDiv.style.fontWeight = style.fontWeight;
