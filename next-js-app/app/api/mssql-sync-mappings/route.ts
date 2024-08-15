@@ -3,6 +3,8 @@ import sql from "mssql";
 import { openExternalDB } from "../../../mssql/external";
 import { openInternalDB } from "../../../mssql/internal";
 
+const BATCH_SIZE = 1000;
+
 export async function POST(request) {
   const { transformation, keyColumn, valueColumn, tableName, organization } =
     await request.json();
@@ -21,22 +23,25 @@ export async function POST(request) {
       { status: 400 }
     );
   }
+
   let values = [];
-  // Connect to the external database
   const externalDB = await openExternalDB();
   try {
-    // Fetch key and value from the external database
     const externalData = await externalDB
       .request()
       .query(`SELECT [${keyColumn}], [${valueColumn}] FROM [${tableName}]`);
-    // Construct a bulk insert query
-    values = externalData.recordset
-      .map((row) => {
-        const escapedKey = row[keyColumn]?.replace(/'/g, "''"); // Escape single quotes
-        const escapedValue = row[valueColumn]?.replace(/'/g, "''"); // Escape single quotes
-        return `('${escapedKey}', '${escapedValue}', '', '${transformation}', 'db')`;
-      })
-      .join(", ");
+    // Use a Map to filter out duplicates based on the keyColumn
+    const uniqueMap = new Map();
+    externalData.recordset.forEach((row) => {
+      const escapedKey = row[keyColumn]?.replace(/'/g, "''");
+      const escapedValue = row[valueColumn]?.replace(/'/g, "''");
+      if (!uniqueMap.has(escapedKey)) {
+        uniqueMap.set(escapedKey, escapedValue);
+        values.push(
+          `('${escapedKey}', '${escapedValue}', '', '${transformation}', 'db')`
+        );
+      }
+    });
     externalDB.close();
   } catch (error) {
     console.error("Error fetching data from the external database:", error);
@@ -51,36 +56,32 @@ export async function POST(request) {
   }
 
   const internalDB = await openInternalDB();
+  const transaction = new sql.Transaction(internalDB);
+  await transaction.begin();
+  if (!internalDB) {
+    return new Response(
+      JSON.stringify({
+        message: "Failed to connect to the database.",
+      }),
+      { status: 500 }
+    );
+  }
   try {
-    if (!internalDB) {
-      return new Response(
-        JSON.stringify({
-          message: "Failed to connect to the database.",
-        }),
-        { status: 500 }
-      );
-    }
-
-    // // Start a transaction in the internal database
-    const transaction = new sql.Transaction(internalDB);
-    await transaction.begin();
-
-    // // Delete rows in the internal database where source = 'db'
     await transaction
       .request()
       .query(
         `DELETE FROM [${organization}Mappings] WHERE [source] = 'db' AND [transformation] = '${transformation}'`
       );
 
-    // // Construct a single bulk insert query
-    let insertQuery =
-      `INSERT INTO [${organization}Mappings] ([key], [value], [created_by], [transformation], [source]) VALUES ` +
-      values;
+    // Insert in batches
+    for (let i = 0; i < values.length; i += BATCH_SIZE) {
+      const batchValues = values.slice(i, i + BATCH_SIZE).join(", ");
+      const insertQuery =
+        `INSERT INTO [${organization}Mappings] ([key], [value], [created_by], [transformation], [source]) VALUES ` +
+        batchValues;
+      await transaction.request().query(insertQuery);
+    }
 
-    // // Execute the bulk insert
-    await transaction.request().query(insertQuery);
-
-    // // Commit the transaction
     await transaction.commit();
 
     return new Response(
@@ -88,13 +89,10 @@ export async function POST(request) {
       { status: 200 }
     );
   } catch (error) {
-    // Rollback the transaction in case of error
-    // await transaction.rollback();
     console.error("Error updating the internal database:", error);
+    await transaction.rollback();
     throw error;
   } finally {
-    // Close the connections
-    // await externalDB.close();
     await internalDB.close();
   }
 }
