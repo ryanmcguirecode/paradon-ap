@@ -245,6 +245,8 @@ export default function ReviewPage() {
       }
     };
     setActivatedFields([]);
+    setActiveField("");
+    setSearchedField("");
     fetchPdf();
   }, [documentsFetched, documentIndex, documentConfigs]);
 
@@ -334,7 +336,7 @@ export default function ReviewPage() {
                 }
                 const defaultValueURI = encodeURIComponent(defaultValue);
                 const response = await fetch(
-                  `/api/mappings?organization=${organization}&key=${defaultValueURI}&transformation=${transformationMetadata.id}`,
+                  `/api/mssql-mappings?organization=${organization}&key=${defaultValueURI}&transformation=${transformationMetadata.id}`,
                   {
                     method: "GET",
                     headers: {
@@ -358,7 +360,7 @@ export default function ReviewPage() {
                 }
                 const defaultValueURI = encodeURIComponent(defaultValue);
                 const response = await fetch(
-                  `/api/mappings?organization=${organization}&transformation=${transformationMetadata.id}&key=${defaultValueURI}`,
+                  `/api/mssql-mappings?organization=${organization}&transformation=${transformationMetadata.id}&key=${defaultValueURI}`,
                   {
                     method: "GET",
                     headers: {
@@ -371,7 +373,7 @@ export default function ReviewPage() {
                   defaultValue = data[0].value;
                 } else {
                   const response = await fetch(
-                    `/api/mappings?&organization=${organization}&transformation=${transformationMetadata.id}`,
+                    `/api/mssql-mappings?&organization=${organization}&transformation=${transformationMetadata.id}`,
                     {
                       method: "GET",
                       headers: {
@@ -476,7 +478,7 @@ export default function ReviewPage() {
           }
           const defaultValueURI = encodeURIComponent(defaultValue);
           const response = await fetch(
-            `/api/mappings?organization=${organization}&key=${defaultValueURI}&transformation=${transformationMetadata.id}`,
+            `/api/mssql-mappings?organization=${organization}&key=${defaultValueURI}&transformation=${transformationMetadata.id}`,
             {
               method: "GET",
               headers: {

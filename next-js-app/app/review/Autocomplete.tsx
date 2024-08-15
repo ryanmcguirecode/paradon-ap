@@ -55,7 +55,7 @@ const AutocompleteComponent = ({
       setTransformation(transformation);
 
       const response = await fetch(
-        `/api/mappings?organization=${organization}&transformation=${field.transformationMetadata[0].id.toLowerCase()}`,
+        `/api/mssql-mappings?organization=${organization}&transformation=${field.transformationMetadata[0].id.toLowerCase()}`,
         {
           method: "GET",
           headers: {

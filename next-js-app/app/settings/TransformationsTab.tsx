@@ -1,7 +1,6 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-
 import {
   Box,
   Button,
@@ -15,18 +14,13 @@ import {
   Select,
   Option,
 } from "@mui/joy";
-
 import {
   DocumentConfig as Document,
   DocumentConfigField as DocumentField,
 } from "@/types/DocumentConfig";
 import { Transformation } from "@/types/Transformation";
 import { useAuth } from "@/components/AuthContext";
-import CsvUpload from "./CsvUpload";
-
-import { auth } from "firebase-admin";
 import { useRouter } from "next/navigation";
-import { or } from "firebase/firestore";
 
 interface TransformationProps {
   auth: AuthContext;
@@ -63,10 +57,22 @@ export function TransformationComponent({
   const [learning, setLearning] = useState(
     transformation?.body?.learning || false
   );
+  const [lookupTable, setLookupTable] = useState(
+    transformation?.body?.lookupTable || ""
+  );
+  const [keyColumn, setKey] = useState(
+    transformation?.body?.lookupKeyColumn || ""
+  );
+  const [valueColumn, setValue] = useState(
+    transformation?.body?.lookupValueColumn || ""
+  );
 
   const isValid =
     transformationName &&
-    (transformationType === "lookup" ||
+    ((transformationType === "lookup" &&
+      lookupTable &&
+      keyColumn &&
+      valueColumn) ||
       (transformationType === "replace" && regexPattern));
 
   async function addTransformation() {
@@ -85,6 +91,9 @@ export function TransformationComponent({
             regexPattern: regexPattern,
             replacementValue: replacementValue,
             lookupMethod: lookupMethod,
+            lookupTable: lookupTable,
+            lookupKeyColumn: keyColumn,
+            lookupValueColumn: valueColumn,
             learning: learning,
           },
         },
@@ -92,13 +101,16 @@ export function TransformationComponent({
     });
     if (transformationType === "lookup") {
       try {
-        fetch("/api/mappings", {
+        const response = await fetch("/api/mssql-sync-mappings", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            data: csvData,
+            transformation: transformationName,
+            keyColumn: keyColumn,
+            valueColumn: valueColumn,
+            tableName: lookupTable,
             organization: auth.organization,
           }),
         });
@@ -114,6 +126,9 @@ export function TransformationComponent({
     setRegexPattern("");
     setReplacementValue("");
     setLookupMethod("exact");
+    setLookupTable("");
+    setKey("");
+    setValue("");
     setCsvData([]);
     setLearning(false);
   }
@@ -181,222 +196,259 @@ export function TransformationComponent({
     <Box
       sx={{
         display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
+        flexDirection: "column", // Changed to column to stack items vertically
+        alignItems: "flex-start", // Align items to the start of the container
         backgroundColor: "background.surface",
         border: ".5px solid",
         borderColor: "black",
         my: "20px",
         width: "100%",
-        minWidth: "fit-content", // Ensure the Box is at least as wide as its children
+        minWidth: "fit-content",
+        p: "20px", // Added padding to create some space around the content
       }}
     >
-      <Box
+      <FormControl
         sx={{
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "center", // Add this line
-          backgroundColor: "background.surface",
+          my: "10px", // Reduced margin for better spacing
+          width: "100%", // Ensure form control takes the full width
+        }}
+      >
+        <FormLabel>Transformation Name</FormLabel>
+        <Input
+          value={transformationName}
+          onChange={(event) => {
+            setTransformationName(event.target.value);
+          }}
+          disabled={!isNew}
+          placeholder="Transformation Name"
+          sx={{ width: "100%" }}
+        />
+      </FormControl>
+      <FormControl
+        sx={{
+          my: "10px",
           width: "100%",
         }}
       >
-        <FormControl
+        <FormLabel>Transformation</FormLabel>
+        <Select
+          defaultValue={"lookup"}
+          value={transformationType}
+          onChange={(event, value) => {
+            setTransformationType(value);
+          }}
+          disabled={!isNew}
+          sx={{ width: "100%" }}
+        >
+          <Option key="lookup" value="lookup">
+            <Typography level="body-lg" color="neutral">
+              Lookup
+            </Typography>
+          </Option>
+          <Option key="replace" value="replace">
+            <Typography level="body-lg" color="neutral">
+              Replace
+            </Typography>
+          </Option>
+        </Select>
+      </FormControl>
+      {transformationType === "replace" ? (
+        <Box
           sx={{
-            mx: "20px",
-            my: "20px",
+            width: "100%",
           }}
         >
-          <FormLabel>Transformation Name</FormLabel>
-          <Input
-            value={transformationName}
-            onChange={(event) => {
-              setTransformationName(event.target.value);
+          <FormControl
+            sx={{
+              my: "10px",
+              width: "100%",
             }}
-            disabled={!isNew}
-            placeholder="Transformation Name"
-            sx={{ width: 200 }}
-          />
-        </FormControl>
-        <FormControl
-          sx={{
-            mx: "20px",
-          }}
-        >
-          <FormLabel>Transformation</FormLabel>
-          <Select
-            defaultValue={"lookup"}
-            value={transformationType}
-            onChange={(event, value) => {
-              setTransformationType(value);
-            }}
-            disabled={!isNew}
-            sx={{ width: 125 }}
           >
-            <Option key="lookup" value="lookup">
-              <Typography level="body-lg" color="neutral">
-                Lookup
-              </Typography>
-            </Option>
-            <Option key="replace" value="replace">
-              <Typography level="body-lg" color="neutral">
-                Replace
-              </Typography>
-            </Option>
-          </Select>
-        </FormControl>
-        {transformationType === "replace" ? (
+            <FormLabel>Regex Pattern</FormLabel>
+            <Input
+              value={regexPattern}
+              onChange={(event) => {
+                setRegexPattern(event.target.value);
+              }}
+              placeholder="Regex pattern to replace"
+              disabled={!isNew}
+              sx={{ width: "100%" }}
+            />
+          </FormControl>
+          <FormControl
+            sx={{
+              my: "10px",
+              width: "100%",
+            }}
+          >
+            <FormLabel>Replacement Value</FormLabel>
+            <Input
+              value={replacementValue}
+              onChange={(event) => {
+                setReplacementValue(event.target.value);
+              }}
+              disabled={!isNew}
+              placeholder="Replacement value"
+              sx={{ width: "100%" }}
+            />
+          </FormControl>
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            width: "100%",
+          }}
+        >
+          <FormControl
+            sx={{
+              my: "10px",
+              width: "100%",
+            }}
+          >
+            <FormLabel>Match</FormLabel>
+            <Select
+              value={lookupMethod}
+              onChange={(event, value) => {
+                setLookupMethod(value);
+              }}
+              disabled={!isNew}
+              sx={{ width: "100%" }}
+            >
+              <Option key="exact" value="exact">
+                <Typography level="body-lg" color="neutral">
+                  Exact
+                </Typography>
+              </Option>
+              <Option key="fuzzy" value="fuzzy">
+                <Typography level="body-lg" color="neutral">
+                  Fuzzy
+                </Typography>
+              </Option>
+            </Select>
+          </FormControl>
           <Box
             sx={{
               display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: "background.surface",
+              flexDirection: "column", // Stack lookup table inputs vertically
+              width: "100%",
             }}
           >
-            <FormControl
-              sx={{
-                mx: "20px",
-                my: "20px",
-              }}
-            >
-              <FormLabel>Regex Pattern</FormLabel>
-              <Input
-                value={regexPattern}
-                onChange={(event) => {
-                  setRegexPattern(event.target.value);
-                }}
-                placeholder="Regex pattern to replace"
-                disabled={!isNew}
-                sx={{ width: "auto", minWidth: "225x" }}
-              />
-            </FormControl>
-            <FormControl
-              sx={{
-                mx: "20px",
-                my: "20px",
-              }}
-            >
-              <FormLabel>Replacement Value</FormLabel>
-              <Input
-                value={replacementValue}
-                onChange={(event) => {
-                  setReplacementValue(event.target.value);
-                }}
-                disabled={!isNew}
-                placeholder="Replacement value"
-                sx={{ width: "auto", minWidth: "225px" }}
-              />
-            </FormControl>
-          </Box>
-        ) : (
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: "background.surface",
-            }}
-          >
-            <FormControl
-              sx={{
-                mx: "20px",
-                my: "20px",
-              }}
-            >
-              <FormLabel>Match</FormLabel>
-              <Select
-                value={lookupMethod}
-                onChange={(event, value) => {
-                  setLookupMethod(value);
-                }}
-                disabled={!isNew}
-                sx={{ width: "auto", minWidth: "100px" }}
-              >
-                <Option key="exact" value="exact">
-                  <Typography level="body-lg" color="neutral">
-                    Exact
-                  </Typography>
-                </Option>
-                <Option key="fuzzy" value="fuzzy">
-                  <Typography level="body-lg" color="neutral">
-                    Fuzzy
-                  </Typography>
-                </Option>
-              </Select>
-            </FormControl>
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: "background.surface",
-              }}
-            >
-              <FormControl
+            <Box sx={{ width: "100%" }}>
+              <Box
                 sx={{
-                  mx: "20px",
-                  my: "20px",
+                  width: "100%",
+                  display: "flex",
+                  gap: "10px",
+                  alignItems: "center",
                 }}
               >
-                <FormLabel>Lookup Table</FormLabel>
-                <Box>
-                  {isNew ? (
-                    <CsvUpload
-                      disabled={csvData == null || transformationName == ""}
-                      onDataParsed={(data) => uploadCsvData(data)}
-                    />
-                  ) : (
-                    <Button
-                      sx={{ width: "auto", minWidth: "200px" }}
-                      onClick={() => {
-                        router.push(
-                          `/api/mappings?organization=${auth.organization}&transformation=${transformationName}`
-                        );
-                      }}
-                    >
-                      Show Mappings
-                    </Button>
-                  )}
-                </Box>
-              </FormControl>
-              <FormControl
-                sx={{
-                  mx: "20px",
-                  my: "20px",
-                }}
-              >
-                <FormLabel>Learning</FormLabel>
-                <Checkbox
-                  checked={learning}
-                  onChange={() => setLearning(!learning)}
-                  disabled={!isNew}
+                <FormControl
+                  sx={{
+                    flex: 1, // Allow the FormControl to take up available space
+                  }}
                 >
-                  Learning
-                </Checkbox>
-              </FormControl>
+                  <FormLabel>Lookup Table</FormLabel>
+                  <Input
+                    value={lookupTable}
+                    onChange={(event) => {
+                      setLookupTable(event.target.value);
+                    }}
+                    disabled={!isNew}
+                    sx={{ width: "100%" }}
+                  />
+                </FormControl>
+
+                {!isNew && (
+                  <Button
+                    sx={{ width: "auto", mt: "25px" }} // The button's width is determined by its content
+                    onClick={() => {
+                      router.push(
+                        `/api/mssql-mappings?organization=${auth.organization}&transformation=${transformationName}`
+                      );
+                    }}
+                  >
+                    Show Mappings
+                  </Button>
+                )}
+              </Box>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "row", // Align key and value side by side
+                  justifyContent: "space-between", // Distribute space between the key and value inputs
+                  width: "100%",
+                  mt: "10px", // Add margin at the top for better spacing
+                }}
+              >
+                <FormControl
+                  sx={{
+                    width: "48%", // Give key and value inputs equal width
+                  }}
+                >
+                  <FormLabel>Key</FormLabel>
+                  <Input
+                    value={keyColumn}
+                    onChange={(event) => {
+                      setKey(event.target.value);
+                    }}
+                    disabled={!isNew}
+                  />
+                </FormControl>
+                <FormControl
+                  sx={{
+                    width: "48%",
+                  }}
+                >
+                  <FormLabel>Value</FormLabel>
+                  <Input
+                    value={valueColumn}
+                    onChange={(event) => {
+                      setValue(event.target.value);
+                    }}
+                    disabled={!isNew}
+                  />
+                </FormControl>
+              </Box>
             </Box>
           </Box>
-        )}
-      </Box>
+          <FormControl
+            sx={{
+              my: "10px",
+              width: "100%",
+            }}
+          >
+            <FormLabel>Learning</FormLabel>
+            <Checkbox
+              checked={learning}
+              onChange={() => setLearning(!learning)}
+              disabled={!isNew}
+            >
+              Learning
+            </Checkbox>
+          </FormControl>
+        </Box>
+      )}
       <FormControl
         sx={{
-          mx: "40px",
-          mb: "20px",
-          minWidth: "100px",
+          my: "10px",
+          width: "100%",
         }}
       >
-        <FormLabel sx={{ color: "transparent" }}>_</FormLabel>
         {isNew ? (
           <Button
             color="success"
             onClick={addTransformation}
             disabled={!isValid}
+            sx={{ width: "100%" }} // Make the button take full width
           >
             Save Changes
           </Button>
         ) : (
-          <Button color="danger" onClick={deleteTransformation}>
+          <Button
+            color="danger"
+            onClick={deleteTransformation}
+            sx={{ width: "100%" }} // Make the button take full width
+          >
             Delete
           </Button>
         )}
@@ -416,6 +468,7 @@ export default function TransformationsTab() {
   const [transformations, setTransformations] = useState([]);
   const [transformationsLoading, setTransformationsLoading] = useState(true);
   const { user, loading, level, organization }: AuthContext = useAuth();
+  const [syncMappings, setSyncMappings] = useState(false);
 
   async function fetchTransformations() {
     // Fetch transformations
@@ -452,7 +505,20 @@ export default function TransformationsTab() {
     );
   }
   return (
-    <Box>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column", // Stack TransformationComponent instances vertically
+        alignItems: "center",
+        width: "100%",
+        pb: "20px", // Add margin at the bottom for better spacing
+      }}
+    >
+      <TransformationComponent
+        auth={{ user, loading, level, organization }}
+        isNew
+        refresh={fetchTransformations}
+      ></TransformationComponent>
       {transformations.length > 0 &&
         transformations.map((transformation, index) => {
           return (
@@ -461,14 +527,46 @@ export default function TransformationsTab() {
               transformation={transformation}
               isNew={false}
               refresh={fetchTransformations}
+              key={index} // Added a key for React list rendering
             ></TransformationComponent>
           );
         })}
-      <TransformationComponent
-        auth={{ user, loading, level, organization }}
-        isNew
-        refresh={fetchTransformations}
-      ></TransformationComponent>
+      <Button
+        color="warning"
+        disabled={syncMappings}
+        onClick={() => {
+          var promises = [];
+          transformations.forEach((transformation) => {
+            if (
+              transformation.type !== "lookup" ||
+              !transformation.body.lookupTable
+            ) {
+              return;
+            }
+            promises.push(
+              fetch("/api/mssql-sync-mappings", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  transformation: transformation.name,
+                  keyColumn: transformation.body.lookupKeyColumn,
+                  valueColumn: transformation.body.lookupValueColumn,
+                  tableName: transformation.body.lookupTable,
+                  organization: organization,
+                }),
+              })
+            );
+          });
+          Promise.all(promises).then(() => {
+            fetchTransformations();
+            // setSyncMappings(true);
+          });
+        }}
+      >
+        Sync Databases
+      </Button>
     </Box>
   );
 }

@@ -43,7 +43,7 @@ export default function MappingsTable({
   };
 
   const postMappings = async () => {
-    const res = await fetch("/api/mappings", {
+    const res = await fetch("/api/mssql-mappings", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

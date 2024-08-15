@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { openDB } from "../../../sqlite/db.js";
+import { openDB } from "../../../../sqlite/db.js";
 
 export interface Mapping {
   key: string;
