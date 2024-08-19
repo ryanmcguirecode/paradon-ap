@@ -1,6 +1,6 @@
 # npm start
 
-for i in {1..40}
+for i in {300..300}
 do
   curl -X POST http://localhost:8080 -H "Content-Type: application/json" -d '{
     "data": {
@@ -9,7 +9,8 @@ do
       "contentType": "application/json",
       "metageneration": "1",
       "timeCreated": "2020-04-23T07:38:57.230Z",
-      "updated": "2020-04-23T07:38:57.230Z"
+      "updated": "2020-04-23T07:38:57.230Z",
+      "documentType": "Invoice / Debit Memo"
     },
     "type": "google.cloud.storage.object.v1.finalized",
     "specversion": "1.0",

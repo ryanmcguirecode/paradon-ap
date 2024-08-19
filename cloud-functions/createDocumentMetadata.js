@@ -2,6 +2,7 @@ const functions = require("@google-cloud/functions-framework");
 const { Firestore, FieldValue, Timestamp } = require("@google-cloud/firestore");
 const { Storage } = require("@google-cloud/storage");
 const extractFields = require("./azureInvoice");
+const { applyTransformationsStatically } = require("./applyTransformations");
 
 async function addDocumentToBatch(docId, organization) {
   let retryCount = 0;
@@ -103,6 +104,8 @@ module.exports = async function createDocumentMetadata(cloudEvent) {
   const file = cloudEvent.data;
   const bucketName = file.bucket;
   const fileName = file.name;
+  const documentType = file.documentType;
+  let organization;
 
   let generatedDocId = null;
   try {
@@ -111,10 +114,7 @@ module.exports = async function createDocumentMetadata(cloudEvent) {
       .file(fileName)
       .getMetadata();
 
-    const organization =
-      metadata && metadata.metadata && metadata.metadata.organization
-        ? metadata.metadata.organization
-        : null;
+    organization = metadata?.metadata?.organization;
 
     const fileMetadata = {
       filename: fileName,
@@ -143,9 +143,18 @@ module.exports = async function createDocumentMetadata(cloudEvent) {
       .file(fileName)
       .download();
     const detectedFields = await extractFields(fileContent[0]);
+    const fields = await applyTransformationsStatically(
+      organization,
+      detectedFields,
+      documentType,
+      firestore.collection("organizations").doc(organization)
+    );
+    console.log(fields);
     const docRef = firestore.collection("documents").doc(generatedDocId);
     await docRef.update({
+      documentType: documentType,
       detectedFields: detectedFields,
+      fields: fields,
       updated: Timestamp.now(),
     });
   } catch (error) {
