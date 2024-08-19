@@ -1,15 +1,17 @@
 import { NextResponse } from "next/server";
 import { openInternalDB } from "../../../mssql/internal"; // Ensure this points to your MSSQL connection utility
+import { sanitizeInput } from "@/utils/sanitizeInput";
 
 export async function POST(req) {
+  var db;
   try {
     const { mappings, organization } = await req.json(); // Assuming you send mappings and organization in the request body
 
-    const db = await openInternalDB();
+    db = await openInternalDB();
     if (mappings && mappings.length > 0) {
       // Create a temporary table
       const createTempTableQuery = `
-        CREATE TABLE #tempMappings (
+        CREATE TABLE "tempMappings" (
           [key] NVARCHAR(255),
           [value] NVARCHAR(255),
           [created_by] NVARCHAR(255),
@@ -20,35 +22,33 @@ export async function POST(req) {
       await db.query(createTempTableQuery);
 
       // Insert mappings into the temporary table
-      const insertValues = mappings.map(() => "(?, ?, ?, ?, ?)").join(", ");
-      const insertParams = mappings.flatMap(
-        ({ key, value, createdBy, transformation, source }) => [
-          key,
-          value,
-          createdBy,
-          transformation,
-          source,
-        ]
-      );
-      const insertQuery = `
-        INSERT INTO #tempMappings ([key], [value], [created_by], [transformation], [source])
-        VALUES ${insertValues};
+      let insertQuery = `
+        INSERT INTO tempMappings ([key], [value], [created_by], [transformation], [source])
+        VALUES 
       `;
-      await db.query(insertQuery, insertParams);
+
+      mappings.forEach((mapping) => {
+        insertQuery += `('${sanitizeInput(mapping.key)}', '${
+          mapping.value
+        }', '${mapping.createdBy}', '${mapping.transformation}', 'db'),`;
+      });
+
+      // Remove the last comma from the query
+      insertQuery = insertQuery.slice(0, -1);
+      const insertRes = await db.query(insertQuery);
 
       // Perform the anti-join to find new or changed mappings
       const selectQuery = `
         SELECT t.[key], t.[value], t.[created_by], t.[transformation], t.[source]
-        FROM #tempMappings t
+        FROM tempMappings t
         LEFT JOIN ${organization}Mappings o 
-        ON t.[key] = o.[key] AND t.[transformation] = o.[transformation] AND t.[source] = o.[source]
-        WHERE o.[key] IS NULL OR o.[value] != t.[value]
-        GROUP BY t.[key], t.[value], t.[created_by], t.[transformation], t.[source];
-      `;
+        ON t.[key] = o.[key] AND t.[transformation] = o.[transformation]
+        WHERE o.[key] IS NULL OR o.[value] != t.[value]`;
+
       const results = await db.query(selectQuery);
 
       // Drop the temporary table
-      const dropTempTableQuery = `DROP TABLE #tempMappings;`;
+      const dropTempTableQuery = `DROP TABLE tempMappings;`;
       await db.query(dropTempTableQuery);
 
       return NextResponse.json(results.recordset);
@@ -59,6 +59,9 @@ export async function POST(req) {
       );
     }
   } catch (error) {
+    // Drop the temporary table
+    const dropTempTableQuery = `DROP TABLE tempMappings;`;
+    await db.query(dropTempTableQuery);
     console.error("Error executing query:", error);
     return NextResponse.json(
       { error: "Failed to execute query" },

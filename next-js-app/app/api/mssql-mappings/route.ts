@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { openInternalDB } from "../../../mssql/internal";
 import getUrlSearchParameter from "@/utils/getUrlSearchParameter";
-
-// Simple function to escape single quotes for SQL queries
-function sanitizeInput(input) {
-  if (!input) return;
-  return input.replace(/'/g, "''");
-}
+import { sanitizeInput } from "@/utils/sanitizeInput";
 
 export async function GET(req) {
   try {
@@ -61,32 +56,31 @@ export async function POST(req) {
     const { data, organization } = await req.json();
     const db = await openInternalDB();
 
-    //   let query = `
-    //   MERGE INTO ${sanitizeInput(organization)}Mappings AS target
-    //   USING (VALUES ${data
-    //     .map(
-    //       (item, index) =>
-    //         `(${item[0]}, ${item[1]}, ${item[2]}, ${item[3]}, ${item[4]})`
-    //     )
-    //     .join(
-    //       ", "
-    //     )}) AS source ([key], [value], [created_by], [transformation], [source])
-    //   ON (target.[key] = source.[key] AND target.[transformation] = source.[transformation])
-    //   WHEN MATCHED THEN
-    //     UPDATE SET
-    //       [value] = source.[value],
-    //       [created_by] = source.[created_by],
-    //       [transformation] = source.[transformation],
-    //       [source] = source.[source]
-    //   WHEN NOT MATCHED THEN
-    //     INSERT ([key], [value], [created_by], [transformation], [source])
-    //     VALUES (source.[key], source.[value], source.[created_by], source.[transformation], source.[source]);
-    // `;
-    data.forEach((item) => {
-      console.log(item);
-    });
-
-    // await db.query(query);
+    let query = `
+      MERGE INTO ${sanitizeInput(organization)}Mappings AS target
+      USING (VALUES ${data
+        .map((item) => {
+          return `('${sanitizeInput(item.key)}', '${sanitizeInput(
+            item.value
+          )}', '${sanitizeInput(item.createdBy)}', '${sanitizeInput(
+            item.transformation
+          )}', ${sanitizeInput(item.source)})`;
+        })
+        .join(
+          ", "
+        )}) AS source ([key], [value], [created_by], [transformation], [source])
+      ON (target.[key] = source.[key] AND target.[transformation] = source.[transformation])
+      WHEN MATCHED THEN
+        UPDATE SET
+          [value] = source.[value],
+          [created_by] = source.[created_by],
+          [transformation] = source.[transformation],
+          [source] = source.[source]
+      WHEN NOT MATCHED THEN
+        INSERT ([key], [value], [created_by], [transformation], [source])
+        VALUES (source.[key], source.[value], source.[created_by], source.[transformation], source.[source]);
+    `;
+    await db.query(query);
     return NextResponse.json({
       message: "Mapping created/updated successfully",
     });

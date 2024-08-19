@@ -2,6 +2,7 @@ import sql from "mssql";
 
 import { openExternalDB } from "../../../mssql/external";
 import { openInternalDB } from "../../../mssql/internal";
+import { sanitizeInput } from "@/utils/sanitizeInput";
 
 const BATCH_SIZE = 1000;
 
@@ -33,7 +34,7 @@ export async function POST(request) {
     // Use a Map to filter out duplicates based on the keyColumn
     const uniqueMap = new Map();
     externalData.recordset.forEach((row) => {
-      const escapedKey = row[keyColumn]?.replace(/'/g, "''");
+      const escapedKey = sanitizeInput(row[keyColumn]);
       const escapedValue = row[valueColumn]?.replace(/'/g, "''");
       if (!uniqueMap.has(escapedKey)) {
         uniqueMap.set(escapedKey, escapedValue);

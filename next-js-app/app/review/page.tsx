@@ -34,9 +34,7 @@ import CurrencyInput, { currencyToNumber } from "./CurrencyInput";
 import DateInput, { dateToIsoString } from "./DateInput";
 import InputStyle from "./InputStyle";
 
-import { regexReplace } from "@/utils/regexReplace";
 import AutocompleteComponent from "./Autocomplete";
-import Fuse from "fuse.js";
 import MappingsTable from "./MappingsTable";
 
 export default function ReviewPage() {
@@ -54,8 +52,7 @@ export default function ReviewPage() {
   const [activeField, setActiveField] = useState<string>("");
   const [searchedField, setSearchedField] = useState<string>("");
   const [activatedFields, setActivatedFields] = useState<string[]>([]);
-  const [fields, setFields] = useState([]);
-  const [transformationsApplied, setTransformationsApplied] = useState(false);
+  const [inputValues, setInputValues] = useState<{ [key: string]: any }>({});
 
   const [documentType, setDocumentType] = useState<string>();
   const [documentConfigs, setDocumentConfigs] = useState<{
@@ -187,10 +184,6 @@ export default function ReviewPage() {
     };
   }, [loading]);
 
-  useEffect(() => {
-    applyTransformationsStatically();
-  }, [documentsFetched]);
-
   // Fetch document configs
   useEffect(() => {
     if (loading) {
@@ -250,6 +243,32 @@ export default function ReviewPage() {
     fetchPdf();
   }, [documentsFetched, documentIndex, documentConfigs]);
 
+  // Reset input values when document or document type changes
+  useEffect(() => {
+    if (!documentsFetched || !documentConfigs) {
+      return;
+    }
+
+    const newInputValues = {};
+    documentConfigs[documentType].fields.forEach((field) => {
+      let defaultValue: any;
+      const detectedField =
+        documents[documentIndex].fields?.[field.id] ||
+        documents[documentIndex].detectedFields[field.modelField]?.value ||
+        "";
+
+      if (field.kind === "currency") {
+        defaultValue = currencyToNumber(detectedField);
+      } else if (field.kind === "date") {
+        defaultValue = dateToIsoString(detectedField);
+      } else {
+        defaultValue = detectedField;
+      }
+      newInputValues[field.id] = defaultValue;
+    });
+    setInputValues(newInputValues);
+  }, [documentsFetched, documentConfigs, documentIndex, documentType]);
+
   const jumpToField = (field: DocumentConfigField) => {
     const detectedField =
       documents[documentIndex].detectedFields[field.modelField];
@@ -262,169 +281,6 @@ export default function ReviewPage() {
       setActiveField(field.id);
     }
   };
-
-  async function applyTransformationsStatically() {
-    setTransformationsApplied(false);
-    const promises = documents.map(async (document, index) => {
-      const newInputValues = {};
-      const configFields = documentConfigs[documentType]?.fields || [];
-
-      for (const field of configFields) {
-        if (field.modelField === "Items") {
-          continue;
-        }
-        const savedValue = document?.fields?.[field.id];
-        let detectedField = document?.detectedFields[field.modelField]?.value;
-
-        if (field.kind === "currency" && typeof detectedField !== "string") {
-          detectedField = currencyToNumber(detectedField);
-        } else if (field.kind === "date") {
-          detectedField = dateToIsoString(detectedField);
-        } else {
-          detectedField = detectedField;
-        }
-        // If the field is not detected or the field is already filled out, skip
-        if (savedValue || !detectedField) {
-          continue;
-        }
-
-        if (
-          !field.transformationMetadata ||
-          field.transformationMetadata.length === 0
-        ) {
-          newInputValues[field.id] = detectedField;
-          continue;
-        }
-
-        for (let transformationMetadata of field.transformationMetadata) {
-          // If the field is not a string or has a transformation, skip
-          if (!(field.kind === "string" && transformationMetadata?.id)) {
-            continue;
-          }
-
-          // Default value is the detected value, value to be outputted
-          var defaultValue = detectedField;
-
-          // where we will store the transformed value
-          var outField = field.id;
-
-          // only on string fields for now
-          let transformation = await fetchTransformation(
-            organization,
-            transformationMetadata?.id
-          );
-
-          outField = transformationMetadata.outputField;
-
-          if (transformation?.type === "replace") {
-            defaultValue = regexReplace(
-              defaultValue,
-              transformation?.body.regexPattern,
-              transformation?.body.replacementValue
-            );
-          } else if (
-            field.kind === "string" &&
-            transformation?.type === "lookup"
-          ) {
-            if (
-              transformation?.body?.lookupMethod === "exact" ||
-              !transformation?.body?.lookupMethod
-            ) {
-              try {
-                if (!defaultValue) {
-                  continue;
-                }
-                const defaultValueURI = encodeURIComponent(defaultValue);
-                const response = await fetch(
-                  `/api/mssql-mappings?organization=${organization}&key=${defaultValueURI}&transformation=${transformationMetadata.id}`,
-                  {
-                    method: "GET",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                  }
-                );
-                const data = await response.json();
-                if (data.length > 0) {
-                  defaultValue = data[0].value;
-                } else {
-                  continue;
-                }
-              } catch (error) {
-                console.error("Error fetching mapping:", error);
-              }
-            } else if (transformation?.body?.lookupMethod === "fuzzy") {
-              try {
-                if (!defaultValue) {
-                  continue;
-                }
-                const defaultValueURI = encodeURIComponent(defaultValue);
-                const response = await fetch(
-                  `/api/mssql-mappings?organization=${organization}&transformation=${transformationMetadata.id}&key=${defaultValueURI}`,
-                  {
-                    method: "GET",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                  }
-                );
-                const data = await response.json();
-                if (data.length > 0) {
-                  defaultValue = data[0].value;
-                } else {
-                  const response = await fetch(
-                    `/api/mssql-mappings?&organization=${organization}&transformation=${transformationMetadata.id}`,
-                    {
-                      method: "GET",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                    }
-                  );
-                  const data = await response.json();
-                  if (data.length > 0) {
-                    // set default value to the closest fuzzy match
-                    const options = {
-                      keys: ["value"],
-                      includeScore: true,
-                    };
-
-                    const fuse = new Fuse(data, options);
-                    const searchTerm = defaultValue;
-                    const result = fuse.search(searchTerm);
-
-                    if (result.length > 0) {
-                      // Sort results by score in ascending order (best match first)
-                      result.sort((a, b) => a.score - b.score);
-                      // Get the best match (first item after sorting)
-                      defaultValue = result[0].item.value;
-                    }
-                  }
-                }
-              } catch (error) {
-                console.error("Error fetching mapping:", error);
-              }
-            }
-          }
-          newInputValues[outField] = defaultValue;
-        }
-        await applyTransformationDynamically(newInputValues, field.id, index);
-      }
-      return { newInputValues, index };
-    });
-
-    const results = await Promise.all(promises);
-
-    setFields((fields) => {
-      const newFields = [...fields];
-      results.forEach(({ newInputValues, index }) => {
-        newFields[index] = newInputValues;
-      });
-      return newFields;
-    });
-
-    setTransformationsApplied(true);
-  }
 
   async function applyTransformationDynamically(
     inputValues: any,
@@ -440,42 +296,36 @@ export default function ReviewPage() {
     );
 
     // Default value is the detected value, value to be outputted
-    var defaultValue = documents[index].fields?.[id] || newInputValues[id];
+    var defaultValue = newInputValues[id];
 
-    if (!defaultValue) {
-      return;
-    }
-
-    if (!field.transformationMetadata) {
-      return;
-    }
-
-    if (field.kind !== "string") {
+    if (
+      !defaultValue ||
+      !field.transformationMetadata ||
+      field.kind !== "string"
+    ) {
       return;
     }
 
     for (let transformationMetadata of field.transformationMetadata) {
       // If the field is not a string or has a transformation, skip
-      if (!transformationMetadata?.id) {
+      if (
+        !transformationMetadata?.id ||
+        transformationMetadata?.inputField ===
+          transformationMetadata?.outputField
+      ) {
         continue;
       }
 
-      // where we will store the transformed value
-      var outField = field.id;
-
-      // only on string fields for now
       let transformation: Transformation = await fetchTransformation(
         organization,
         transformationMetadata?.id
       );
 
-      outField = transformationMetadata.outputField;
+      // where we will store the transformed value
+      var outField = transformationMetadata.outputField;
 
-      if (field.kind === "string" && transformation?.type === "lookup") {
+      if (transformation?.type === "lookup") {
         try {
-          if (!defaultValue) {
-            continue;
-          }
           const defaultValueURI = encodeURIComponent(defaultValue);
           const response = await fetch(
             `/api/mssql-mappings?organization=${organization}&key=${defaultValueURI}&transformation=${transformationMetadata.id}`,
@@ -498,33 +348,37 @@ export default function ReviewPage() {
       }
       newInputValues[outField] = defaultValue;
     }
-    setFields((fields) => {
-      const newFields = [...fields];
-      newFields[index] = {
-        ...fields[index],
-        ...newInputValues,
-      };
-      return newFields;
-    });
+    setInputValues({ ...newInputValues });
   }
 
   function requiredFieldsFilledOut() {
-    if (
-      !documentConfigs ||
-      !documentConfigs[documentType] ||
-      !fields[documentIndex]
-    ) {
+    if (!documentConfigs || !documentConfigs[documentType] || !inputValues) {
       return false;
     }
     const requiredFields = documentConfigs[documentType].fields
       .filter((field) => field.required)
       .map((field) => field.id);
     for (const field of requiredFields) {
-      if (!fields[documentIndex][field]) {
+      if (!inputValues[field]) {
         return false;
       }
     }
     return true;
+  }
+
+  async function fetchTransformations(): Promise<Transformation[]> {
+    // Fetch transformations
+    const response = await fetch(
+      `/api/transformations?organization=${organization}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    const data = await response.json();
+    return data;
   }
 
   async function getMappingsDisplay() {
@@ -537,6 +391,7 @@ export default function ReviewPage() {
       }
       const detectedFields = doc.detectedFields;
       const fields = documentConfigs[doc?.documentType].fields;
+      const transformations: Transformation[] = await fetchTransformations();
 
       for (const field of fields) {
         if (!field.transformationMetadata) {
@@ -544,10 +399,13 @@ export default function ReviewPage() {
         }
         for (let transformationMetadata of field.transformationMetadata) {
           if (transformationMetadata?.id) {
-            const transformation: Transformation = await fetchTransformation(
-              organization,
-              transformationMetadata?.id
+            const transformation: Transformation = transformations.find(
+              (t) => t.name === transformationMetadata.id
             );
+            if (!transformation) {
+              console.log("Transformation not found");
+              continue;
+            }
 
             const inputField = fields.find((f) => {
               return f.id === transformationMetadata?.inputField;
@@ -555,11 +413,9 @@ export default function ReviewPage() {
             const outputField = fields.find(
               (f) => f.id === transformationMetadata?.outputField
             );
-
             if (!inputField || !outputField) {
               continue;
             }
-
             if (transformation?.body?.learning) {
               if (detectedFields[field.modelField]?.value) {
                 newMappings.push({
@@ -579,7 +435,7 @@ export default function ReviewPage() {
       setShowMappings(true);
       setMappings(newMappings);
     } else {
-      submitDocumentValues();
+      // submitDocumentValues();
     }
   }
 
@@ -594,12 +450,10 @@ export default function ReviewPage() {
     const newDocument = {
       ...documents[documentIndex],
       documentType: kickOut ? "" : documentType,
-      fields: {},
+      fields: inputValues,
       kickedOut: kickOut,
     };
-    if (!kickOut) {
-      newDocument.fields = { ...fields[documentIndex] };
-    }
+
     var newDocumentIndex = documentIndex;
     const newDocuments = documents.map((document, index) => {
       if (index === documentIndex) {
@@ -673,7 +527,7 @@ export default function ReviewPage() {
           display: "flex",
         }}
       >
-        {pdfData && transformationsApplied && fields.length !== 0 ? (
+        {pdfData ? (
           <Box
             sx={{
               flex: 3,
@@ -683,7 +537,7 @@ export default function ReviewPage() {
               width: "0px",
             }}
           >
-            {(!pdfData || !transformationsApplied) && (
+            {!pdfData && (
               <Box
                 sx={{
                   display: "flex",
@@ -802,7 +656,7 @@ export default function ReviewPage() {
             <CircularProgress />
           </Box>
         )}
-        {pdfData && transformationsApplied && fields.length !== 0 && (
+        {pdfData && (
           <Box
             sx={{
               flex: 1,
@@ -861,7 +715,6 @@ export default function ReviewPage() {
             />
             {documentConfigs[documentType] &&
             documentsFetched &&
-            transformationsApplied &&
             organization ? (
               <Sheet
                 sx={{
@@ -876,13 +729,9 @@ export default function ReviewPage() {
                     fieldId: string,
                     value: string | number
                   ) => {
-                    setFields((fields) => {
-                      const newFields = [...fields];
-                      newFields[documentIndex] = {
-                        ...newFields[documentIndex],
-                        [fieldId]: value,
-                      };
-                      return newFields;
+                    setInputValues({
+                      ...inputValues,
+                      [fieldId]: value,
                     });
                   };
 
@@ -959,9 +808,7 @@ export default function ReviewPage() {
                         <CurrencyInput
                           {...InputStyle}
                           value={
-                            fields[documentIndex]?.[field.id]
-                              ? fields[documentIndex][field.id]
-                              : 0
+                            inputValues?.[field.id] ? inputValues[field.id] : 0
                           }
                           onChange={(
                             event: React.ChangeEvent<HTMLInputElement>
@@ -1006,9 +853,7 @@ export default function ReviewPage() {
                             startDecorator: { tabIndex: 0 },
                           }}
                           value={
-                            fields[documentIndex]?.[field.id]
-                              ? fields[documentIndex][field.id]
-                              : ""
+                            inputValues?.[field.id] ? inputValues[field.id] : ""
                           }
                           onChange={(
                             event: React.ChangeEvent<HTMLInputElement>
@@ -1047,9 +892,7 @@ export default function ReviewPage() {
                         <Input
                           {...InputStyle}
                           value={
-                            fields[documentIndex]?.[field.id]
-                              ? fields[documentIndex][field.id]
-                              : ""
+                            inputValues?.[field.id] ? inputValues[field.id] : ""
                           }
                           type="number"
                           onChange={(
@@ -1088,7 +931,7 @@ export default function ReviewPage() {
                       ) : field.kind === "string" ? (
                         <AutocompleteComponent
                           organization={organization}
-                          inputValues={fields[documentIndex]}
+                          inputValues={inputValues}
                           field={field}
                           handleInputChange={handleInputChange}
                           documentIndex={documentIndex}
@@ -1109,9 +952,7 @@ export default function ReviewPage() {
                           size="sm"
                           sx={{ marginBottom: "5px", boxShadow: "sm" }}
                           value={
-                            fields[documentIndex]?.[field.id]
-                              ? fields[documentIndex][field.id]
-                              : ""
+                            inputValues?.[field.id] ? inputValues[field.id] : ""
                           }
                           onChange={(event) => {
                             handleInputChange(field.id, event.target.value);

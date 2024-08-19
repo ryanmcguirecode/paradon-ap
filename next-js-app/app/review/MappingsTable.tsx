@@ -7,6 +7,7 @@ import {
   Checkbox,
   ModalDialog,
   Modal,
+  CircularProgress,
 } from "@mui/joy";
 import { Mapping } from "@/types/Mapping";
 
@@ -25,6 +26,7 @@ export default function MappingsTable({
 }) {
   const [checkedRows, setCheckedRows] = useState<Mapping[]>([]);
   const [newData, setNewData] = useState<Mapping[]>(data);
+  const [loaded, setLoaded] = useState(false);
 
   const handleCheck = (row: Mapping) => {
     setCheckedRows((prevCheckedRows) =>
@@ -54,20 +56,21 @@ export default function MappingsTable({
           value: row.value,
           createdBy: auth.user.email,
           transformation: row.transformation,
+          source: "user",
         })),
         organization: auth.organization,
       }),
     });
     if (res.ok) {
       setShowMappings(false);
-      submitDocumentValues();
+      // submitDocumentValues();
     }
   };
 
   useEffect(() => {
     // get all keys and do an anti-join to get the new rows
     async function getNewRows() {
-      const res = await fetch("/api/mappings-anti-join", {
+      const res = await fetch("/api/mssql-mappings-anti-join", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -83,6 +86,7 @@ export default function MappingsTable({
         setShowMappings(newRes.length > 0);
         newRes.sort((a, b) => a.transformation.localeCompare(b.transformation)); // Sort by transformation
         setNewData(newRes);
+        setLoaded(true);
       }
     }
     getNewRows();
@@ -90,76 +94,89 @@ export default function MappingsTable({
 
   return (
     <Modal open={showMappings} onClose={() => setShowMappings(false)}>
-      <ModalDialog
-        aria-labelledby="mappings-table-dialog"
-        sx={{
-          position: "relative",
-          width: "80%",
-          maxWidth: "900px",
-          p: 3,
-          borderRadius: "md",
-          boxShadow: "lg",
-        }}
-      >
-        <Typography id="mappings-table-dialog" level="h4">
-          Mappings Table
-        </Typography>
-        <Box
+      {loaded ? (
+        <ModalDialog
+          aria-labelledby="mappings-table-dialog"
           sx={{
-            maxHeight: "400px", // Set the maximum height of the table container
-            overflowY: "auto", // Enable vertical scrolling
+            position: "relative",
+            width: "80%",
+            maxWidth: "900px",
+            p: 3,
+            borderRadius: "md",
+            boxShadow: "lg",
           }}
         >
-          <Table>
-            <thead>
-              <tr>
-                <th>
-                  <Checkbox
-                    checked={checkedRows.length === newData.length}
-                    onChange={handleCheckAll}
-                  />
-                </th>
-                <th>Key</th>
-                <th>Value</th>
-                <th>Transformation</th>
-              </tr>
-            </thead>
-            <tbody>
-              {newData &&
-                newData.map((row) => (
-                  <tr key={row.key}>
-                    <td>
-                      <Checkbox
-                        checked={checkedRows.includes(row)}
-                        onChange={() => handleCheck(row)}
-                      />
-                    </td>
-                    <td>{row.key}</td>
-                    <td>{row.value}</td>
-                    <td>{row.transformation}</td>
-                  </tr>
-                ))}
-            </tbody>
-          </Table>
-        </Box>
-        <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-          <Button
-            color="warning"
-            sx={{ mt: 2, mr: 2 }}
-            onClick={() => setShowMappings(false)}
+          <Typography id="mappings-table-dialog" level="h4">
+            Mappings Table
+          </Typography>
+          <Box
+            sx={{
+              maxHeight: "400px", // Set the maximum height of the table container
+              overflowY: "auto", // Enable vertical scrolling
+            }}
           >
-            Cancel
-          </Button>
-          <Button
-            color="primary"
-            sx={{ mt: 2 }}
-            disabled={checkedRows.length === 0}
-            onClick={postMappings}
-          >
-            Save
-          </Button>
-        </Box>
-      </ModalDialog>
+            <Table>
+              <thead>
+                <tr>
+                  <th>
+                    <Checkbox
+                      checked={checkedRows.length === newData.length}
+                      onChange={handleCheckAll}
+                    />
+                  </th>
+                  <th>Key</th>
+                  <th>Value</th>
+                  <th>Transformation</th>
+                </tr>
+              </thead>
+              <tbody>
+                {newData &&
+                  newData.map((row) => (
+                    <tr key={row.key}>
+                      <td>
+                        <Checkbox
+                          checked={checkedRows.includes(row)}
+                          onChange={() => handleCheck(row)}
+                        />
+                      </td>
+                      <td>{row.key}</td>
+                      <td>{row.value}</td>
+                      <td>{row.transformation}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </Table>
+          </Box>
+          <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+            <Button
+              color="warning"
+              sx={{ mt: 2, mr: 2 }}
+              onClick={() => setShowMappings(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              color="primary"
+              sx={{ mt: 2 }}
+              disabled={checkedRows.length === 0}
+              onClick={postMappings}
+            >
+              Save
+            </Button>
+          </Box>
+        </ModalDialog>
+      ) : (
+        <ModalDialog
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "200px",
+          }}
+        >
+          <CircularProgress />
+        </ModalDialog>
+      )}
     </Modal>
   );
 }

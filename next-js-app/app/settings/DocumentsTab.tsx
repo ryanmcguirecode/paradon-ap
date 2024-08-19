@@ -237,6 +237,18 @@ function FieldProperty({
                     options={[]}
                     disabled={true}
                     inputValue={field.id || ""}
+                    onInputChange={(event, newValue) => {
+                      const newTransformations =
+                        field.transformationMetadata || [];
+                      newTransformations[index] = {
+                        ...newTransformations[index],
+                        inputField: newValue,
+                      };
+                      onChange({
+                        ...field,
+                        transformationMetadata: newTransformations,
+                      });
+                    }}
                     value={transformation.inputField || ""}
                     placeholder="Select Field"
                     sx={{ width: "100%" }}
