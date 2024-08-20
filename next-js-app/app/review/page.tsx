@@ -257,6 +257,8 @@ export default function ReviewPage() {
         documents[documentIndex].detectedFields[field.modelField]?.value ||
         "";
 
+      console.log("Detected field:", detectedField);
+
       if (field.kind === "currency") {
         defaultValue = currencyToNumber(detectedField);
       } else if (field.kind === "date") {
@@ -264,6 +266,7 @@ export default function ReviewPage() {
       } else {
         defaultValue = detectedField;
       }
+      console.log("Default value:", defaultValue);
       newInputValues[field.id] = defaultValue;
     });
     setInputValues(newInputValues);
@@ -282,11 +285,7 @@ export default function ReviewPage() {
     }
   };
 
-  async function applyTransformationDynamically(
-    inputValues: any,
-    id: string,
-    index: number
-  ) {
+  async function applyTransformationDynamically(inputValues: any, id: string) {
     if (!documentsFetched || !documentConfigs || !documentType) {
       return;
     }

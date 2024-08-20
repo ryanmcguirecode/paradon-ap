@@ -85,7 +85,7 @@ const AutocompleteComponent = ({
 
   useEffect(() => {
     if (inputChanged) {
-      applyTransformation(inputValues, field.id, documentIndex);
+      applyTransformation(inputValues, field.id);
       setInputChanged(false);
     }
   }, [inputValues]);

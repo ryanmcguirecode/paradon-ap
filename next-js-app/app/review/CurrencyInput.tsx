@@ -12,7 +12,7 @@ export const currencyToNumber: (currency: any) => number = (currency) => {
 };
 
 interface CurrencyFormatProps {
-  onChange: (event: { target: { name: string; value: string } }) => void;
+  onChange: (event: { target: { name: string; value: number } }) => void;
   name: string;
   value?: number;
 }
@@ -30,7 +30,7 @@ const CurrencyFormatAdapter = forwardRef<
         onChange({
           target: {
             name: props.name,
-            value: values.value,
+            value: Number(values.value),
           },
         });
       }}
