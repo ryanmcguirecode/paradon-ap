@@ -101,7 +101,7 @@ export function TransformationComponent({
     });
     if (transformationType === "lookup") {
       try {
-        const response = await fetch("/api/mssql-sync-mappings", {
+        const response = await fetch("/api/mssql/mssql-sync-mappings", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -363,7 +363,7 @@ export function TransformationComponent({
                     sx={{ width: "auto", mt: "25px" }} // The button's width is determined by its content
                     onClick={() => {
                       router.push(
-                        `/api/mssql-mappings?organization=${auth.organization}&transformation=${transformationName}`
+                        `/api/mssql/mssql-mappings?organization=${auth.organization}&transformation=${transformationName}`
                       );
                     }}
                   >
@@ -544,7 +544,7 @@ export default function TransformationsTab() {
               return;
             }
             promises.push(
-              fetch("/api/mssql-sync-mappings", {
+              fetch("/api/mssql/mssql-sync-mappings", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { openInternalDB } from "../../../mssql/internal";
+import { openInternalDB } from "@/mssql/internal";
 import getUrlSearchParameter from "@/utils/getUrlSearchParameter";
 import { sanitizeInput } from "@/utils/sanitizeInput";
 

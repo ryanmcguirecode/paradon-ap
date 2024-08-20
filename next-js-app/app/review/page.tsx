@@ -328,7 +328,7 @@ export default function ReviewPage() {
         try {
           const defaultValueURI = encodeURIComponent(defaultValue);
           const response = await fetch(
-            `/api/mssql-mappings?organization=${organization}&key=${defaultValueURI}&transformation=${transformationMetadata.id}`,
+            `/api/mssql/mssql-mappings?organization=${organization}&key=${defaultValueURI}&transformation=${transformationMetadata.id}`,
             {
               method: "GET",
               headers: {
@@ -435,7 +435,7 @@ export default function ReviewPage() {
       setShowMappings(true);
       setMappings(newMappings);
     } else {
-      // submitDocumentValues();
+      submitDocumentValues();
     }
   }
 

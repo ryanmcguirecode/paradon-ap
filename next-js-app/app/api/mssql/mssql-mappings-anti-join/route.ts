@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { openInternalDB } from "../../../mssql/internal"; // Ensure this points to your MSSQL connection utility
+import { openInternalDB } from "@/mssql/internal"; // Ensure this points to your MSSQL connection utility
 import { sanitizeInput } from "@/utils/sanitizeInput";
 
 export async function POST(req) {

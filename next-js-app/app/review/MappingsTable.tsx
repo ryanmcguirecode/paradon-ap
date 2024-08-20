@@ -45,7 +45,7 @@ export default function MappingsTable({
   };
 
   const postMappings = async () => {
-    const res = await fetch("/api/mssql-mappings", {
+    const res = await fetch("/api/mssql/mssql-mappings", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -70,7 +70,7 @@ export default function MappingsTable({
   useEffect(() => {
     // get all keys and do an anti-join to get the new rows
     async function getNewRows() {
-      const res = await fetch("/api/mssql-mappings-anti-join", {
+      const res = await fetch("/api/mssql/mssql-mappings-anti-join", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

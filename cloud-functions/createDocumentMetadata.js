@@ -149,7 +149,6 @@ module.exports = async function createDocumentMetadata(cloudEvent) {
       documentType,
       firestore.collection("organizations").doc(organization)
     );
-    console.log(fields);
     const docRef = firestore.collection("documents").doc(generatedDocId);
     await docRef.update({
       documentType: documentType,

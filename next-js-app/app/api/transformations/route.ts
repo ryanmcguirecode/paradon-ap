@@ -148,7 +148,7 @@ async function DELETE(req: NextRequest) {
 
     if (transformation.type === "lookup") {
       const deleted = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/api/mssql-mappings`,
+        `${process.env.NEXT_PUBLIC_BASE_URL}/api/mssql/mssql-mappings`,
         {
           method: "DELETE",
           headers: {

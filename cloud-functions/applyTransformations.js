@@ -1,5 +1,3 @@
-const { firestore } = require("firebase-admin");
-
 require("@google-cloud/firestore");
 const Fuse = require("fuse.js");
 const sql = require("mssql");
@@ -80,7 +78,7 @@ const regexReplace = (str, regexPattern, replacementValue) => {
   return str.replace(regex, replacementValue);
 };
 
-async function fetchDocumentConfig(organization, documentType, orgRef) {
+async function fetchDocumentConfig(documentType, orgRef) {
   const org = await orgRef.get();
   const data = org.data();
   return data.documentTypes.find((d) => {
@@ -120,8 +118,7 @@ async function applyTransformationsStatically(
 ) {
   var newInputValues = {};
   const configFields =
-    (await fetchDocumentConfig(organization, documentType, orgRef))?.fields ||
-    [];
+    (await fetchDocumentConfig(documentType, orgRef))?.fields || [];
 
   for (const field of configFields) {
     if (field.modelField === "Items") {

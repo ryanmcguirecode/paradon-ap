@@ -1,7 +1,7 @@
 import sql from "mssql";
 
-import { openExternalDB } from "../../../mssql/external";
-import { openInternalDB } from "../../../mssql/internal";
+import { openExternalDB } from "@/mssql/external";
+import { openInternalDB } from "@/mssql/internal";
 import { sanitizeInput } from "@/utils/sanitizeInput";
 
 const BATCH_SIZE = 1000;
