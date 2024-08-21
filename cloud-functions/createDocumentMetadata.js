@@ -3,6 +3,81 @@ const { Firestore, FieldValue, Timestamp } = require("@google-cloud/firestore");
 const { Storage } = require("@google-cloud/storage");
 const extractFields = require("./azureInvoice");
 const { applyTransformationsStatically } = require("./applyTransformations");
+import("pdfjs-dist/legacy/build/pdf.mjs");
+const { OpenAI } = require("openai");
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+async function extractPDFContent(fileContentBuffer) {
+  const pdfArray = new Uint8Array(fileContentBuffer);
+  const pdfDocument = await pdfjsLib.getDocument({ data: pdfArray }).promise;
+
+  let allContent = [];
+
+  for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
+    const page = await pdfDocument.getPage(pageNum);
+    const textContent = await page.getTextContent();
+    allContent.push(...textContent.items);
+  }
+
+  return allContent.map((item) => item.str).join(" "); // Return all text content as a single string
+}
+
+async function getInvoiceLineItems(textContent, headers) {
+  const prompt = `
+    Extract the invoice line items from the following text and return them as a JSON array where each item has the following keys: itemNumber, partNumber, description, quantityShipped, unitPrice, and amount:
+
+    "${textContent}"
+  `;
+
+  properties = {};
+  required = [];
+
+  headers.forEach((header) => {
+    properties[header] = { type: "string" };
+    required.push(header);
+  });
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o-2024-08-06",
+    messages: [
+      { role: "system", content: "You are a helpful assistant." },
+      { role: "user", content: prompt },
+    ],
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "invoice_response",
+        strict: true,
+        schema: {
+          type: "object",
+          properties: {
+            items: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: properties,
+                required: required,
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ["items"],
+          additionalProperties: false,
+        },
+      },
+    },
+  });
+  const jsonResponse = response.choices[0].message.content;
+  try {
+    return JSON.parse(jsonResponse);
+  } catch (error) {
+    console.error("Failed to parse JSON from ChatGPT response:", error);
+    return null;
+  }
+}
 
 async function addDocumentToBatch(docId, organization) {
   let retryCount = 0;
@@ -142,7 +217,18 @@ module.exports = async function createDocumentMetadata(cloudEvent) {
       .bucket(bucketName)
       .file(fileName)
       .download();
+
+    const docConfig = (
+      await firestore.collection("organizations").doc(organization).get()
+    )
+      .data()
+      .documentTypes.find((doc) => doc.displayName === documentType);
+    const headers = docConfig.lineItems.headers;
+
     const detectedFields = await extractFields(fileContent[0]);
+    const textContent = await extractPDFContent(fileContent[0]);
+    const invoiceLineItems = await getInvoiceLineItems(textContent, headers);
+    const items = invoiceLineItems?.items;
     const fields = await applyTransformationsStatically(
       organization,
       detectedFields,
@@ -154,6 +240,10 @@ module.exports = async function createDocumentMetadata(cloudEvent) {
       documentType: documentType,
       detectedFields: detectedFields,
       fields: fields,
+      items: {
+        headers: headers,
+        rows: items,
+      },
       updated: Timestamp.now(),
     });
   } catch (error) {
