@@ -12,6 +12,7 @@ import {
   CircularProgress,
   FormControl,
   FormLabel,
+  Input,
   Tab,
   tabClasses,
   TabList,
@@ -458,6 +459,19 @@ function DocumentConfig(
             />
           ))}
         </AccordionGroup>
+        <Typography level="h4">Line Items</Typography>
+        <Input
+          value={document?.lineItems?.headers || []}
+          onChange={(event) => {
+            onChange({
+              ...document,
+              lineItems: {
+                ...document.lineItems,
+                headers: event.target.value,
+              },
+            });
+          }}
+        ></Input>
         <Button
           size="lg"
           color="danger"
@@ -543,6 +557,11 @@ export default function DocumentsTab() {
         return {
           ...document,
           fields: fields,
+          lineItems: {
+            headers: document.lineItems?.headers.split(",").map((header) => {
+              return header.trim();
+            }),
+          },
         };
       });
 

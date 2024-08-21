@@ -36,6 +36,7 @@ import InputStyle from "./InputStyle";
 
 import AutocompleteComponent from "./Autocomplete";
 import MappingsTable from "./MappingsTable";
+import LineItemTable from "./LineItemTable";
 
 export default function ReviewPage() {
   const router = useRouter();
@@ -53,6 +54,7 @@ export default function ReviewPage() {
   const [searchedField, setSearchedField] = useState<string>("");
   const [activatedFields, setActivatedFields] = useState<string[]>([]);
   const [inputValues, setInputValues] = useState<{ [key: string]: any }>({});
+  const [lineItems, setLineItems] = useState<any[]>([]);
 
   const [documentType, setDocumentType] = useState<string>();
   const [documentConfigs, setDocumentConfigs] = useState<{
@@ -257,8 +259,6 @@ export default function ReviewPage() {
         documents[documentIndex].detectedFields[field.modelField]?.value ||
         "";
 
-      console.log("Detected field:", detectedField);
-
       if (field.kind === "currency") {
         defaultValue = currencyToNumber(detectedField);
       } else if (field.kind === "date") {
@@ -266,10 +266,12 @@ export default function ReviewPage() {
       } else {
         defaultValue = detectedField;
       }
-      console.log("Default value:", defaultValue);
       newInputValues[field.id] = defaultValue;
     });
     setInputValues(newInputValues);
+    if (documentConfigs[documentType].lineItems) {
+      setLineItems(documents[documentIndex].items.rows || []);
+    }
   }, [documentsFetched, documentConfigs, documentIndex, documentType]);
 
   const jumpToField = (field: DocumentConfigField) => {
@@ -434,6 +436,7 @@ export default function ReviewPage() {
       setShowMappings(true);
       setMappings(newMappings);
     } else {
+      console.log("No mappings to display");
       submitDocumentValues();
     }
   }
@@ -450,6 +453,10 @@ export default function ReviewPage() {
       ...documents[documentIndex],
       documentType: kickOut ? "" : documentType,
       fields: inputValues,
+      items: {
+        headers: documentConfigs[documentType].lineItems.headers,
+        rows: lineItems,
+      },
       kickedOut: kickOut,
     };
 
@@ -738,7 +745,6 @@ export default function ReviewPage() {
                     field.modelField &&
                     documents[documentIndex]?.detectedFields?.[field.modelField]
                       ?.value;
-
                   return (
                     <div key={index}>
                       {field.displayName && (
@@ -963,8 +969,29 @@ export default function ReviewPage() {
                     </div>
                   );
                 })}
+                {documentConfigs?.[documentType]?.lineItems?.headers.length >
+                  0 && (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      marginTop: "10px",
+                    }}
+                  >
+                    <LineItemTable
+                      lineItems={lineItems}
+                      headers={documentConfigs[documentType].lineItems.headers}
+                      handleChange={(rows) => {
+                        console.log(rows);
+                        setLineItems(rows);
+                      }}
+                    />
+                  </Box>
+                )}
               </Sheet>
-            ) : null}
+            ) : (
+              <></>
+            )}
             <Box
               sx={{
                 display: "flex",

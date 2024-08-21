@@ -15,8 +15,13 @@ export interface DocumentConfigField {
   }[];
 }
 
+export interface LineItem extends DocumentConfigField {
+  headers: string;
+}
+
 export interface DocumentConfig {
   id: string;
   displayName: string;
   fields?: DocumentConfigField[];
+  lineItems?: LineItem;
 }
