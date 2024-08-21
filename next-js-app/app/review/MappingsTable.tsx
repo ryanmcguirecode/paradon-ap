@@ -45,6 +45,12 @@ export default function MappingsTable({
   };
 
   const postMappings = async () => {
+    setLoaded(false);
+    if (checkedRows.length === 0) {
+      submitDocumentValues();
+      console.log("No mappings selected");
+      return;
+    }
     const res = await fetch("/api/mssql/mssql-mappings", {
       method: "POST",
       headers: {
@@ -62,9 +68,10 @@ export default function MappingsTable({
       }),
     });
     if (res.ok) {
-      setShowMappings(false);
-      // submitDocumentValues();
+      setLoaded(false);
+      submitDocumentValues();
     }
+    console.log("Mappings saved");
   };
 
   useEffect(() => {
@@ -83,7 +90,10 @@ export default function MappingsTable({
 
       if (res.ok) {
         const newRes = await res.json();
-        setShowMappings(newRes.length > 0);
+        if (newRes.length === 0) {
+          submitDocumentValues();
+          return;
+        }
         newRes.sort((a, b) => a.transformation.localeCompare(b.transformation)); // Sort by transformation
         setNewData(newRes);
         setLoaded(true);
@@ -155,12 +165,7 @@ export default function MappingsTable({
             >
               Cancel
             </Button>
-            <Button
-              color="primary"
-              sx={{ mt: 2 }}
-              disabled={checkedRows.length === 0}
-              onClick={postMappings}
-            >
+            <Button color="primary" sx={{ mt: 2 }} onClick={postMappings}>
               Save
             </Button>
           </Box>
