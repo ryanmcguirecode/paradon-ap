@@ -326,7 +326,7 @@ export default function BatchesPage() {
           margin: "auto",
         }}
       >
-        {batches.map((batch, index) => (
+        {batches?.map((batch, index) => (
           <BatchComponent
             key={index}
             batch={batch}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import PdfViewer from "@/components/PdfViewer";
 
 import { useRouter } from "next/navigation";
@@ -103,8 +103,11 @@ export default function ReviewPage() {
         );
       }
 
-      const documents = await documentsResponse.json();
+      const response = await documentsResponse.json();
+      const documentIndex = response.documentIndex;
+      const documents = response.documents;
       setDocuments(documents);
+      setDocumentIndex(documentIndex);
       setDocumentsFetched(true);
     };
 
@@ -488,7 +491,7 @@ export default function ReviewPage() {
       },
       body: JSON.stringify({
         batch: batchId,
-        documentIndex: newDocumentIndex,
+        documentIndex: newDocumentIndex + 1,
         document: newDocument,
         organization: organization,
       }),
@@ -510,6 +513,7 @@ export default function ReviewPage() {
       body: JSON.stringify({
         batch: batchId,
         organization: organization,
+        email: user.email,
       }),
     }).then(() => {
       router.push("/batches");
@@ -517,18 +521,18 @@ export default function ReviewPage() {
   };
 
   const saveAndExit = async () => {
-    await fetch("/api/save-and-exit", {
+    fetch("/api/save-batch-progress", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         batch: batchId,
+        documentIndex: documentIndex,
         organization: organization,
       }),
-    }).then(() => {
-      router.push("/batches");
     });
+    router.push("/batches");
   };
 
   return (

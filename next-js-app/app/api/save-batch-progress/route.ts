@@ -9,11 +9,6 @@ export async function POST(req: NextRequest) {
       { acquired: false, error: "Missing batch" },
       { status: 400 }
     );
-  } else if (!document) {
-    return NextResponse.json(
-      { acquired: false, error: "Missing document" },
-      { status: 400 }
-    );
   } else if (typeof documentIndex !== "number") {
     return NextResponse.json(
       { acquired: false, error: "Missing documentIndex" },
@@ -60,16 +55,7 @@ export async function POST(req: NextRequest) {
         { status: 409 }
       );
     }
-
     await batchRef.update({ documentIndex: documentIndex });
-
-    const documentRef = firestore.collection("documents").doc(document.id);
-    await documentRef.update({
-      fields: document.fields,
-      updated: new Date().toISOString(),
-      documentType: document.documentType,
-      kickedOut: document.kickedOut,
-    });
 
     return NextResponse.json({ message: "success" }, { status: 200 });
   } catch (error) {

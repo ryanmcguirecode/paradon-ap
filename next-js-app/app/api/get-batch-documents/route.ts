@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
 
     const documentNames = batches[0].documents;
     const documents = [];
+    const documentIndex = batches[0].documentIndex;
 
     for (const documentName of documentNames) {
       const documentRef = await firestore
@@ -72,7 +73,10 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json(documents);
+    return NextResponse.json({
+      documents: documents,
+      documentIndex: documentIndex,
+    });
   } catch (error) {
     console.error("Error executing query:", error);
     return NextResponse.json(
