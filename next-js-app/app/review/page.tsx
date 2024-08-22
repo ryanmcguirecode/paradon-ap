@@ -270,7 +270,7 @@ export default function ReviewPage() {
     });
     setInputValues(newInputValues);
     if (documentConfigs[documentType].lineItems) {
-      setLineItems(documents[documentIndex].items.rows || []);
+      setLineItems(documents[documentIndex].items?.rows || []);
     }
   }, [documentsFetched, documentConfigs, documentIndex, documentType]);
 
@@ -324,6 +324,7 @@ export default function ReviewPage() {
 
       // where we will store the transformed value
       var outField = transformationMetadata.outputField;
+      var outValue = defaultValue;
 
       if (transformation?.type === "lookup") {
         try {
@@ -339,15 +340,15 @@ export default function ReviewPage() {
           );
           const data = await response.json();
           if (data.length > 0) {
-            defaultValue = data[0].value;
+            outValue = data[0].value;
           } else {
-            continue;
+            outValue = "";
           }
         } catch (error) {
           console.error("Error fetching mapping:", error);
         }
       }
-      newInputValues[outField] = defaultValue;
+      newInputValues[outField] = outValue;
     }
     setInputValues({ ...newInputValues });
   }
@@ -982,7 +983,6 @@ export default function ReviewPage() {
                       lineItems={lineItems}
                       headers={documentConfigs[documentType].lineItems.headers}
                       handleChange={(rows) => {
-                        console.log(rows);
                         setLineItems(rows);
                       }}
                     />

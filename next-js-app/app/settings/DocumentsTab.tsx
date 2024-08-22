@@ -30,7 +30,7 @@ import {
   DocumentConfig as Document,
   DocumentConfigField as DocumentField,
 } from "@/types/DocumentConfig";
-import { Transformation, fetchTransformation } from "@/types/Transformation";
+import { Transformation } from "@/types/Transformation";
 import { azureInvoiceFields } from "@/types/AzureField";
 
 import {
@@ -554,13 +554,15 @@ export default function DocumentsTab() {
       .filter((doc) => !isEmptyDocument(doc))
       .map((document) => {
         const fields = document.fields.filter((field) => !isEmptyField(field));
+        const headers =
+          typeof document.lineItems?.headers == "string"
+            ? document.lineItems?.headers.split(",")
+            : document.lineItems?.headers;
         return {
           ...document,
           fields: fields,
           lineItems: {
-            headers: document.lineItems?.headers.split(",").map((header) => {
-              return header.trim();
-            }),
+            headers: headers,
           },
         };
       });

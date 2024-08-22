@@ -48,7 +48,6 @@ export default function MappingsTable({
     setLoaded(false);
     if (checkedRows.length === 0) {
       submitDocumentValues();
-      console.log("No mappings selected");
       return;
     }
     const res = await fetch("/api/mssql/mssql-mappings", {
@@ -71,7 +70,6 @@ export default function MappingsTable({
       setLoaded(false);
       submitDocumentValues();
     }
-    console.log("Mappings saved");
   };
 
   useEffect(() => {

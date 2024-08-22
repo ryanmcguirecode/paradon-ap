@@ -4,7 +4,6 @@ import RemoveIcon from "@mui/icons-material/Remove";
 
 const DynamicTable = ({ lineItems, headers, handleChange }) => {
   const rows = lineItems || [];
-  console.log("rows", rows);
 
   const addRow = () => {
     const newRows = [...rows, {}]; // Add a new empty row
