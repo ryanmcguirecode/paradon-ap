@@ -37,6 +37,7 @@ import InputStyle from "./InputStyle";
 import AutocompleteComponent from "./Autocomplete";
 import MappingsTable from "./MappingsTable";
 import LineItemTable from "./LineItemTable";
+import next from "next";
 
 export default function ReviewPage() {
   const router = useRouter();
@@ -55,6 +56,7 @@ export default function ReviewPage() {
   const [activatedFields, setActivatedFields] = useState<string[]>([]);
   const [inputValues, setInputValues] = useState<{ [key: string]: any }>({});
   const [lineItems, setLineItems] = useState<any[]>([]);
+  const [nextDisabled, setNextDisabled] = useState(false);
 
   const [documentType, setDocumentType] = useState<string>();
   const [documentConfigs, setDocumentConfigs] = useState<{
@@ -243,6 +245,10 @@ export default function ReviewPage() {
     setActiveField("");
     setSearchedField("");
     fetchPdf();
+    setNextDisabled(true);
+    setTimeout(() => {
+      setNextDisabled(false);
+    }, 1000);
   }, [documentsFetched, documentIndex, documentConfigs]);
 
   // Reset input values when document or document type changes
@@ -601,7 +607,7 @@ export default function ReviewPage() {
                     ? setFinished(false)
                     : setDocumentIndex(documentIndex - 1)
                 }
-                disabled={documentIndex === 0}
+                disabled={documentIndex === 0 || nextDisabled}
                 tabIndex={-1}
                 sx={{ paddingLeft: "30px", paddingRight: "30px" }}
               >
@@ -620,6 +626,7 @@ export default function ReviewPage() {
                     onClick={() => {
                       saveDocumentValues(true);
                     }}
+                    disabled={nextDisabled}
                     sx={{ paddingLeft: "30px", paddingRight: "30px" }}
                   >
                     Kick Out
@@ -641,7 +648,7 @@ export default function ReviewPage() {
                     size="sm"
                     onClick={() => saveDocumentValues(false)}
                     sx={{ paddingLeft: "30px", paddingRight: "30px" }}
-                    disabled={!requiredFieldsFilledOut()} // Remove the arrow function
+                    disabled={!requiredFieldsFilledOut() || nextDisabled} // Remove the arrow function
                   >
                     Verify
                   </Button>

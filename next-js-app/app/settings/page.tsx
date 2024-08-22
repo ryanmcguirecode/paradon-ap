@@ -9,6 +9,9 @@ import {
   TabPanel,
   Tabs,
 } from "@mui/joy";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useAuth } from "@/components/AuthContext";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import DocumentScannerOutlinedIcon from "@mui/icons-material/DocumentScannerOutlined";
 import FunctionsIcon from "@mui/icons-material/Functions";
@@ -20,6 +23,16 @@ import DocumentsTab from "./DocumentsTab";
 import TransformationsTab from "./TransformationsTab";
 
 export default function AdminPage() {
+  const { user, loading, level, organization } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && level !== "executive") {
+      // Redirect to login page if not an executive
+      router.push("/batches");
+    }
+  }, [loading, level]);
+
   return (
     <NavigationLayout>
       <Box
