@@ -236,6 +236,7 @@ export default function UsersTab() {
               >
                 <Option value="admin">Admin</Option>
                 <Option value="user">User</Option>
+                <Option value="executive">Executive</Option>
               </Select>
             </td>
             <td>
