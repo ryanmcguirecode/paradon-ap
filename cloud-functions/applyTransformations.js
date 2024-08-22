@@ -82,7 +82,7 @@ async function fetchDocumentConfig(documentType, orgRef) {
   const org = await orgRef.get();
   const data = org.data();
   return data.documentTypes.find((d) => {
-    return d.displayName == documentType;
+    return d.id == documentType;
   });
 }
 

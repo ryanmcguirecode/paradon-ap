@@ -222,7 +222,7 @@ module.exports = async function createDocumentMetadata(cloudEvent) {
       await firestore.collection("organizations").doc(organization).get()
     )
       .data()
-      .documentTypes.find((doc) => doc.displayName === documentType);
+      .documentTypes.find((doc) => doc.id === documentType);
     const headers = docConfig.lineItems.headers;
 
     const detectedFields = await extractFields(fileContent[0]);

@@ -11,12 +11,14 @@ const storage = new Storage({
 // Define variables
 const bucketName = "paradon-ap-test";
 const userId = "utexas";
-const files = Array.from(
-  ["/Users/dylanmcguire/Desktop/projects/paradon-ap/cloud-functions/testing/invoice 4.pdf"]
-);
+const documentType = "invoice";
+const files = Array.from([
+  "/Users/dylanmcguire/Desktop/projects/paradon-ap/cloud-functions/testing/test-invoices/Invoice-OP-1510715.pdf",
+  "/Users/dylanmcguire/Desktop/projects/paradon-ap/cloud-functions/testing/test-invoices/G240133 INVOICE.pdf",
+]);
 
 // Function to upload a file with metadata
-async function uploadFileWithMetadata(filePath, userId) {
+async function uploadFileWithMetadata(filePath, userId, documentType) {
   const maxRetries = 10;
   let retryCount = 0;
   const baseDelay = 1000;
@@ -51,7 +53,7 @@ async function uploadFileWithMetadata(filePath, userId) {
 // Function to upload files in parallel
 async function uploadFiles() {
   const uploadPromises = files.map((file) =>
-    uploadFileWithMetadata(file, userId)
+    uploadFileWithMetadata(file, userId, documentType)
   );
   await Promise.all(uploadPromises);
   console.log("Upload complete.");
