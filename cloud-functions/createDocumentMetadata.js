@@ -125,7 +125,7 @@ async function addDocumentToBatch(docId, organization) {
             isFull: false,
             organization: organization,
             owner: null,
-            reviewers: [],
+            reviewer: "",
             timeCreated: Timestamp.now(),
             timeFinished: null,
           };

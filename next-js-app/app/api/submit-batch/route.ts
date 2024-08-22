@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Firestore, Timestamp } from "@google-cloud/firestore";
 
 export async function POST(req: NextRequest) {
-  const { batch, organization } = await req.json();
+  const { batch, organization, email } = await req.json();
 
   if (!batch) {
     return NextResponse.json(
@@ -12,6 +12,11 @@ export async function POST(req: NextRequest) {
   } else if (!organization) {
     return NextResponse.json(
       { acquired: false, error: "Missing organization" },
+      { status: 400 }
+    );
+  } else if (!email) {
+    return NextResponse.json(
+      { acquired: false, error: "Missing username" },
       { status: 400 }
     );
   }
@@ -44,10 +49,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const orgData = await firestore
+      .collection("organizations")
+      .doc(organization)
+      .get()
+      .then((doc) => doc.data());
+
     await batchRef.update({
       isCheckedOut: false,
       isFinished: true,
       timeFinished: Timestamp.now(),
+      reviewer: orgData.users.find((user) => user.email === email).name,
     });
 
     const documents = batchData.documents;

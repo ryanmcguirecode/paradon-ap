@@ -10,7 +10,7 @@ export interface Batch {
   isFinished: boolean;
   organization: string;
   owner: string;
-  reviewers: string[];
+  reviewer: string;
   timeCreated: string;
   timeFinished: string;
 }
