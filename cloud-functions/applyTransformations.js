@@ -185,13 +185,11 @@ async function applyTransformationsStatically(
             continue;
           }
           const defaultValueURI = encodeURIComponent(defaultValue);
-          console.log(defaultValueURI);
           let data = await fetchMappings(
             organization,
             transformationMetadata.id,
             defaultValueURI
           );
-          console.log(data);
           data = data.recordset;
           if (data.length > 0) {
             defaultValue = data[0].value;
