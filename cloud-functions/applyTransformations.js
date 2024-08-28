@@ -185,11 +185,13 @@ async function applyTransformationsStatically(
             continue;
           }
           const defaultValueURI = encodeURIComponent(defaultValue);
+          console.log(defaultValueURI);
           let data = await fetchMappings(
             organization,
             transformationMetadata.id,
             defaultValueURI
           );
+          console.log(data);
           data = data.recordset;
           if (data.length > 0) {
             defaultValue = data[0].value;
@@ -280,7 +282,11 @@ async function applyTransformationDynamically(
     if (transformation?.type === "lookup") {
       try {
         const defaultValueURI = encodeURIComponent(defaultValue);
-        let data = await fetchMappings(organization, transformationMetadata.id);
+        let data = await fetchMappings(
+          organization,
+          transformationMetadata.id,
+          defaultValueURI
+        );
         data = data.recordset;
         if (data.length > 0) {
           defaultValue = data[0].value;

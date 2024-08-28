@@ -1,6 +1,6 @@
 # npm start
 
-for i in {500..501}
+for i in {501..500}
 do
   curl -X POST http://localhost:8080 -H "Content-Type: application/json" -d '{
     "data": {
