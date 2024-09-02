@@ -218,7 +218,6 @@ export default function ReviewPage() {
       });
       setDocumentConfigs(mergedJson);
       setDocumentType(data[0].id);
-      console.log("im an indiot", data[0].id);
     }
 
     fetchDocumentConfigs();
@@ -253,6 +252,9 @@ export default function ReviewPage() {
     setTimeout(() => {
       setNextDisabled(false);
     }, 1000);
+    if (documents[documentIndex].documentType) {
+      setDocumentType(documents[documentIndex].documentType);
+    }
     setFinished(documentIndex === documents.length);
   }, [documentsFetched, documentIndex, documentConfigs]);
 
@@ -403,7 +405,6 @@ export default function ReviewPage() {
         continue;
       }
       const detectedFields = doc.detectedFields;
-      console.log(documentConfigs, doc.documentType);
       const fields = documentConfigs[doc?.documentType].fields;
       // convert documentConfigs to a list
 
@@ -533,7 +534,6 @@ export default function ReviewPage() {
     });
     router.push("/batches");
   };
-  console.log(documentConfigs, documentType);
 
   return (
     <NavigationLayout disabled={true}>
