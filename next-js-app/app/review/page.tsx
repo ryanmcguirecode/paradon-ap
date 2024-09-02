@@ -212,12 +212,13 @@ export default function ReviewPage() {
       });
 
       const data = await response.json();
-      const mergedJson: { [key: string]: DocumentConfig } = {};
+      var mergedJson: { [key: string]: DocumentConfig } = {};
       data.map((documentType: DocumentConfig) => {
-        mergedJson[documentType.displayName] = documentType;
+        mergedJson[documentType.id] = documentType;
       });
       setDocumentConfigs(mergedJson);
-      setDocumentType(data[0].displayName);
+      setDocumentType(data[0].id);
+      console.log("im an indiot", data[0].id);
     }
 
     fetchDocumentConfigs();
@@ -252,6 +253,7 @@ export default function ReviewPage() {
     setTimeout(() => {
       setNextDisabled(false);
     }, 1000);
+    setFinished(documentIndex === documents.length);
   }, [documentsFetched, documentIndex, documentConfigs]);
 
   // Reset input values when document or document type changes
@@ -401,7 +403,10 @@ export default function ReviewPage() {
         continue;
       }
       const detectedFields = doc.detectedFields;
+      console.log(documentConfigs, doc.documentType);
       const fields = documentConfigs[doc?.documentType].fields;
+      // convert documentConfigs to a list
+
       const transformations: Transformation[] = await fetchTransformations();
 
       for (const field of fields) {
@@ -451,13 +456,6 @@ export default function ReviewPage() {
     }
   }
 
-  useEffect(() => {
-    if (!documentsFetched || !documentConfigs || !documentType) {
-      return;
-    }
-    setFinished(documentIndex === documents.length);
-  }, [documentIndex]);
-
   const saveDocumentValues = async (kickOut: boolean) => {
     const newDocument = {
       ...documents[documentIndex],
@@ -482,7 +480,8 @@ export default function ReviewPage() {
     if (newDocumentIndex === documents.length - 1) {
       setFinished(true);
     } else {
-      setDocumentIndex(documentIndex + 1);
+      newDocumentIndex += 1;
+      setDocumentIndex(newDocumentIndex);
     }
     var response: any = await fetch("/api/save-batch-progress", {
       method: "POST",
@@ -491,7 +490,7 @@ export default function ReviewPage() {
       },
       body: JSON.stringify({
         batch: batchId,
-        documentIndex: newDocumentIndex + 1,
+        documentIndex: newDocumentIndex,
         document: newDocument,
         organization: organization,
       }),
@@ -534,6 +533,7 @@ export default function ReviewPage() {
     });
     router.push("/batches");
   };
+  console.log(documentConfigs, documentType);
 
   return (
     <NavigationLayout disabled={true}>
@@ -698,7 +698,7 @@ export default function ReviewPage() {
                 {documentConfigs && (
                   <Select
                     size="lg"
-                    defaultValue={"Invoice / Debit Memo"} // TODO: Change to first document type
+                    defaultValue={documentType || ""} // TODO: Change to first document type
                     startDecorator={<AssignmentOutlinedIcon />}
                     onChange={(event, newValue: string | null) => {
                       setDocumentType(newValue);
@@ -710,10 +710,7 @@ export default function ReviewPage() {
                     )}
                   >
                     {Object.values(documentConfigs).map((documentType) => (
-                      <Option
-                        key={documentType.id}
-                        value={documentType.displayName}
-                      >
+                      <Option key={documentType.id} value={documentType.id}>
                         <Typography level="body-lg" color="neutral">
                           {documentType.displayName}
                         </Typography>
