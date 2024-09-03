@@ -87,9 +87,8 @@ async function fetchDocumentConfig(documentType, orgRef) {
 }
 
 async function fetchMappings(organization, transformation, key) {
-  if (key) key = encodeURIComponent(key.toLowerCase());
-  organization = encodeURIComponent(organization);
-  transformation = encodeURIComponent(transformation?.toLowerCase());
+  organization = organization;
+  transformation = transformation?.toLowerCase();
 
   const db = await openInternalDB();
 
@@ -184,7 +183,7 @@ async function applyTransformationsStatically(
           if (!defaultValue) {
             continue;
           }
-          const defaultValueURI = encodeURIComponent(defaultValue);
+          const defaultValueURI = defaultValue;
           let data = await fetchMappings(
             organization,
             transformationMetadata.id,
@@ -279,7 +278,7 @@ async function applyTransformationDynamically(
 
     if (transformation?.type === "lookup") {
       try {
-        const defaultValueURI = encodeURIComponent(defaultValue);
+        const defaultValueURI = defaultValue;
         let data = await fetchMappings(
           organization,
           transformationMetadata.id,
